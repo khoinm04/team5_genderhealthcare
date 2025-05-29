@@ -41,5 +41,3 @@ firebase-config.js
 *.google.json
 *.service-account.json
 
-# Ignore secret properties
-src/main/resources/application-secret.properties
