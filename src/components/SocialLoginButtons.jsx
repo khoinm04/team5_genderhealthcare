@@ -3,27 +3,20 @@ import React from "react";
 export default function SocialLoginButtons() {
   return (
     <>
-      <span className="text-[#964F66] text-sm text-center my-1 mx-4">
-        Or continue with
+      <span className="text-[#964F66] text-sm text-center my-2">
+        Hoặc đăng nhập bằng
       </span>
-      <div className="flex items-center self-stretch py-[7px] px-3 gap-3 mx-4">
+      <div className="flex justify-center py-1">
         <button
-          className="flex flex-col shrink-0 items-start bg-[#F2E8EA] text-left py-[5px] px-4 rounded-xl border-0"
-          onClick={() => alert("Apple login pressed!")}
-        >
-          <span className="text-[#1C0C11] text-sm font-bold">Apple</span>
-        </button>
-        <button
-          className="flex flex-col shrink-0 items-start bg-[#F2E8EA] text-left py-[5px] px-4 rounded-xl border-0"
+          className="flex items-center justify-center bg-white border border-gray-300 text-[#3c4043] font-semibold text-sm rounded-xl px-6 py-2 w-[445px] hover:shadow-md transition-shadow"
           onClick={() => alert("Google login pressed!")}
         >
-          <span className="text-[#1C0C11] text-sm font-bold w-[40px]">Google</span>
-        </button>
-        <button
-          className="flex flex-col shrink-0 items-start bg-[#F2E8EA] text-left py-[5px] px-4 rounded-xl border-0"
-          onClick={() => alert("Facebook login pressed!")}
-        >
-          <span className="text-[#1C0C11] text-sm font-bold w-[60px]">Facebook</span>
+          <img
+            src="/image/google-logo.png"
+            alt="Google logo"
+            className="w-6 h-6 mr-2"
+          />
+          Đăng nhập bằng Google
         </button>
       </div>
     </>

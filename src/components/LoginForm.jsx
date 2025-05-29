@@ -2,17 +2,17 @@ import React from "react";
 
 export default function LoginForm({ onLogin }) {
   return (
-    <div className="flex flex-col items-start w-[960px] pt-5 pb-[134px]">
-      <span className="text-[#1C0C11] text-[32px] font-bold mt-4 mb-[17px] ml-4 mr-11">
-        Welcome back!
+    <div className="flex flex-col items-center w-full pt-5 pb">
+      <span className="text-[#1C0C11] text-[32px] font-bold mt-4 mb-[17px]">
+        Xin chào
       </span>
 
-      <div className="flex flex-col items-start py-3 px-4 gap-2">
+      <div className="flex flex-col items-center py-3 px-4 gap-2">
         <label
           htmlFor="username"
-          className="text-[#1C0C11] text-base font-bold mr-[301px]"
+          className="text-[#1C0C11] text-base font-bold self-start"
         >
-          Username or email
+          Tên đăng nhập hoặc email
         </label>
         <input
           id="username"
@@ -22,12 +22,12 @@ export default function LoginForm({ onLogin }) {
         />
       </div>
 
-      <div className="flex flex-col items-start py-3 px-4 gap-2">
+      <div className="flex flex-col items-center py-3 px-4 gap-2">
         <label
           htmlFor="password"
-          className="text-[#1C0C11] text-base font-bold mr-[374px]"
+          className="text-[#1C0C11] text-base font-bold self-start"
         >
-          Password
+          Mật khẩu
         </label>
         <input
           id="password"
@@ -37,15 +37,15 @@ export default function LoginForm({ onLogin }) {
         />
       </div>
 
-      <span className="text-[#964F66] text-sm my-1 ml-4 cursor-pointer">
-        Forgot password?
+      <span className="text-[#964F66] text-sm my-1 cursor-pointer">
+        Quên mật khẩu
       </span>
 
       <button
         onClick={onLogin}
-        className="flex flex-col items-center bg-[#E5195B] pt-3 pb-[13px] px-[216px] my-3 ml-4 rounded-xl text-[#FCF7F9] text-base font-bold"
+        className="flex flex-col items-center bg-[#E5195B] pt-3 pb-[13px] px-[180px] my-3 rounded-xl text-[#FCF7F9] text-base font-bold"
       >
-        Log in
+        Đăng nhập
       </button>
     </div>
   );

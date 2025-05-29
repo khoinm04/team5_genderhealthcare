@@ -1,13 +1,23 @@
-import React from "react"
+import React from "react";
 
-export default function ServiceCard({ title, description, icon }) {
+export default function ServiceCard({ title, description, icon, className }) {
   return (
-    <div className="flex flex-1 flex-col items-start bg-[#FCF7F9] py-[17px] gap-3 rounded-lg border border-solid border-[#E8D1D6]">
-      <img src={icon} alt={`${title} icon`} className="w-6 h-6 mx-[17px] object-fill" />
-      <div className="flex flex-col items-start self-stretch mx-[17px]">
-        <span className="text-[#1C0C11] text-base font-bold mb-[5px]">{title}</span>
-        <span className="text-[#964F66] text-sm mb-[1px]">{description}</span>
-      </div>
+    <div
+      className={`bg-white rounded-lg p-6 shadow-md hover:shadow-lg hover:scale-[1.03] transition-transform cursor-pointer flex flex-col items-center text-center ${className}`}
+    >
+      <img
+        src={icon}
+        alt={`${title} icon`}
+        className="w-14 h-14 mb-4 object-contain"
+      />
+      <h3 className="text-xl font-semibold mb-3">{title}</h3>
+      <p className="text-gray-600 mb-6">{description}</p>
+      <button
+        className="mt-auto bg-[#E5195B] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#c4124a] transition-colors"
+        onClick={() => alert(`Xem chi tiết dịch vụ: ${title}`)}
+      >
+        Xem chi tiết
+      </button>
     </div>
-  )
+  );
 }
