@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+
 ### STS ###
 .apt_generated
 .classpath
@@ -31,3 +32,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Google OAuth or Firebase
+google-services.json
+client_secret.json
+firebase-config.js
+*.credentials.json
+*.google.json
+*.service-account.json
