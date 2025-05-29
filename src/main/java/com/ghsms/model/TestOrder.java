@@ -20,7 +20,7 @@ public class TestOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "TestID")
-    private Integer testId;
+    private Long testId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CustomerID", nullable = false)

@@ -14,7 +14,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "Users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -60,10 +60,10 @@ public class User {
 
     // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
     // For StaffDetails and ConsultantDetails (OneToOne)
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "consultant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ConsultantDetails consultantDetails;
 
 

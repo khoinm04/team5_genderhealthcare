@@ -22,7 +22,7 @@ public class BlogPost {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "BlogID")
-    private Integer blogId;
+    private Long blogId;
 
     @Size(max = 255, message = "Title must be less than 255 characters")
     @Column(name = "Title", length = 255)

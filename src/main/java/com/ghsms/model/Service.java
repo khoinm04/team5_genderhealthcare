@@ -22,7 +22,7 @@ public class Service {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ServiceID")
-    private Integer serviceId;
+    private Long serviceId;
 
     @NotBlank(message = "Service name cannot be blank")
     @Size(max = 255, message = "Service name must be less than 255 characters")

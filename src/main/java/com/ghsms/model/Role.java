@@ -1,5 +1,6 @@
 package com.ghsms.model;
 
+import com.ghsms.file_enum.RoleType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

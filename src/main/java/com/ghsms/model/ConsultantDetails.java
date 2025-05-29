@@ -17,12 +17,12 @@ public class ConsultantDetails {
 
     @Id
     @Column(name = "ConsultantID")
-    private Integer consultantId;
+    private Long consultantId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId // Uses the ID of the User entity as the ID for ConsultantDetails
     @JoinColumn(name = "ConsultantID") // This is the FK column in ConsultantDetails table that references Users.UserID
-    private User user;
+    private User consultant;
 
     @Size(max = 100, message = "Specialization must be less than 100 characters")
     @Column(name = "Specialization", length = 100)

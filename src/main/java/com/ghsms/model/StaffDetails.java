@@ -21,12 +21,12 @@ public class StaffDetails {
     // This ID will be the same as the User's ID due to @MapsId on the 'user' field.
     // The column name in the DB is StaffID.
     @Column(name = "StaffID")
-    private Integer staffId;
+    private Long staffId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId // Uses the ID of the User entity as the ID for StaffDetails
     @JoinColumn(name = "StaffID") // This is the FK column in StaffDetails table that references Users.UserID
-    private User user;
+    private User staff;
 
     @Size(max = 50, message = "Position must be less than 50 characters")
     @Column(name = "Position", length = 50)

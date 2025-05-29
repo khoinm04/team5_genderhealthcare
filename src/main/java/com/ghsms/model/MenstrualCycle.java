@@ -20,7 +20,7 @@ public class MenstrualCycle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "CycleID")
-    private Integer cycleId;
+    private Long cycleId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CustomerID", nullable = false)

@@ -21,7 +21,7 @@ public class Report {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ReportID")
-    private Integer reportId;
+    private Long reportId;
 
     @Size(max = 50, message = "Report type must be less than 50 characters")
     @Column(name = "ReportType", length = 50)

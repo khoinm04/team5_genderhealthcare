@@ -1,4 +1,4 @@
-package com.ghsms.model;
+package com.ghsms.file_enum;
 
 public enum RoleType {
     ADMIN,
