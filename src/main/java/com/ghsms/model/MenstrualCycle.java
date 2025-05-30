@@ -11,12 +11,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "MenstrualCycles")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class MenstrualCycle {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "CycleID")
@@ -26,13 +22,22 @@ public class MenstrualCycle {
     @JoinColumn(name = "CustomerID", nullable = false)
     private User customer;
 
-    @Column(name = "StartDate")
+    @Column(name = "StartDate", nullable = false)
     private LocalDate startDate;
 
     @Column(name = "EndDate")
     private LocalDate endDate;
 
-    @Size(max = 255, message = "Notes must be less than 255 characters")
+    @Column(name = "CycleLength")
+    private Integer cycleLength;
+
+    @Column(name = "NextPredictedDate")
+    private LocalDate nextPredictedDate;
+
+    @Column(name = "OvulationDate")
+    private LocalDate ovulationDate;
+
+    @Size(max = 255)
     @Column(name = "Notes", length = 255)
     private String notes;
 }
