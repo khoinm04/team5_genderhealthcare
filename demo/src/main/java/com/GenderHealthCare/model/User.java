@@ -1,0 +1,70 @@
+package com.GenderHealthCare.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "UserID")
+    private Long userId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "RoleID",nullable = false)
+    private Role role;
+
+    @NotBlank(message = "Tên đầy đủ không được để trống")
+    @Size(max = 100, message = "tên nên ít hơn 100 ký tự")
+    @Column(name = "Name", length = 100)
+    private String name;
+
+    @Column(name = "ImageUrl", length = 255)
+    private String imageUrl; // URL to user's profile image, can be null
+
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "email không hợp lệ")
+    @Size(max = 100, message = "email nên ít hơn 100 ký tự")
+    @Column(name = "Email", nullable = false, unique = true, length = 100)
+    private String email;
+
+    @Column(name = "PasswordHash")
+    @Size(min = 6, max = 255)
+    private String passwordHash; // Validation depends on auth strategy
+
+    @Column(name = "PhoneNumber", length = 20)
+    @Pattern(regexp = "(84|0[3|5|7|8|9])+([0-9]{8})\\b", message = "số điện thoại không hợp lệ")
+    private String phoneNumber;
+
+    @Builder.Default
+    @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
+    private boolean isActive = true;
+
+//    @CreationTimestamp
+//    @Column(name = "CreatedAt", nullable = false, updatable = false)
+//    private LocalDateTime createdAt;
+
+    // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
+    // For StaffDetails and ConsultantDetails (OneToOne)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private StaffDetails staffDetails;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ConsultantDetails consultantDetails;
+
+
+}
