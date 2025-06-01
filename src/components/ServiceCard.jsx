@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../UserContext"; // cập nhật đường dẫn đúng
 
+
 export default function ServiceCard({ title, description, icon, className }) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -22,7 +23,6 @@ export default function ServiceCard({ title, description, icon, className }) {
       <p>Ở đây bạn có thể thêm các thông tin chi tiết khác như giá, lịch trình, hoặc hình ảnh.</p>
     </>
   );
-
 
   return (
     <>

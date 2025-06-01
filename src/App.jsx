@@ -32,5 +32,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
-  );
+  )
+// import các component khác nếu có
 }
