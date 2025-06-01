@@ -1,10 +1,11 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function Header() {
   const menuItems = [
     { name: "Trang chủ", path: "/" },
     { name: "Dịch vụ", path: "#services" },
-    { name: "Đặt lịch", path: "#services" }, // Cùng scroll xuống services
+    { name: "Đặt lịch", path: "#services" },
     { name: "Blog", path: "/blog" },
   ];
 
@@ -39,31 +40,31 @@ export default function Header() {
                 {name}
               </a>
             ) : (
-              <a
+              <Link
                 key={name}
-                href={path}
+                to={path}
                 className="text-[#1C0C11] text-sm font-bold hover:underline"
               >
                 {name}
-              </a>
+              </Link>
             )
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
           >
             Đăng nhập
-          </a>
+          </Link>
 
-          <a
-            href="/register"
+          <Link
+            to="/register"
             className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
           >
             Đăng ký
-          </a>
+          </Link>
         </div>
 
         <img
