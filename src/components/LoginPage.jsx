@@ -1,39 +1,32 @@
+// LoginPage.jsx
 import React from "react";
 import LoginForm from "./LoginForm";
 import SocialLoginButtons from "./SocialLoginButtons";
+import { Link } from "react-router-dom";
 
 export default function LoginPage() {
-  function handleLogin() {
-    alert("Log in pressed!");
+  // Hàm xử lý đăng nhập giả lập
+  function handleLogin(username, password) {
+    alert(`Đăng nhập với username: ${username}, mật khẩu: ${password}`);
+    // Sau này sẽ gọi API login ở đây
   }
 
   return (
-    <div className="flex flex-col justify-endbg-cyan-50">
-      <div className="self-stretch bg-gray-200 h-auto min-h-screen  ">
-        <div className="self-stretch">
-          <div className="flex items-center self-stretch py-3 pl-10 gap-4 bg-gray-300 ">
-            <div className="w-4 h-4"></div>
-            <span className="text-[#1C0C11] text-lg font-bold mb-[1px]">
-              Dịch vụ chăm sóc sức khỏe giới tính
-            </span>
-          </div>
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <div className="bg-gray-300 py-3 px-10 flex items-center">
+        <span className="text-[#1C0C11] text-lg font-bold">Dịch vụ chăm sóc sức khỏe giới tính</span>
+      </div>
 
-          <div className="flex flex-col items-center self-stretch py-5">
-            <LoginForm onLogin={handleLogin} />
-            <SocialLoginButtons />
+      <div className="flex flex-col items-center flex-grow py-10 px-4">
+        <LoginForm onLogin={handleLogin} />
+        <SocialLoginButtons />
 
-            <span className="text-[#964F66] text-sm text-center my-1 mx-4">
-              Chưa có tài khoản?
-            </span>
-
-            <button
-              className="flex flex-col items-center bg-[#F2E8EA] pt-3 pb-[13px] px-[200px] my-3 ml-4 rounded-xl text-[#1C0C11] text-base font-bold"
-              onClick={() => alert("Sign up pressed!")}
-            >
-              Đăng ký
-            </button>
-          </div>
-        </div>
+        <p className="text-[#964F66] text-sm text-center my-4">
+          Chưa có tài khoản?{" "}
+          <Link to="/register" className="text-[#8C66D9] hover:underline">
+            Đăng ký
+          </Link>
+        </p>
       </div>
     </div>
   );

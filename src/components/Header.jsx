@@ -1,14 +1,23 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 export default function Header() {
-  // Tạo mảng menu với tên và đường dẫn tương ứng
   const menuItems = [
     { name: "Trang chủ", path: "/" },
-    { name: "Dịch vụ", path: "/services" },
-    { name: "Đặt lịch", path: "/booking" },
+    { name: "Dịch vụ", path: "#services" },
+    { name: "Đặt lịch", path: "#services" }, // Cùng scroll xuống services
     { name: "Blog", path: "/blog" },
   ];
+
+  const handleScroll = (e, path) => {
+    if (path.startsWith("#")) {
+      e.preventDefault();
+      const id = path.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
 
   return (
     <div className="flex items-center self-stretch py-3 px-10 bg-gray-300">
@@ -19,31 +28,42 @@ export default function Header() {
 
       <div className="flex flex-1 justify-between items-center">
         <div className="flex shrink-0 items-center py-[9px] pr-0.5 ml-[326px] gap-[39px]">
-          {menuItems.map(({ name, path }) => (
-            <Link
-              key={name}
-              to={path}
-              className="text-[#1C0C11] text-sm font-bold hover:underline"
-            >
-              {name}
-            </Link>
-          ))}
+          {menuItems.map(({ name, path }) =>
+            path.startsWith("#") ? (
+              <a
+                key={name}
+                href={path}
+                onClick={(e) => handleScroll(e, path)}
+                className="text-[#1C0C11] text-sm font-bold hover:underline cursor-pointer"
+              >
+                {name}
+              </a>
+            ) : (
+              <a
+                key={name}
+                href={path}
+                className="text-[#1C0C11] text-sm font-bold hover:underline"
+              >
+                {name}
+              </a>
+            )
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            to="/login"
+          <a
+            href="/login"
             className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
           >
             Đăng nhập
-          </Link>
+          </a>
 
-          <Link
-            to="/register"
+          <a
+            href="/register"
             className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
           >
             Đăng ký
-          </Link>
+          </a>
         </div>
 
         <img

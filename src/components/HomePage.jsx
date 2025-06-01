@@ -1,17 +1,23 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Services from "./Services";
-import UserGroups from "./userGroups"; // Thay BlogList bằng UserGroups
+import UserGroups from "./userGroups";
 import Footer from "./Footer";
 
-
 export default function HomePage() {
+  const navigate = useNavigate();
+
+  const handleStartClick = () => {
+    navigate("/login");
+  };
+
   return (
     <div className="flex flex-col bg-white min-h-screen">
       <div className="self-stretch bg-gray-100 min-h-screen">
         <Header />
 
-        {/* Hero Section với ảnh nền mới và nội dung mới */}
+        {/* Hero Section */}
         <section
           className="relative w-full h-[512px] flex items-center justify-center text-center px-4"
           style={{
@@ -21,10 +27,8 @@ export default function HomePage() {
             backgroundPosition: "center",
           }}
         >
-          {/* Overlay đen mờ */}
           <div className="absolute inset-0 bg-black opacity-50"></div>
 
-          {/* Nội dung hero */}
           <div className="relative max-w-3xl text-white">
             <h1 className="text-5xl font-extrabold mb-6 drop-shadow-lg">
               Chăm sóc sức khỏe giới tính toàn diện
@@ -33,19 +37,22 @@ export default function HomePage() {
               Hỗ trợ bạn theo dõi chu kỳ sinh sản, đặt lịch tư vấn và quản lý
               dịch vụ y tế dễ dàng.
             </p>
-            <button className="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors">
+            <button
+              onClick={handleStartClick}
+              className="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors"
+            >
               Bắt đầu ngay
             </button>
           </div>
         </section>
 
         {/* Phần dịch vụ */}
-        <section className="max-w-[960px] mx-auto px-4 py-10">
+        <section id="services" className="max-w-[960px] mx-auto px-4 py-10">
           <h2 className="text-[#1C0C11] text-4xl font-bold mb-4">Dịch Vụ</h2>
           <Services />
         </section>
 
-        {/* Phần các nhóm xét nghiệm chăm sóc sức khỏe toàn diện */}
+        {/* Phần các nhóm xét nghiệm */}
         <section className="max-w-[960px] mx-auto px-4 py-10">
           <h2 className="text-[#1C0C11] text-2xl font-bold mb-4">
             Các nhóm xét nghiệm chăm sóc sức khỏe toàn diện
