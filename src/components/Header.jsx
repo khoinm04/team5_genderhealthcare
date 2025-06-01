@@ -1,10 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function Header() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/gender-health-care/signingoogle", {
+        withCredentials: true,
+      })
+      .then((res) => setUser(res.data.user))
+      .catch(() => setUser(null));
+  }, []);
+
   const menuItems = [
     { name: "Trang chủ", path: "/" },
     { name: "Dịch vụ", path: "#services" },
-    { name: "Đặt lịch", path: "#services" }, // Cùng scroll xuống services
+    { name: "Đặt lịch", path: "#services" },
     { name: "Blog", path: "/blog" },
   ];
 
@@ -51,19 +63,31 @@ export default function Header() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <a
-            href="/login"
-            className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng nhập
-          </a>
-
-          <a
-            href="/register"
-            className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng ký
-          </a>
+          {user ? (
+            <>
+              <span className="font-bold">{user.name}</span>
+              <img
+                src={user.imageUrl}
+                alt="avatar"
+                className="w-10 h-10 rounded-full"
+              />
+            </>
+          ) : (
+            <>
+              <a
+                href="http://localhost:8080/oauth2/authorization/google"
+                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
+              >
+                Đăng nhập
+              </a>
+              <a
+                href="/register"
+                className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
+              >
+                Đăng ký
+              </a>
+            </>
+          )}
         </div>
 
         <img
