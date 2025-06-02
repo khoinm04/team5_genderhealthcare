@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../UserContext"; // cập nhật đường dẫn đúng
-
+import { useUser } from "../UserContext";
+import ConsultationBooking from "./ConsultationBooking"; // Import the ConsultationBooking component
 
 export default function ServiceCard({ title, description, icon, className }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,13 +16,29 @@ export default function ServiceCard({ title, description, icon, className }) {
     setIsOpen(true);
   };
 
-  const renderModalContent = () => (
-    <>
-      <h2 className="text-2xl font-bold mb-4">{title}</h2>
-      <p>{description}</p>
-      <p>Ở đây bạn có thể thêm các thông tin chi tiết khác như giá, lịch trình, hoặc hình ảnh.</p>
-    </>
-  );
+  const renderModalContent = () => {
+    // Special handling for consultation booking service
+    if (title === "Đặt lịch tư vấn trực tuyến") {
+      return <ConsultationBooking onClose={() => setIsOpen(false)} />;
+    }
+    
+    // Default content for other services
+    return (
+      <>
+        <h2 className="text-2xl font-bold mb-4">{title}</h2>
+        <p>{description}</p>
+        <p>Ở đây bạn có thể thêm các thông tin chi tiết khác như giá, lịch trình, hoặc hình ảnh.</p>
+      </>
+    );
+  };
+
+  // Special modal size for consultation booking
+  const getModalClass = () => {
+    if (title === "Đặt lịch tư vấn trực tuyến") {
+      return "bg-white rounded-lg max-w-5xl mx-4 relative overflow-auto max-h-[90vh] w-full";
+    }
+    return "bg-white rounded-lg p-6 max-w-lg mx-4 relative overflow-auto max-h-[80vh]";
+  };
 
   return (
     <>
@@ -41,7 +57,7 @@ export default function ServiceCard({ title, description, icon, className }) {
           className="mt-auto bg-[#E5195B] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#c4124a] transition-colors"
           onClick={handleViewDetails}
         >
-          Xem chi tiết
+          {title === "Đặt lịch tư vấn trực tuyến" ? "Đặt lịch ngay" : "Xem chi tiết"}
         </button>
       </div>
 
@@ -51,16 +67,19 @@ export default function ServiceCard({ title, description, icon, className }) {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-lg mx-4 relative overflow-auto max-h-[80vh]"
+            className={getModalClass()}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close modal"
-            >
-              ✖
-            </button>
+            {/* Only show close button for non-consultation booking modals */}
+            {title !== "Đặt lịch tư vấn trực tuyến" && (
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close modal"
+              >
+                ✖
+              </button>
+            )}
 
             {renderModalContent()}
           </div>
