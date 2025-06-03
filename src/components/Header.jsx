@@ -1,7 +1,18 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function Header() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/gender-health-care/signingoogle", {
+        withCredentials: true,
+      })
+      .then((res) => setUser(res.data.user))
+      .catch(() => setUser(null));
+  }, []);
+
   const menuItems = [
     { name: "Trang chủ", path: "/" },
     { name: "Dịch vụ", path: "#services" },
@@ -40,31 +51,43 @@ export default function Header() {
                 {name}
               </a>
             ) : (
-              <Link
+              <a
                 key={name}
-                to={path}
+                href={path}
                 className="text-[#1C0C11] text-sm font-bold hover:underline"
               >
                 {name}
-              </Link>
+              </a>
             )
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            to="/login"
-            className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng nhập
-          </Link>
-
-          <Link
-            to="/register"
-            className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng ký
-          </Link>
+          {user ? (
+            <>
+              <span className="font-bold">{user.name}</span>
+              <img
+                src={user.imageUrl}
+                alt="avatar"
+                className="w-10 h-10 rounded-full"
+              />
+            </>
+          ) : (
+            <>
+              <a
+                href="http://localhost:8080/oauth2/authorization/google"
+                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
+              >
+                Đăng nhập
+              </a>
+              <a
+                href="/register"
+                className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
+              >
+                Đăng ký
+              </a>
+            </>
+          )}
         </div>
 
         <img
