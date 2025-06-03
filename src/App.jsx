@@ -6,7 +6,6 @@ import BlogPage from "./components/BlogPage";
 import LoginPage from "./components/LoginPage";
 import { UserContext } from "./UserContext";
 import ConsultationBooking from "./components/ConsultationBooking";
-import './App.css';
 
 
 export default function App() {
@@ -32,7 +31,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/login" element={<LoginPage />} />
-        
+
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>                                                                                                                                     

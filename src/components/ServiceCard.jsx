@@ -13,7 +13,7 @@ export default function ServiceCard({ title, description, icon, className }) {
       navigate("/login");
       return;
     }
-    setIsOpen(true);
+     navigate("/booking");
   };
 
   const renderModalContent = () => {

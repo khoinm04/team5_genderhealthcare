@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle } from 'lucide-react';
 
 const ConsultationBooking = ({ onClose }) => {
+ 
+
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
