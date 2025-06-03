@@ -75,7 +75,7 @@ export default function Header() {
           ) : (
             <>
               <a
-                href="http://localhost:8080/oauth2/authorization/google"
+                href="/login"
                 className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
               >
                 Đăng nhập

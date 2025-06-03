@@ -1,19 +1,24 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../UserContext"; // cập nhật đường dẫn đúng
+import { useUser } from "../UserContext";
 
-
-export default function ServiceCard({ title, description, icon, className }) {
+export default function ServiceCard({ title, description, icon, className, navigateTo }) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useUser(); 
+  const { user } = useUser();
 
   const handleViewDetails = () => {
     if (!user) {
       navigate("/login");
       return;
     }
-     navigate("/booking");
+    setIsOpen(true); // mở modal, không chuyển trang
+  };
+
+  const handleConfirm = () => {
+    // Khi người dùng bấm nút xác nhận trong modal, điều hướng đến trang chi tiết
+    navigate(navigateTo);
+    setIsOpen(false);
   };
 
   const renderModalContent = () => (
@@ -21,6 +26,12 @@ export default function ServiceCard({ title, description, icon, className }) {
       <h2 className="text-2xl font-bold mb-4">{title}</h2>
       <p>{description}</p>
       <p>Ở đây bạn có thể thêm các thông tin chi tiết khác như giá, lịch trình, hoặc hình ảnh.</p>
+      <button
+        onClick={handleConfirm}
+        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Đặt lịch dịch vụ
+      </button>
     </>
   );
 
