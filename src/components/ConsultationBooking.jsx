@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle } from 'lucide-react';
+import axios from 'axios';
 
 const ConsultationBooking = ({ onClose }) => {
    useState(() => {
@@ -111,7 +112,7 @@ const ConsultationBooking = ({ onClose }) => {
     }
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (canProceedToNextStep()) {
       const newAppointment = {
         id: Date.now(),
@@ -122,22 +123,17 @@ const ConsultationBooking = ({ onClose }) => {
         status: 'confirmed',
         createdAt: new Date().toLocaleString('vi-VN')
       };
-      
-      setAppointments(prev => [...prev, newAppointment]);
-      setLatestBooking(newAppointment);
-      setShowSuccess(true);
-      
-      // Reset form
-      setCurrentStep(1);
-      setSelectedService(null);
-      setSelectedDate('');
-      setSelectedTime('');
-      setContactInfo({
-        fullName: '',
-        phone: '',
-        email: '',
-        notes: ''
-      });
+
+      try {
+        const response = await axios.post('http://localhost:8080/api/bookings', newAppointment);
+        console.log('Đặt lịch thành công:', response.data);
+        setAppointments([...appointments, newAppointment]);
+        setLatestBooking(newAppointment);
+        setShowSuccess(true);
+      } catch (error) {
+        console.error('Lỗi khi gửi đặt lịch:', error);
+        alert("Có lỗi xảy ra khi đặt lịch.");
+      }
     }
   };
 

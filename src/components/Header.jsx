@@ -13,6 +13,15 @@ export default function Header() {
       .catch(() => setUser(null));
   }, []);
 
+  const handleLogout = () => {
+    axios
+      .post("http://localhost:8080/gender-health-care/logout", {}, {
+        withCredentials: true,
+      })
+      .then(() => setUser(null))
+      .catch((err) => console.error("Logout failed", err));
+  };
+
   const menuItems = [
     { name: "Trang chủ", path: "/" },
     { name: "Dịch vụ", path: "#services" },
@@ -71,6 +80,12 @@ export default function Header() {
                 alt="avatar"
                 className="w-10 h-10 rounded-full"
               />
+              <button
+              onClick={handleLogout}
+              className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+    >
+      Đăng xuất
+    </button>
             </>
           ) : (
             <>

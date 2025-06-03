@@ -9,6 +9,8 @@ import ConsultationBooking from "./components/ConsultationBooking";
 import STIBookingPage from "./components/STIBookingPage";
 import MenstrualBookingPage from "./components/MenstrualBookingPage";
 import Services from "./components/Services";
+import Register from "./components/register";
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
           <Route path="/booking/menstrual" element={<MenstrualBookingPage />} />
           <Route path="/booking/sti" element={<STIBookingPage />} />  
+          <Route path="/register" element={<Register />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
