@@ -1,7 +1,31 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function Header() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8080/gender-health-care/signingoogle", {
+        withCredentials: true,
+      })
+      .then((res) => setUser(res.data.user))
+      .catch(() => setUser(null));
+  }, []);
+
+  const handleLogout = () => {
+    axios
+      .post(
+        "http://localhost:8080/gender-health-care/logout",
+        {},
+        {
+          withCredentials: true,
+        }
+      )
+      .then(() => setUser(null))
+      .catch((err) => console.error("Logout failed", err));
+  };
+
   const menuItems = [
     { name: "Trang chủ", path: "/" },
     { name: "Dịch vụ", path: "#services" },
@@ -21,10 +45,16 @@ export default function Header() {
   };
 
   return (
-    <div className="flex items-center self-stretch py-3 px-10 bg-gray-300">
+    <div
+      className="flex items-center self-stretch py-3 px-10"
+      style={{ backgroundColor: "#ffd6e7" }}
+    >
       <div className="w-4 h-4 mr-4"></div>
-      <span className="text-[#1C0C11] text-lg font-bold mr-0.5">
-        Dịch vụ chăm sóc sức khỏe giới tính
+      <span
+        style={{ color: "#061178", fontFamily: "'Poppins', sans-serif" }}
+        className="text-lg font-light tracking-tight mr-1"
+      >
+        DỊCH VỤ CHĂM SÓC SỨC KHỎE GIỚI TÍNH
       </span>
 
       <div className="flex flex-1 justify-between items-center">
@@ -35,36 +65,61 @@ export default function Header() {
                 key={name}
                 href={path}
                 onClick={(e) => handleScroll(e, path)}
-                className="text-[#1C0C11] text-sm font-bold hover:underline cursor-pointer"
+                style={{ color: "#061178", textDecoration: "none" }}
+                className="text-sm font-bold cursor-pointer transition-transform transition-colors duration-300 ease-in-out hover:text-pink-600 hover:scale-110"
               >
                 {name}
               </a>
             ) : (
-              <Link
+              <a
                 key={name}
-                to={path}
-                className="text-[#1C0C11] text-sm font-bold hover:underline"
+                href={path}
+                style={{ color: "#061178", textDecoration: "none" }}
+                className="text-sm font-bold transition-transform transition-colors duration-300 ease-in-out hover:text-pink-600 hover:scale-110"
               >
                 {name}
-              </Link>
+              </a>
             )
           )}
         </div>
+        
+        <button
+          onClick={handleLogout}
+          className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+        >
+          Đăng xuất
+        </button>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            to="/login"
-            className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng nhập
-          </Link>
-
-          <Link
-            to="/register"
-            className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
-          >
-            Đăng ký
-          </Link>
+          {user ? (
+            <>
+              <span style={{ color: "#061178" }} className="font-bold">
+                {user.name}
+              </span>
+              <img
+                src={user.imageUrl}
+                alt="avatar"
+                className="w-10 h-10 rounded-full"
+              />
+            </>
+          ) : (
+            <>
+              <a
+                href="http://localhost:8080/oauth2/authorization/google"
+                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline shadow-md transition transform hover:bg-[#734ebf] hover:scale-105 hover:shadow-lg"
+                style={{ textDecoration: "none" }}
+              >
+                Đăng nhập
+              </a>
+              {/* <a
+                href="/register"
+                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline shadow-md transition transform hover:bg-[#a28fd9] hover:scale-105 hover:shadow-lg"
+                style={{ textDecoration: "none" }}
+              >
+                Đăng ký
+              </a> */}
+            </>
+          )}
         </div>
 
         <img
