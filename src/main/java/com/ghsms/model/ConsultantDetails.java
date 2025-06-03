@@ -7,13 +7,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 @Entity
 @Table(name = "ConsultantDetails")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConsultantDetails {
+public class ConsultantDetails implements Serializable {
 
     @Id
     @Column(name = "ConsultantID")

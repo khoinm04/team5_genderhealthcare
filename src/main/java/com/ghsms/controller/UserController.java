@@ -1,54 +1,89 @@
 package com.ghsms.controller;
 
+import com.ghsms.DTO.UserDTO;
+import com.ghsms.model.Root;
 import com.ghsms.model.User;
+import com.ghsms.service.CustomOAuth2UserService;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
-@RequestMapping("/api")
+@RequestMapping(value = "/gender-health-care", produces = "application/json;charset=UTF-8")
+@RequiredArgsConstructor
 public class UserController {
+    private final CustomOAuth2UserService customOAuth2UserService;
 
-    @GetMapping("/user/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body("Người dùng chưa được xác thực.");
+    @GetMapping("/signingoogle")
+    public ResponseEntity<?> currentuser(Authentication authentication,
+                                         HttpSession session) {
+        if (authentication == null || !(authentication instanceof OAuth2AuthenticationToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
         }
+        OAuth2AuthenticationToken oAuth2AuthenticationToken = (OAuth2AuthenticationToken) authentication;
+        Root userInfo = toPerson(oAuth2AuthenticationToken.getPrincipal().getAttributes());
 
-        CurrentUserResponse response = new CurrentUserResponse(
-                currentUser.getUserId(),
-                currentUser.getFullName(),
-                currentUser.getEmail(),
-                currentUser.getImageUrl(),
-                Set.of(currentUser.getRole().getDisplayName())
-        );
-        return ResponseEntity.ok(response);
+        try {
+            User savedUser = customOAuth2UserService.processOAuthPostLogin(
+                    userInfo.getEmail(),
+                    userInfo.getName(),
+                    userInfo.getPicture()
+            );
+
+            // Store user in session
+            session.setAttribute("currentUser", savedUser);
+            // chuyen sang DTO
+            UserDTO userDTO = new UserDTO(savedUser);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON) // MediaType.APPLICATION_JSON_UTF8 đã deprecated rồi nhé
+                    .body(Map.of(
+                            "message", "Đăng nhập thành công",
+                            "user", userDTO,
+                            "redirectUrl", "http://localhost:5173",
+                            "sessionId", session.getId()
+                    ));
+
+        } catch (Exception e) {
+            e.printStackTrace(); // ← xem lỗi chi tiết
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng nhập thất bại");
+
+        }
     }
 
-    @GetMapping("/admin/greeting")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public String adminGreeting() {
-        return "Xin chào Quản trị viên từ API!";
+    @GetMapping("/current-session")
+    public ResponseEntity<?> getCurrentSession(HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser != null) {
+            return ResponseEntity.ok(currentUser);
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No active session");
     }
 
-    static class CurrentUserResponse {
-        public Long id;
-        public String name;
-        public String email;
-        public String imageUrl;
-        public Set<String> roles;
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
+        session.invalidate();
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
 
-        public CurrentUserResponse(Long id, String name, String email, String imageUrl, Set<String> roles) {
-            this.id = id;
-            this.name = name;
-            this.email = email;
-            this.imageUrl = imageUrl;
-            this.roles = roles;
+
+    public Root toPerson(Map<String, Object> map) {
+        if (map == null || map.isEmpty()) {
+            return null;
         }
+        Root root = new Root();
+        root.setEmail((String) map.get("email"));
+        root.setName((String) map.get("name"));
+        root.setPicture((String) map.get("picture"));
+        return root;
     }
 }

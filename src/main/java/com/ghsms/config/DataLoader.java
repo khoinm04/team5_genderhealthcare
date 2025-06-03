@@ -3,7 +3,7 @@ package com.ghsms.config;
 import com.ghsms.file_enum.BookingStatus;
 import com.ghsms.model.Booking;
 import com.ghsms.model.Role;
-import com.ghsms.file_enum.RoleType;
+import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.Service;
 import com.ghsms.model.User;
 import com.ghsms.repository.*;
@@ -22,11 +22,11 @@ public class DataLoader {
     CommandLineRunner initDatabase(RoleRepository roleRepository) {
         return args -> {
             if (roleRepository.count() == 0) {
-                roleRepository.save(new Role(RoleType.ADMIN, "Admin"));
-                roleRepository.save(new Role(RoleType.MANAGER, "Manager"));
-                roleRepository.save(new Role(RoleType.STAFF, "Staff"));
-                roleRepository.save(new Role(RoleType.CONSULTANT, "Consultant"));
-                roleRepository.save(new Role(RoleType.CUSTOMER, "Customer"));
+                roleRepository.save(new Role(RoleName.ADMIN, "Admin"));
+                roleRepository.save(new Role(RoleName.MANAGER, "Manager"));
+                roleRepository.save(new Role(RoleName.STAFF, "Staff"));
+                roleRepository.save(new Role(RoleName.CONSULTANT, "Consultant"));
+                roleRepository.save(new Role(RoleName.CUSTOMER, "Customer"));
             }
         };
     }

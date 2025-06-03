@@ -1,25 +1,28 @@
 package com.ghsms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.ghsms.model.ConsultantDetails;
+import com.ghsms.model.StaffDetails;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Users")
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+@Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,43 +30,48 @@ public class User {
     private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RoleID")
+    @JoinColumn(name = "RoleID",nullable = false)
     private Role role;
 
-    @Size(max = 100, message = "Full name must be less than 100 characters")
-    @Column(name = "FullName", length = 100)
-    private String fullName;
+    @NotBlank(message = "Tên đầy đủ không được để trống")
+    @Size(max = 100, message = "tên nên ít hơn 100 ký tự")
+    @Column(name = "Name", length = 100)
+    private String name;
 
     @Column(name = "ImageUrl", length = 255)
     private String imageUrl; // URL to user's profile image, can be null
 
-    @NotBlank(message = "Email cannot be blank")
-    @Email(message = "Invalid email format")
-    @Size(max = 100, message = "Email must be less than 100 characters")
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "email không hợp lệ")
+    @Size(max = 100, message = "email nên ít hơn 100 ký tự")
     @Column(name = "Email", nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "PasswordHash", length = 255)
+    @Column(name = "PasswordHash")
+    @Size(min = 6, max = 255)
     private String passwordHash; // Validation depends on auth strategy
 
-    @Size(max = 20, message = "Phone number must be less than 20 characters")
     @Column(name = "PhoneNumber", length = 20)
-    @Pattern(regexp = "(84|0[3|5|7|8|9])+([0-9]{8})\\b", message = "Phone number is not valid")
+    @Pattern(regexp = "(84|0[3|5|7|8|9])+([0-9]{8})\\b", message = "số điện thoại không hợp lệ")
     private String phoneNumber;
 
+    @Builder.Default
     @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
     private boolean isActive = true;
 
-    @CreationTimestamp
-    @Column(name = "CreatedAt", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+//    @CreationTimestamp
+//    @Column(name = "CreatedAt", nullable = false, updatable = false)
+//    private LocalDateTime createdAt;
 
     // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
     // For StaffDetails and ConsultantDetails (OneToOne)
-    @OneToOne(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+
+    @Transient
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;
 
-    @OneToOne(mappedBy = "consultant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Transient
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ConsultantDetails consultantDetails;
 
 
