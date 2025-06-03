@@ -52,7 +52,7 @@ export default function Header() {
       <div className="w-4 h-4 mr-4"></div>
       <span
         style={{ color: "#061178", fontFamily: "'Poppins', sans-serif" }}
-        className="text-lg font-light tracking-tight mr-1"
+        className="text-lg font-medium tracking-tight mr-1"
       >
         DỊCH VỤ CHĂM SÓC SỨC KHỎE GIỚI TÍNH
       </span>
@@ -82,13 +82,6 @@ export default function Header() {
             )
           )}
         </div>
-        
-        <button
-          onClick={handleLogout}
-          className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
-        >
-          Đăng xuất
-        </button>
 
         <div className="flex shrink-0 items-center gap-2">
           {user ? (
@@ -101,6 +94,12 @@ export default function Header() {
                 alt="avatar"
                 className="w-10 h-10 rounded-full"
               />
+              <button
+                onClick={handleLogout}
+                className="bg-green-600 text-white py-2 px-5 rounded-full text-sm font-semibold shadow-md transition duration-300 ease-in-out hover:bg-green-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
+              >
+                Đăng xuất
+              </button>
             </>
           ) : (
             <>
@@ -111,13 +110,13 @@ export default function Header() {
               >
                 Đăng nhập
               </a>
-              {/* <a
+              <a
                 href="/register"
                 className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline shadow-md transition transform hover:bg-[#a28fd9] hover:scale-105 hover:shadow-lg"
                 style={{ textDecoration: "none" }}
               >
                 Đăng ký
-              </a> */}
+              </a>
             </>
           )}
         </div>

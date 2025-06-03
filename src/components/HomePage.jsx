@@ -38,7 +38,6 @@ export default function HomePage() {
     setCurrentSlide(index);
   };
 
-  // Tính transform theo slide hiện tại
   const translateX = `-${currentSlide * 100}%`;
 
   return (
@@ -75,19 +74,22 @@ export default function HomePage() {
           </div>
 
           {/* Dots navigation */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex space-x-4">
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3">
             {slides.map((slide, index) => (
               <button
                 key={slide.id}
                 onClick={() => handleDotClick(index)}
-                className={`w-12 h-12 border-2 border-white flex items-center justify-center rounded-full transition-all duration-300 ease-in-out
-          ${
-            currentSlide === index
-              ? "bg-white text-[#061178]"
-              : "text-white hover:bg-white hover:text-[#061178] hover:shadow-lg hover:scale-110"
-          }
-        `}
                 aria-label={`Chuyển đến trang ${slide.id}`}
+                className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center p-0 text-lg font-semibold transition
+        duration-300 ease-in-out
+        ${
+          currentSlide === index
+            ? "bg-white text-[#061178]"
+            : "text-white hover:bg-white hover:text-[#061178] hover:shadow-lg hover:scale-110"
+        }
+      `}
+                style={{ userSelect: "none" }}
+                type="button"
               >
                 {slide.id}
               </button>
