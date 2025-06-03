@@ -5,6 +5,7 @@ import HomePage from "./components/HomePage";
 import BlogPage from "./components/BlogPage";
 import LoginPage from "./components/LoginPage";
 import { UserContext } from "./UserContext";
+import ConsultationBooking from "./components/ConsultationBooking";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/booking" element={<ConsultationBooking />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
