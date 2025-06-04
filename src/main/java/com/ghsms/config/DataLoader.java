@@ -1,6 +1,7 @@
 package com.ghsms.config;
 
 import com.ghsms.file_enum.BookingStatus;
+import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.model.Booking;
 import com.ghsms.model.Role;
 import com.ghsms.file_enum.RoleName;
@@ -12,6 +13,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -32,20 +34,36 @@ public class DataLoader {
     }
 
     @Bean
-    CommandLineRunner loadData(BookingRepository bookingRepo, UserRepository userRepo, ServiceRepository serviceRepo) {
+    CommandLineRunner loadServices(ServiceRepository serviceRepo) {
         return args -> {
-            Optional<User> userOpt = userRepo.findById(1L);
-            Optional<Service> serviceOpt = serviceRepo.findById(1L);
+            if (serviceRepo.count() == 0) {
+                Service generalConsultation = new Service();
+                generalConsultation.setServiceName("General Consultation");
+                generalConsultation.setCategory(ServiceBookingCategory.GENERAL_CONSULTATION);
+                generalConsultation.setPrice(new BigDecimal("50.00"));
+                generalConsultation.setDescription("Regular health checkup and consultation");
+                serviceRepo.save(generalConsultation);
 
-            if (userOpt.isPresent() && serviceOpt.isPresent()) {
-                User user = userOpt.get();
-                Service service = serviceOpt.get();
+                Service specialistConsultation = new Service();
+                specialistConsultation.setServiceName("Specialist Consultation");
+                specialistConsultation.setCategory(ServiceBookingCategory.SPECIALIST_CONSULTATION);
+                specialistConsultation.setPrice(new BigDecimal("100.00"));
+                specialistConsultation.setDescription("Consultation with specialist doctor");
+                serviceRepo.save(specialistConsultation);
 
-                bookingRepo.save(new Booking(null, user, service, LocalDate.now(), "09:00-10:00", BookingStatus.CONFIRMED, null));
-                bookingRepo.save(new Booking(null, user, service, LocalDate.now(), "10:00-11:00", BookingStatus.COMPLETED, null));
-                bookingRepo.save(new Booking(null, user, service, LocalDate.now(), "11:00-12:00", BookingStatus.CANCELED, null));
-            } else {
-                System.out.println("Thiếu user hoặc service trong database. Không thể tạo booking mẫu.");
+                Service reExamination = new Service();
+                reExamination.setServiceName("Re-examination");
+                reExamination.setCategory(ServiceBookingCategory.RE_EXAMINATION);
+                reExamination.setPrice(new BigDecimal("30.00"));
+                reExamination.setDescription("Follow-up consultation");
+                serviceRepo.save(reExamination);
+
+                Service emergencyConsultation = new Service();
+                emergencyConsultation.setServiceName("Emergency Consultation");
+                emergencyConsultation.setCategory(ServiceBookingCategory.EMERGENCY_CONSULTATION);
+                emergencyConsultation.setPrice(new BigDecimal("150.00"));
+                emergencyConsultation.setDescription("Urgent medical consultation");
+                serviceRepo.save(emergencyConsultation);
             }
         };
     }

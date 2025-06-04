@@ -2,7 +2,9 @@ package com.ghsms.DTO;
 
 import com.ghsms.model.User;
 
-public class UserDTO {
+import java.io.Serializable;
+
+public class UserDTO implements Serializable {
     private Long userId;
     private String name;
     private String email;

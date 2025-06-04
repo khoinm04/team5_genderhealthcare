@@ -1,27 +1,44 @@
 package com.ghsms.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Date;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class Root{
-    public String at_hash;
-    public String sub;
-    public boolean email_verified;
-    public String iss;
-    public String given_name;
-    public String nonce;
-    public String picture;
-    public ArrayList<String> aud;
-    public String azp;
-    public String name;
-    public Date exp;
-    public Date iat;
-    public String email;
+public class Root {
+    @JsonProperty("at_hash")
+    private String atHash;
+    private Long userID;
+    private String sub;
+
+    @JsonProperty("email_verified")
+    private Boolean emailVerified;
+
+    private String iss;
+
+    @JsonProperty("given_name")
+    private String givenName;
+
+    private String nonce;
+
+    private String picture;
+
+    private List<String> aud;
+
+    private String azp;
+
+    private String name;
+
+    private Date exp;
+
+    private Date iat;
+
+    private String email;
+
 }

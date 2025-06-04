@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login**", "/error", "/image/**", "/oauth2/**", "http://localhost:5173").permitAll()
+                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -68,12 +68,13 @@ public class SecurityConfig {
 
             // Lấy info từ OAuth2User
             Map<String, Object> attributes = oauth2User.getAttributes();
+            Long userId = (Long) attributes.get("id"); // Giả sử id là Long
             String email = (String) attributes.get("email");
             String name = (String) attributes.get("name");
             String picture = (String) attributes.get("picture");
 
             // Lưu user nếu mới
-            User user = customOAuth2UserService.processOAuthPostLogin(email, name, picture);
+            User user = customOAuth2UserService.processOAuthPostLogin(userId,email, name, picture);
 
             // Trả về OAuth2User với các quyền (ở đây mình cấp mặc định ROLE_CUSTOMER)
             return new DefaultOAuth2User(

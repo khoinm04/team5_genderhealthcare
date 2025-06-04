@@ -40,4 +40,3 @@ public class StaffDetails implements Serializable {
     @Column(name = "HireDate")
     private LocalDate hireDate;
 }
-

@@ -17,7 +17,7 @@ public class CustomOAuth2UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
 
-    public User processOAuthPostLogin(String email, String name, String imageUrl) {
+    public User processOAuthPostLogin(Long userId, String email, String name, String imageUrl) {
         Optional<User> existUser = userRepository.findByEmail(email);
 
         if (existUser.isPresent()) {
@@ -26,6 +26,7 @@ public class CustomOAuth2UserService {
 
         // Nếu chưa có, tạo user mới
         User newUser = new User();
+        newUser.setUserId(userId);
         newUser.setEmail(email);
         newUser.setName(name);
         newUser.setImageUrl(imageUrl);

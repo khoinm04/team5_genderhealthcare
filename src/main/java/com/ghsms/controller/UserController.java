@@ -35,15 +35,16 @@ public class UserController {
 
         try {
             User savedUser = customOAuth2UserService.processOAuthPostLogin(
+                    userInfo.getUserID(),
                     userInfo.getEmail(),
                     userInfo.getName(),
                     userInfo.getPicture()
             );
 
             // Store user in session
+            UserDTO userDTO = new UserDTO(savedUser);
             session.setAttribute("currentUser", savedUser);
             // chuyen sang DTO
-            UserDTO userDTO = new UserDTO(savedUser);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON) // MediaType.APPLICATION_JSON_UTF8 đã deprecated rồi nhé
                     .body(Map.of(
@@ -81,6 +82,7 @@ public class UserController {
             return null;
         }
         Root root = new Root();
+        root.setUserID((Long) map.get("id")); // Giả sử id là Long
         root.setEmail((String) map.get("email"));
         root.setName((String) map.get("name"));
         root.setPicture((String) map.get("picture"));
