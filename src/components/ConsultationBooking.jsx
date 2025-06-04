@@ -1,69 +1,78 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, User, Phone, Mail, MessageSquare, CreditCard, QrCode, CheckCircle } from 'lucide-react';
 
-const ConsultationBooking = ({ onClose }) => {
-   useState(() => {
-    window.scrollTo(0, 0);
-  }, []);
+const AppointmentBookingSystem = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [contactInfo, setContactInfo] = useState({
-    fullName: '',
+    name: '',
     phone: '',
     email: '',
     notes: ''
   });
-  const [appointments, setAppointments] = useState([]);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [latestBooking, setLatestBooking] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [bookingId, setBookingId] = useState(null);
 
-  const services = [
-    {
-      id: 'general',
-      name: 'Tư vấn tổng quát',
-      duration: '30 phút',
-      price: '200,000đ'
-    },
-    {
-      id: 'specialist',
-      name: 'Tư vấn chuyên khoa',
-      duration: '45 phút',
-      price: '350,000đ'
-    },
-    {
-      id: 'recheck',
-      name: 'Tái khám',
-      duration: '20 phút',
-      price: '150,000đ'
-    },
-    {
-      id: 'urgent',
-      name: 'Tư vấn khẩn cấp',
-      duration: '60 phút',
-      price: '500,000đ'
-    }
-  ];
+  // Mock user ID - in real app, this would come from authentication
+  const userId = 1;
 
-  const timeSlots = [
-    '08:00', '08:30', '09:00', '09:30',
-    '10:00', '10:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30',
-    '19:00', '19:30', '20:00', '20:30'
-  ];
+  const API_BASE_URL = 'http://localhost:8080/api';
 
-  const getMinDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+  // Service categories mapping for Vietnamese display
+  const serviceDisplayMap = {
+    GENERAL_CONSULTATION: { name: 'Tư vấn tổng quát', duration: '30 phút' },
+    SPECIALIST_CONSULTATION: { name: 'Tư vấn chuyên khoa', duration: '45 phút' },
+    RE_EXAMINATION: { name: 'Tái khám', duration: '20 phút' },
+    EMERGENCY_CONSULTATION: { name: 'Tư vấn khẩn cấp', duration: '60 phút' }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+  const timeSlots = [
+    '08:00-08:30', '08:30-09:00', '09:00-09:30', '09:30-10:00',
+    '10:00-10:30', '10:30-11:00', '14:00-14:30', '14:30-15:00',
+    '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00',
+    '19:00-19:30', '19:30-20:00', '20:00-20:30', '20:30-21:00'
+  ];
+
+  // Fetch services from backend
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/services`);
+      if (response.ok) {
+        const servicesData = await response.json();
+        setServices(servicesData);
+      } else {
+        // Fallback to mock data if API is not available
+        setServices([
+          { serviceId: 1, serviceName: 'General Consultation', category: 'GENERAL_CONSULTATION', price: 50.00 },
+          { serviceId: 2, serviceName: 'Specialist Consultation', category: 'SPECIALIST_CONSULTATION', price: 100.00 },
+          { serviceId: 3, serviceName: 'Re-examination', category: 'RE_EXAMINATION', price: 30.00 },
+          { serviceId: 4, serviceName: 'Emergency Consultation', category: 'EMERGENCY_CONSULTATION', price: 150.00 }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      // Use fallback data
+      setServices([
+        { serviceId: 1, serviceName: 'General Consultation', category: 'GENERAL_CONSULTATION', price: 50.00 },
+        { serviceId: 2, serviceName: 'Specialist Consultation', category: 'SPECIALIST_CONSULTATION', price: 100.00 },
+        { serviceId: 3, serviceName: 'Re-examination', category: 'RE_EXAMINATION', price: 30.00 },
+        { serviceId: 4, serviceName: 'Emergency Consultation', category: 'EMERGENCY_CONSULTATION', price: 150.00 }
+      ]);
+    }
+  };
+
+  const formatPrice = (price) => {
+    return (price * 1000).toLocaleString('vi-VN') + 'đ'; // Convert to VND (assuming backend price is in USD)
   };
 
   const handleServiceSelect = (service) => {
@@ -78,433 +87,483 @@ const ConsultationBooking = ({ onClose }) => {
     setSelectedTime(time);
   };
 
-  const handleContactInfoChange = (field, value) => {
+  const handleContactChange = (field, value) => {
     setContactInfo(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const canProceedToNextStep = () => {
-    switch (currentStep) {
-      case 1:
-        return selectedService !== null;
-      case 2:
-        return selectedDate !== '';
-      case 3:
-        return selectedTime !== '';
-      case 4:
-        return contactInfo.fullName && contactInfo.phone && contactInfo.email;
-      default:
+  const createBooking = async () => {
+    try {
+      setLoading(true);
+      const bookingData = {
+        userId: userId,
+        serviceIds: [selectedService.serviceId],
+        bookingDate: selectedDate,
+        timeSlot: selectedTime
+      };
+
+      const response = await fetch(`${API_BASE_URL}/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData)
+      });
+
+      if (response.ok) {
+        const createdBooking = await response.json();
+        setBookingId(createdBooking.bookingId);
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Error creating booking:', errorData);
         return false;
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleNext = () => {
-    if (canProceedToNextStep() && currentStep < 4) {
+  const handlePayment = async () => {
+    setLoading(true);
+    
+    if (paymentMethod === 'qr') {
+      setShowQR(true);
+      // Simulate QR payment completion after 3 seconds
+      setTimeout(async () => {
+        const success = await createBooking();
+        if (success) {
+          setPaymentCompleted(true);
+          setShowQR(false);
+          setCurrentStep(5);
+        }
+        setLoading(false);
+      }, 3000);
+    } else {
+      // Simulate card payment completion
+      setTimeout(async () => {
+        const success = await createBooking();
+        if (success) {
+          setPaymentCompleted(true);
+          setCurrentStep(5);
+        }
+        setLoading(false);
+      }, 2000);
+    }
+  };
+
+  const nextStep = () => {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
 
-  const handleBack = () => {
+  const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handleConfirmBooking = async () => {
-    if (canProceedToNextStep()) {
-      const newAppointment = {
-        id: Date.now(),
-        service: selectedService,
-        date: selectedDate,
-        time: selectedTime,
-        contact: contactInfo,
-        status: 'confirmed',
-        createdAt: new Date().toLocaleString('vi-VN')
-      };
-
-      try {
-        const response = await axios.post('http://localhost:8080/api/bookings', newAppointment);
-        console.log('Đặt lịch thành công:', response.data);
-        setAppointments([...appointments, newAppointment]);
-        setLatestBooking(newAppointment);
-        setShowSuccess(true);
-      } catch (error) {
-        console.error('Lỗi khi gửi đặt lịch:', error);
-        alert("Có lỗi xảy ra khi đặt lịch.");
-      }
-    }
-  };
-
-  const handleNewBooking = () => {
-    setShowSuccess(false);
-    setLatestBooking(null);
+  const resetForm = () => {
     setCurrentStep(1);
-  };
-  
-// eslint-disable-next-line no-unused-vars
-  const handleCloseSuccess = () => {
-    setShowSuccess(false);
-    setLatestBooking(null);
+    setSelectedService(null);
+    setSelectedDate('');
+    setSelectedTime('');
+    setContactInfo({ name: '', phone: '', email: '', notes: '' });
+    setPaymentCompleted(false);
+    setBookingId(null);
   };
 
-  const renderProgressBar = () => (
+  const StepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3, 4].map((step) => (
-        <div key={step} className="flex items-center">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-            step <= currentStep ? 'bg-blue-600' : 'bg-gray-300'
+        <React.Fragment key={step}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            step <= currentStep ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'
           }`}>
             {step}
           </div>
           {step < 4 && (
-            <div className={`w-16 h-1 mx-2 ${
-              step < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+            <div className={`w-16 h-0.5 mx-2 ${
+              step < currentStep ? 'bg-blue-500' : 'bg-gray-300'
             }`} />
           )}
-        </div>
+        </React.Fragment>
       ))}
     </div>
   );
 
-  // Success Panel Component
-  const renderSuccessPanel = () => {
-    if (!showSuccess || !latestBooking) return null;
-
+  if (paymentCompleted && currentStep === 5) {
     return (
-      <div className="fixed inset-0 bg-blue-100 bg-opacity-80 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-lg max-w-sm w-full mx-4 p-8 text-center">
-          {/* Success Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-12 h-12 text-white" />
-            </div>
-          </div>
-
-          {/* Success Title */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-8">Đặt lịch thành công!</h2>
-
-          {/* Booking Details */}
-          <div className="text-left mb-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Thông tin cuộc hẹn:</h3>
-            
-            <div className="space-y-3 text-sm">
-              <div>
-                <span className="font-semibold text-gray-700">Dịch vụ: </span>
-                <span className="text-gray-600">{latestBooking.service.name}</span>
-              </div>
-              
-              <div>
-                <span className="font-semibold text-gray-700">Ngày: </span>
-                <span className="text-gray-600">{formatDate(latestBooking.date)}</span>
-              </div>
-              
-              <div>
-                <span className="font-semibold text-gray-700">Giờ: </span>
-                <span className="text-gray-600">{latestBooking.time}</span>
-              </div>
-              
-              <div>
-                <span className="font-semibold text-gray-700">Họ tên: </span>
-                <span className="text-gray-600">{latestBooking.contact.fullName}</span>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+          <div className="text-center">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Đặt lịch thành công!</h2>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-4">Thông tin đặt lịch:</h3>
+              <div className="space-y-2 text-left">
+                <p><strong>Mã đặt lịch:</strong> #{bookingId}</p>
+                <p><strong>Dịch vụ:</strong> {serviceDisplayMap[selectedService?.category]?.name || selectedService?.serviceName}</p>
+                <p><strong>Ngày:</strong> {selectedDate}</p>
+                <p><strong>Giờ:</strong> {selectedTime}</p>
+                <p><strong>Họ tên:</strong> {contactInfo.name}</p>
+                <p><strong>Số điện thoại:</strong> {contactInfo.phone}</p>
+                <p><strong>Email:</strong> {contactInfo.email}</p>
+                <p><strong>Tổng tiền:</strong> {formatPrice(selectedService?.price || 0)}</p>
               </div>
             </div>
-          </div>
-
-          {/* Confirmation Message */}
-          <div className="mb-8">
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Chúng tôi sẽ gửi email xác nhận và liên hệ với bạn trước cuộc hẹn 15 phút.
+            <p className="text-gray-600 mb-6">
+              Chúng tôi sẽ gửi email xác nhận và liên hệ với bạn trước buổi tư vấn.
             </p>
+            <button
+              onClick={resetForm}
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Đặt lịch mới
+            </button>
           </div>
-
-          {/* Action Button */}
-          <button
-            onClick={handleNewBooking}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 transition-colors"
-          >
-            Đặt lịch mới
-          </button>
         </div>
       </div>
     );
-  };
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-              <MessageSquare className="w-6 h-6 mr-2" />
-              Chọn dịch vụ tư vấn
-            </h2>
-            <div className="space-y-4">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => handleServiceSelect(service)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selectedService?.id === service.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{service.name}</h3>
-                      <p className="text-sm text-gray-600">Thời gian: {service.duration}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-blue-600">{service.price}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-              <Calendar className="w-6 h-6 mr-2" />
-              Chọn ngày tư vấn
-            </h2>
-            <div className="max-w-md">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                min={getMinDate()}
-                className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="mm/dd/yyyy"
-              />
-              <p className="text-sm text-gray-600 mt-2">* Chỉ có thể đặt lịch từ ngày mai trở đi</p>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-              <Clock className="w-6 h-6 mr-2" />
-              Chọn giờ tư vấn
-            </h2>
-            <div className="grid grid-cols-4 gap-3">
-              {timeSlots.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => handleTimeSelect(time)}
-                  className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
-                    selectedTime === time
-                      ? 'border-blue-500 bg-blue-500 text-white'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-              <User className="w-6 h-6 mr-2" />
-              Thông tin liên hệ
-            </h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên *
-                </label>
-                <input
-                  type="text"
-                  value={contactInfo.fullName}
-                  onChange={(e) => handleContactInfoChange('fullName', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập họ và tên của bạn"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <Phone className="w-4 h-4 mr-1" />
-                  Số điện thoại *
-                </label>
-                <input
-                  type="tel"
-                  value={contactInfo.phone}
-                  onChange={(e) => handleContactInfoChange('phone', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập số điện thoại"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <Mail className="w-4 h-4 mr-1" />
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={contactInfo.email}
-                  onChange={(e) => handleContactInfoChange('email', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập địa chỉ email"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ghi chú (không bắt buộc)
-                </label>
-                <textarea
-                  value={contactInfo.notes}
-                  onChange={(e) => handleContactInfoChange('notes', e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Mô tả ngắn gọn về vấn đề cần tư vấn..."
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header with Close Button */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 relative">
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            )}
-            <h1 className="text-3xl font-bold mb-2">Đặt lịch tư vấn trực tuyến</h1>
-            <p className="text-blue-100">Chọn dịch vụ và thời gian phù hợp với bạn</p>
-          </div>
-
-          <div className="p-8">
-            {/* Progress Bar */}
-            {renderProgressBar()}
-
-            {/* Step Content */}
-            <div className="min-h-[400px]">
-              {renderStepContent()}
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handleBack}
-                disabled={currentStep === 1}
-                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  currentStep === 1
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-500 text-white hover:bg-gray-600'
-                }`}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Quay lại
-              </button>
-
-              {currentStep < 4 ? (
-                <button
-                  onClick={handleNext}
-                  disabled={!canProceedToNextStep()}
-                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep()
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  Tiếp theo
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleConfirmBooking}
-                  disabled={!canProceedToNextStep()}
-                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep()
-                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  Xác nhận đặt lịch
-                </button>
-              )}
-            </div>
-
-            {/* Booking Summary */}
-            {(selectedService || selectedDate || selectedTime) && (
-              <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-4">Thông tin đặt lịch:</h3>
-                <div className="space-y-2 text-sm">
-                  {selectedService && (
-                    <p><strong>Dịch vụ:</strong> {selectedService.name} - {selectedService.price}</p>
-                  )}
-                  {selectedDate && (
-                    <p><strong>Ngày:</strong> {formatDate(selectedDate)}</p>
-                  )}
-                  {selectedTime && (
-                    <p><strong>Giờ:</strong> {selectedTime}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg">
+        {/* Header */}
+        <div className="bg-blue-500 text-white p-6 rounded-t-xl">
+          <h1 className="text-2xl font-bold">Đặt lịch tư vấn trực tuyến</h1>
+          <p className="text-blue-100 mt-2">Chọn dịch vụ và thời gian phù hợp với bạn</p>
         </div>
 
-        {/* Appointments List */}
-        {appointments.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">Lịch hẹn của bạn</h2>
-            <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <div key={appointment.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{appointment.contact.fullName}</h3>
-                      <p className="text-sm text-gray-600">{appointment.service.name}</p>
+        <div className="p-6">
+          <StepIndicator />
+
+          {/* Step 1: Service Selection */}
+          {currentStep === 1 && (
+            <div>
+              <div className="flex items-center mb-6">
+                <User className="w-5 h-5 mr-2" />
+                <h2 className="text-xl font-semibold">Chọn dịch vụ tư vấn</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {services.map((service) => {
+                  const displayInfo = serviceDisplayMap[service.category] || { 
+                    name: service.serviceName, 
+                    duration: '30 phút' 
+                  };
+                  
+                  return (
+                    <div
+                      key={service.serviceId}
+                      onClick={() => handleServiceSelect(service)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedService?.serviceId === service.serviceId
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium text-gray-800">{displayInfo.name}</h3>
+                          <p className="text-sm text-gray-600">Thời gian: {displayInfo.duration}</p>
+                        </div>
+                        <div className="text-blue-500 font-semibold">
+                          {formatPrice(service.price)}
+                        </div>
+                      </div>
                     </div>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      Đã xác nhận
-                    </span>
+                  );
+                })}
+              </div>
+
+              {selectedService && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-2">Thông tin đặt lịch:</h3>
+                  <p><strong>Dịch vụ:</strong> {serviceDisplayMap[selectedService.category]?.name || selectedService.serviceName} - {formatPrice(selectedService.price)}</p>
+                </div>
+              )}
+
+              <div className="flex justify-between mt-8">
+                <button
+                  onClick={prevStep}
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  disabled
+                >
+                  Quay lại
+                </button>
+                <button
+                  onClick={nextStep}
+                  disabled={!selectedService}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Tiếp theo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Date Selection */}
+          {currentStep === 2 && (
+            <div>
+              <div className="flex items-center mb-6">
+                <Calendar className="w-5 h-5 mr-2" />
+                <h2 className="text-xl font-semibold">Chọn ngày tư vấn</h2>
+              </div>
+
+              <div className="mb-6">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  min={new Date(Date.now() + 86400000).toISOString().split('T')[0]} // Tomorrow
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-sm text-red-500 mt-2">* Chỉ có thể đặt lịch từ ngày mai trở đi</p>
+              </div>
+
+              {selectedDate && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-2">Thông tin đặt lịch:</h3>
+                  <p><strong>Dịch vụ:</strong> {serviceDisplayMap[selectedService.category]?.name || selectedService.serviceName} - {formatPrice(selectedService.price)}</p>
+                  <p><strong>Ngày:</strong> {selectedDate}</p>
+                </div>
+              )}
+
+              <div className="flex justify-between mt-8">
+                <button
+                  onClick={prevStep}
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Quay lại
+                </button>
+                <button
+                  onClick={nextStep}
+                  disabled={!selectedDate}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Tiếp theo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Time Selection */}
+          {currentStep === 3 && (
+            <div>
+              <div className="flex items-center mb-6">
+                <Clock className="w-5 h-5 mr-2" />
+                <h2 className="text-xl font-semibold">Chọn giờ tư vấn</h2>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {timeSlots.map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeSelect(time)}
+                    className={`p-3 text-center border rounded-lg transition-all text-sm ${
+                      selectedTime === time
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+
+              {selectedTime && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-2">Thông tin đặt lịch:</h3>
+                  <p><strong>Dịch vụ:</strong> {serviceDisplayMap[selectedService.category]?.name || selectedService.serviceName} - {formatPrice(selectedService.price)}</p>
+                  <p><strong>Ngày:</strong> {selectedDate}</p>
+                  <p><strong>Giờ:</strong> {selectedTime}</p>
+                </div>
+              )}
+
+              <div className="flex justify-between mt-8">
+                <button
+                  onClick={prevStep}
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Quay lại
+                </button>
+                <button
+                  onClick={nextStep}
+                  disabled={!selectedTime}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Tiếp theo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Contact Info & Payment */}
+          {currentStep === 4 && (
+            <div>
+              <div className="flex items-center mb-6">
+                <User className="w-5 h-5 mr-2" />
+                <h2 className="text-xl font-semibold">Thông tin liên hệ & Thanh toán</h2>
+              </div>
+
+              {/* Contact Information */}
+              <div className="mb-8">
+                <h3 className="font-medium mb-4">Thông tin liên hệ</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Họ và tên *
+                    </label>
+                    <input
+                      type="text"
+                      value={contactInfo.name}
+                      onChange={(e) => handleContactChange('name', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập họ và tên"
+                    />
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <p><strong>Ngày:</strong> {formatDate(appointment.date)} - {appointment.time}</p>
-                    <p><strong>Liên hệ:</strong> {appointment.contact.phone} | {appointment.contact.email}</p>
-                    <p className="text-xs mt-2">Đặt lúc: {appointment.createdAt}</p>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Số điện thoại *
+                    </label>
+                    <input
+                      type="tel"
+                      value={contactInfo.phone}
+                      onChange={(e) => handleContactChange('phone', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={contactInfo.email}
+                      onChange={(e) => handleContactChange('email', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập email"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ghi chú (không bắt buộc)
+                    </label>
+                    <textarea
+                      value={contactInfo.notes}
+                      onChange={(e) => handleContactChange('notes', e.target.value)}
+                      rows={3}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập ghi chú nếu có"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+              </div>
 
-      {/* Success Modal */}
-      {renderSuccessPanel()}
+              {/* Payment Section */}
+              <div className="mb-8">
+                <h3 className="font-medium mb-4">Phương thức thanh toán</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="card"
+                      checked={paymentMethod === 'card'}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="mr-3"
+                    />
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    <span>Thẻ tín dụng / Thẻ ghi nợ</span>
+                  </label>
+                  
+                  <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="qr"
+                      checked={paymentMethod === 'qr'}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="mr-3"
+                    />
+                    <QrCode className="w-5 h-5 mr-2" />
+                    <span>Quét mã QR</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* QR Code Display */}
+              {showQR && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white p-8 rounded-xl max-w-sm w-full mx-4">
+                    <h3 className="text-lg font-semibold text-center mb-4">Quét mã QR để thanh toán</h3>
+                    <div className="bg-gray-100 p-8 rounded-lg text-center mb-4">
+                      <QrCode className="w-32 h-32 mx-auto text-gray-400" />
+                      <p className="text-sm text-gray-600 mt-2">Mã QR thanh toán</p>
+                    </div>
+                    <p className="text-center text-sm text-gray-600 mb-4">
+                      Số tiền: {formatPrice(selectedService.price)}
+                    </p>
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    </div>
+                    <p className="text-center text-sm text-gray-500 mt-2">
+                      Đang xử lý thanh toán và tạo lịch hẹn...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Order Summary */}
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 className="font-semibold mb-2">Tóm tắt đơn hàng:</h3>
+                <div className="space-y-1">
+                  <p><strong>Dịch vụ:</strong> {serviceDisplayMap[selectedService.category]?.name || selectedService.serviceName}</p>
+                  <p><strong>Ngày:</strong> {selectedDate}</p>
+                  <p><strong>Giờ:</strong> {selectedTime}</p>
+                  <p><strong>Thời gian:</strong> {serviceDisplayMap[selectedService.category]?.duration || '30 phút'}</p>
+                  <hr className="my-2" />
+                  <p className="text-lg font-bold text-blue-600">
+                    <strong>Tổng tiền: {formatPrice(selectedService.price)}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <button
+                  onClick={prevStep}
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  disabled={loading}
+                >
+                  Quay lại
+                </button>
+                <button
+                  onClick={handlePayment}
+                  disabled={!contactInfo.name || !contactInfo.phone || !contactInfo.email || loading}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                >
+                  {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
+                  Xác nhận & Thanh toán
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default ConsultationBooking;
+export default AppointmentBookingSystem;

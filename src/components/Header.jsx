@@ -5,21 +5,37 @@ export default function Header() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/gender-health-care/signingoogle", {
-        withCredentials: true,
-      })
-      .then((res) => setUser(res.data.user))
-      .catch(() => setUser(null));
+    axios.get("http://localhost:8080/gender-health-care/signingoogle", {
+      withCredentials: true,
+    })
+    .then((res) => {
+      const userData = res.data.user;
+      setUser(userData);
+
+      if (userData && userData.userId !== undefined) {
+        // Chuyển userId thành chuỗi khi lưu sessionStorage
+        sessionStorage.setItem("userId", userData.userId.toString());
+        console.log("Stored userId in sessionStorage:", userData.userId);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      setUser(null);
+      sessionStorage.removeItem("userId");
+    });
   }, []);
+
 
   const handleLogout = () => {
     axios
-      .post("http://localhost:8080/gender-health-care/logout", {}, {
-        withCredentials: true,
-      })
-      .then(() => setUser(null))
-      .catch((err) => console.error("Logout failed", err));
+    .post("http://localhost:8080/gender-health-care/logout", {}, {
+      withCredentials: true,
+    })
+    .then(() => {
+      setUser(null);
+      sessionStorage.removeItem("userId"); // xóa userId khi logout
+    })
+    .catch((err) => console.error("Logout failed", err))
   };
 
   const menuItems = [
@@ -83,9 +99,9 @@ export default function Header() {
               <button
               onClick={handleLogout}
               className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
-    >
-      Đăng xuất
-    </button>
+              >
+                Đăng xuất
+              </button>
             </>
           ) : (
             <>
