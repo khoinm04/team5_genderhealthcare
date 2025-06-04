@@ -1,16 +1,52 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-export default function LoginForm({ onLogin }) {
+
+
+
+export default function LoginForm() {
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!username.trim() || !password) {
       alert("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
       return;
     }
-    onLogin(username, password);
+
+    try {
+      console.log({ username, password });
+
+      const response = await axios.post(
+        "http://localhost:8080/api/auth/admin/login",
+        {
+          email: username,
+          password: password
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          withCredentials: true // rất quan trọng để gửi cookie session
+        }
+      );
+
+      const data = response.data;
+      // Nếu backend không trả token, không cần lưu token ở đây
+      // sessionStorage.setItem("token", data.token);
+
+      // Bạn có thể lưu một số info user nếu backend trả về (ví dụ email)
+      sessionStorage.setItem("admin", JSON.stringify({ email: data.email }));
+
+      navigate("/admin");
+    } catch (error) {
+      alert("Đăng nhập thất bại: " + (error.response?.data?.error || error.message));
+    }
   };
 
   return (

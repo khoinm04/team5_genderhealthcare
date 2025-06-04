@@ -9,7 +9,8 @@ import ConsultationBooking from "./components/ConsultationBooking";
 import STIBookingPage from "./components/STIBookingPage";
 import MenstrualBookingPage from "./components/MenstrualBookingPage";
 import Services from "./components/Services";
-import Register from "./components/register";
+import Register from "./components/Register";
+import AdminDashboard from "./components/AdminDashboard";
 
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/booking/menstrual" element={<MenstrualBookingPage />} />
           <Route path="/booking/sti" element={<STIBookingPage />} />  
           <Route path="/register" element={<Register />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
