@@ -1,13 +1,15 @@
 package com.GenderHealthCare.service;
 
+import com.GenderHealthCare.DTO.Root;
+import com.GenderHealthCare.DTO.UserDTO;
 import com.GenderHealthCare.enums.RoleName;
-import com.GenderHealthCare.model.Role;
 import com.GenderHealthCare.model.User;
-import com.GenderHealthCare.repository.RoleRepository;
 import com.GenderHealthCare.repository.UserRepository;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -15,7 +17,23 @@ import java.util.Optional;
 public class CustomOAuth2UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
+
+    public UserDTO processGoogleLogin(Map<String, Object> attributes, HttpSession session) {
+        Root userInfo = mapToUserInfo(attributes);
+
+        try {
+            User savedUser = processOAuthPostLogin(
+                    userInfo.getEmail(),
+                    userInfo.getName(),
+                    userInfo.getPicture()
+            );
+
+            session.setAttribute("currentUser", savedUser);
+            return new UserDTO(savedUser);
+        } catch (Exception e) {
+            throw new RuntimeException("Đăng nhập google thất bại", e);
+        }
+    }
 
     public User processOAuthPostLogin(String email, String name, String imageUrl) {
         Optional<User> existUser = userRepository.findByEmail(email);
@@ -24,26 +42,22 @@ public class CustomOAuth2UserService {
             return existUser.get();
         }
 
-        // Nếu chưa có, tạo user mới
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setName(name);
         newUser.setImageUrl(imageUrl);
-
-        // Gán role mặc định, ví dụ Role CUSTOMER
-        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseGet(() -> {
-                    Role newRole = new Role();
-                    newRole.setName(RoleName.CUSTOMER);
-                    newRole.setDisplayName("Khach hang");
-                    return roleRepository.save(newRole);
-                });
-        newUser.setRole(customerRole);
-
+        newUser.setRole(RoleName.CUSTOMER);
         newUser.setActive(true);
-        // Mật khẩu có thể null hoặc đặt giá trị mặc định (do login bằng google)
         newUser.setPasswordHash(null);
 
         return userRepository.save(newUser);
+    }
+
+    private Root mapToUserInfo(Map<String, Object> attributes) {
+        Root root = new Root();
+        root.setEmail((String) attributes.get("email"));
+        root.setName((String) attributes.get("name"));
+        root.setPicture((String) attributes.get("picture"));
+        return root;
     }
 }

@@ -6,10 +6,30 @@ spring:
           google:
             client-id:
             client-secret:
-#            redirect-uri: "h${GOOGLE_REDIRECT_URI:localhost:8080/login/oauth2/code/google}"
+        #         redirect-uri: "h${GOOGLE_REDIRECT_URI:localhost:8080/login/oauth2/code/google}"
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             user-name-attribute: sub
+session:
+  store-type: jdbc
+  jdbc:
+    initialize-schema: always
+  timeout: 30m
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+        http-only: true
+        path: /
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+
+

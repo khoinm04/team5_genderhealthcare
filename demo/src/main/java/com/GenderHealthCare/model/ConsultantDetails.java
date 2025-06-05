@@ -1,5 +1,6 @@
 package com.GenderHealthCare.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConsultantDetails {
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class ConsultantDetails implements java.io.Serializable {
 
     @Id
     @Column(name = "ConsultantID")

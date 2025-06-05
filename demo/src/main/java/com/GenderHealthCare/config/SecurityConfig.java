@@ -2,6 +2,7 @@ package com.GenderHealthCare.config;
 
 import com.GenderHealthCare.model.User;
 import com.GenderHealthCare.service.CustomOAuth2UserService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,20 +32,30 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login**", "/error", "/image/**", "/oauth2/**", "/gender-health-care/signingoogle").permitAll()
+                        .requestMatchers("/", "/login**", "/error", "/image/**", "/oauth2/**", "http://localhost:5173").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oauthUserService())
                         )
-                        .defaultSuccessUrl("/gender-health-care/signingoogle", true)
+                        .successHandler((request, response, authentication) -> {
+                            // Store user information in session
+                            HttpSession session = request.getSession();
+                            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                            session.setAttribute("user", oauth2User.getAttributes());
+                            response.sendRedirect("http://localhost:5173");
+                        })
+
+
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                         .permitAll()
                 );
-
+        // Cấu hình CORS
         return http.build();
     }
 

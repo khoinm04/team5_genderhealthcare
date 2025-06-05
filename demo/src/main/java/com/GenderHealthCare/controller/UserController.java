@@ -1,60 +1,69 @@
 package com.GenderHealthCare.controller;
 
-        import com.GenderHealthCare.model.Root;
-        import com.GenderHealthCare.model.User;
-        import com.GenderHealthCare.service.CustomOAuth2UserService;
-        import lombok.RequiredArgsConstructor;
-        import org.springframework.http.HttpStatus;
-        import org.springframework.http.ResponseEntity;
-        import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-        import org.springframework.web.bind.annotation.GetMapping;
-        import org.springframework.web.bind.annotation.RequestMapping;
-        import org.springframework.web.bind.annotation.RestController;
+import com.GenderHealthCare.DTO.UserDTO;
+import com.GenderHealthCare.model.User;
+import com.GenderHealthCare.service.CustomOAuth2UserService;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.*;
 
-        import java.util.Map;
-        import java.util.Set;
-        import java.util.stream.Collectors;
+import java.util.Map;
 
-        @RestController
-        @RequestMapping("/gender-health-care")
-        @RequiredArgsConstructor
-        public class UserController {
-            private final CustomOAuth2UserService customOAuth2UserService;
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@RestController
+@RequestMapping(value = "/gender-health-care", produces = "application/json;charset=UTF-8")
+@RequiredArgsConstructor
+public class UserController {
+    private final CustomOAuth2UserService customOAuth2UserService;
 
-            @GetMapping("/signingoogle")
-            public ResponseEntity<?> currentuser(OAuth2AuthenticationToken oAuth2AuthenticationToken) {
-                if (oAuth2AuthenticationToken == null) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-                }
-                Root userInfo = toPerson(oAuth2AuthenticationToken.getPrincipal().getAttributes());
+    @GetMapping("/signingoogle")
+    public ResponseEntity<?> handleGoogleLogin(Authentication authentication, jakarta.servlet.http.HttpSession session) {
 
-                // Save user data to database
-                try {
-                    User savedUser = customOAuth2UserService.processOAuthPostLogin(
-                            userInfo.getEmail(),
-                            userInfo.getName(),
-                            userInfo.getPicture()
-                    );
-                    return ResponseEntity.ok(Map.of(
-                            "message", "Đăng nhập thành công",
-                            "user", savedUser
-                    ));
-                } catch (Exception e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Lỗi khi lưu thông tin người dùng: " + e.getMessage());
-                }
-
-                    //return ResponseEntity.ok(oAuth2AuthenticationToken.getPrincipal().getAttributes());
-            }
-
-            public Root toPerson(Map<String, Object> map){
-                if(map == null || map.isEmpty()) {
-                    return null;
-                }
-                Root root = new Root();
-                root.setEmail((String) map.get("email"));
-                root.setName((String) map.get("name"));
-                root.setPicture((String) map.get("picture"));
-                return root;
-            }
+        // Kiểm tra xem người dùng đã đăng nhập hay chưa
+        if (authentication == null || !(authentication instanceof OAuth2AuthenticationToken)) {
+            //gg đã try catch trên api của nó rồi nên ko cần try catch lại
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    //
+                    .body(Map.of("message", "Chưa đăng nhập"));
         }
+
+        try {
+            OAuth2AuthenticationToken oAuth2Token = (OAuth2AuthenticationToken) authentication;
+            UserDTO userDTO = customOAuth2UserService.processGoogleLogin(oAuth2Token.getPrincipal().getAttributes(), session);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    //gg đã try catch trên api của nó rồi nên ko cần try catch lại
+                    .body(Map.of(
+                            "message", "Đăng nhập thành công",
+                            "user", userDTO,
+                            "redirectUrl", "http://localhost:5173",
+                            "sessionId", session.getId()
+                    ));
+            //gg đã try catch trên api của nó rồi nên ko cần try catch lại
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Đăng nhập thất bại"));
+        }
+    }
+
+    @GetMapping("/current-session")
+    public ResponseEntity<?> getCurrentSession(HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        return currentUser != null
+                ? ResponseEntity.ok(new UserDTO(currentUser))
+                : ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Chưa đăng nhập"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
+        session.invalidate();
+        return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công"));
+    }
+}

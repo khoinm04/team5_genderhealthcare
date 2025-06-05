@@ -23,11 +23,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex) {
-        return ResponseEntity.badRequest().body(Map.of("error", "Dữ liệu không hợp lệ: " + ex.getMessage()));
+        return ResponseEntity.badRequest().body(Map.of("error", "Dữ liệu không hợp lệ: \n" + ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAllExceptions(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Lỗi hệ thống: " + ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Lỗi hệ thống: \n" + ex.getMessage()));
     }
 }

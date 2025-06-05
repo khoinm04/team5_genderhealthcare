@@ -1,13 +1,13 @@
 package com.GenderHealthCare.model;
 
+import com.GenderHealthCare.enums.RoleName;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,16 +17,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "UserID")
     private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RoleID",nullable = false)
-    private Role role;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "Role", nullable = false)
+    @NotNull(message = "Vai trò không được để trống")
+    private RoleName role;
 
     @NotBlank(message = "Tên đầy đủ không được để trống")
     @Size(max = 100, message = "tên nên ít hơn 100 ký tự")
@@ -60,9 +62,12 @@ public class User {
 
     // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
     // For StaffDetails and ConsultantDetails (OneToOne)
+
+    @Transient
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;
 
+    @Transient
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ConsultantDetails consultantDetails;
 
