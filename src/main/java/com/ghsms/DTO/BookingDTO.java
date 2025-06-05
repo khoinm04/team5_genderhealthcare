@@ -24,16 +24,17 @@ public class BookingDTO {
 
     private List<Long> serviceIds;
 
-    public BookingDTO(String customerName, ServiceBookingCategory category, String serviceName, BookingStatus status, String timeSlot, String bookingDate, List<Long> serviceIds, Long userId, Long bookingId) {
-        this.customerName = customerName;
-        this.category = category;
-        this.serviceName = serviceName;
-        this.status = status;
-        this.timeSlot = timeSlot;
-        this.bookingDate = bookingDate;
-        this.serviceIds = serviceIds;
-        this.userId = userId;
+    public BookingDTO(Long bookingId, Long userId, List<Long> serviceIds, String bookingDate, String timeSlot, String paymentCode, BookingStatus status, String serviceName, ServiceBookingCategory category, String customerName) {
         this.bookingId = bookingId;
+        this.userId = userId;
+        this.serviceIds = serviceIds;
+        this.bookingDate = bookingDate;
+        this.timeSlot = timeSlot;
+        this.paymentCode = paymentCode;
+        this.status = status;
+        this.serviceName = serviceName;
+        this.category = category;
+        this.customerName = customerName;
     }
 
     @NotNull(message = "Booking date is required")

@@ -67,6 +67,7 @@ public class BookingController {
     }
 
 
+
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get all bookings for a user")
     public ResponseEntity<List<BookingDTO>> getUserBookings(@PathVariable Long userId) {
