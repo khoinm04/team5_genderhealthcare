@@ -4,7 +4,7 @@ import axios from "axios";
 export default function Header() {
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => {  
     axios
       .get("http://localhost:8080/gender-health-care/signingoogle", {
         withCredentials: true,
