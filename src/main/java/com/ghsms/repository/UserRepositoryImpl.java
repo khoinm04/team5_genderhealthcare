@@ -16,9 +16,15 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     @Override
     public Optional<User> findByEmail(String email) {
         String jpql = "SELECT u FROM User u WHERE u.email = :email";
-        return entityManager.createQuery(jpql, User.class)
-                .setParameter("email", email)
-                .getResultStream()
-                .findFirst();
+        try {
+            User user = entityManager.createQuery(jpql, User.class)
+                    .setParameter("email", email)
+                    .setMaxResults(1)
+                    .getSingleResult();
+            return Optional.of(user);
+        } catch (jakarta.persistence.NoResultException e) {
+            return Optional.empty();
+        }
     }
+
 }

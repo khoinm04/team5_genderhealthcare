@@ -32,10 +32,10 @@ public class CustomOAuth2UserService {
         newUser.setImageUrl(imageUrl);
 
         // Gán role mặc định, ví dụ Role CUSTOMER
-        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
+        Role customerRole = roleRepository.findByName(RoleName.ROLE_CUSTOMER)
                 .orElseGet(() -> {
                     Role newRole = new Role();
-                    newRole.setName(RoleName.CUSTOMER);
+                    newRole.setName(RoleName.ROLE_CUSTOMER);
                     return roleRepository.save(newRole);
                 });
         newUser.setRole(customerRole);

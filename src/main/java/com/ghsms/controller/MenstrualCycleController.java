@@ -2,6 +2,7 @@ package com.ghsms.controller;
 
 import com.ghsms.model.MenstrualCycle;
 import com.ghsms.service.MenstrualCycleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,15 +20,12 @@ public class MenstrualCycleController {
     public ResponseEntity<MenstrualCycle> trackCycle(
             @RequestParam Long customerId,
             @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate,
+            @RequestParam Integer cycleLength,
+            @RequestParam Integer menstruationDuration,
             @RequestParam(required = false) String notes) {
-        return ResponseEntity.ok(cycleService.trackCycle(customerId, startDate, endDate, notes));
+        return ResponseEntity.ok(cycleService.trackCycle(customerId, startDate, cycleLength, menstruationDuration, notes));
     }
 
-    @GetMapping("/customer/{customerId}/history")
-    public ResponseEntity<List<MenstrualCycle>> getCycleHistory(@PathVariable Long customerId) {
-        return ResponseEntity.ok(cycleService.getCycleHistory(customerId));
-    }
 
     @GetMapping("/customer/{customerId}/next-period")
     public ResponseEntity<LocalDate> getNextPeriod(@PathVariable Long customerId) {
@@ -43,4 +41,42 @@ public class MenstrualCycleController {
     public ResponseEntity<MenstrualCycle> getCurrentCycle(@PathVariable Long customerId) {
         return ResponseEntity.ok(cycleService.getCurrentCycle(customerId));
     }
+
+    @GetMapping("/customer/{customerId}/predicted")
+    public ResponseEntity<MenstrualCycle> getAllPredicted(@PathVariable Long customerId) {
+        return ResponseEntity.ok(cycleService.getCurrentCycle(customerId));
+    }
+
+    @DeleteMapping("/customer/{customerId}/cycles/{cycleId}")
+    public ResponseEntity<String> deleteMenstrualCycle(
+            @PathVariable Long customerId,
+            @PathVariable Long cycleId) {
+        try {
+            cycleService.deleteMenstrualCycle(customerId, cycleId);
+            return ResponseEntity.ok("Xóa chu kỳ kinh nguyệt thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/customer/{customerId}/cycles/{cycleId}")
+    public ResponseEntity<?> updateMenstrualCycle(
+            @PathVariable Long customerId,
+            @PathVariable Long cycleId,
+            @Valid @RequestBody MenstrualCycle updateMenstrualCycle) {
+        try {
+            MenstrualCycle updatedCycle = cycleService.updateCycle(
+                    customerId,
+                    cycleId,
+                    updateMenstrualCycle.getStartDate(),
+                    updateMenstrualCycle.getCycleLength(),
+                    updateMenstrualCycle.getMenstruationDuration(),
+                    updateMenstrualCycle.getNotes());
+            return ResponseEntity.ok(updatedCycle);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
 }

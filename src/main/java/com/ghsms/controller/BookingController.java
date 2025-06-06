@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
 @Tag(name = "Booking", description = "Booking management APIs")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class BookingController {
     private final BookingService bookingService;
 
@@ -33,12 +33,7 @@ public class BookingController {
     @Operation(summary = "Create a new booking")
     public ResponseEntity<?> createBooking(@Valid @RequestBody BookingDTO bookingDTO) {
         try {
-            Booking booking = bookingService.createBooking(
-                    bookingDTO.getUserId(),
-                    bookingDTO.getServiceIds(),
-                    bookingDTO.getBookingDate(),
-                    bookingDTO.getTimeSlot()
-            );
+            Booking booking = bookingService.createBooking(bookingDTO);
 
             BookingDTO response = convertToDTO(booking);
             return ResponseEntity.ok()
@@ -124,24 +119,32 @@ public class BookingController {
     private BookingDTO convertToDTO(Booking booking) {
         BookingDTO dto = new BookingDTO();
         dto.setBookingId(booking.getBookingId());
-        dto.setUserId(booking.getCustomer().getUserId());
 
-        // Get the first service for backward compatibility
-        Service primaryService = booking.getServices().iterator().next();
-        dto.setServiceIds(List.of(primaryService.getServiceId()));
-        dto.setServiceName(primaryService.getServiceName());
-        dto.setCategory(primaryService.getCategory());
+        // Fix customer related fields
+        if (booking.getCustomer() != null && booking.getCustomer().getCustomer() != null) {
+            dto.setUserId(booking.getCustomer().getCustomerId());
+            dto.setCustomerName(booking.getCustomer().getFullName());
+            dto.setCustomerPhone(booking.getCustomer().getPhoneNumber());
+        }
+
+        // Fix staff related fields
+        if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
+            dto.setStaffId(booking.getStaff().getStaffId());
+        }
 
         dto.setBookingDate(booking.getBookingDate());
         dto.setTimeSlot(booking.getTimeSlot());
-        dto.setStatus(booking.getStatus());
-        dto.setCustomerName(booking.getCustomer().getName());
-
-        // Add additional services information
-        dto.setServiceIds(booking.getServices().stream()
-                .map(Service::getServiceId)
-                .collect(Collectors.toList()));
         dto.setPaymentCode(booking.getPaymentCode());
+        dto.setStatus(booking.getStatus());
+
+        // Map services
+        if (booking.getServices() != null && !booking.getServices().isEmpty()) {
+            List<Long> serviceIds = booking.getServices().stream()
+                    .map(Service::getServiceId)
+                    .toList();
+            dto.setServiceIds(serviceIds);
+        }
+
         return dto;
     }
 }

@@ -1,23 +1,65 @@
 package com.ghsms.controller;
 
+import com.ghsms.DTO.LoginRequest;
+import com.ghsms.DTO.LoginRespone;
+import com.ghsms.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
-    @GetMapping("/login/success")
-    public ResponseEntity<?> loginSuccess(@AuthenticationPrincipal OAuth2User oauth2User) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("email", oauth2User.getAttribute("email"));
-        response.put("name", oauth2User.getAttribute("name"));
-        return ResponseEntity.ok(response);
+
+    private final AuthenticationManager authenticationManager;
+    private final UserService userService;
+
+    @PostMapping(value = "/admin/login", produces = "application/json")
+    public ResponseEntity<?> authenticateAdmin(@RequestBody LoginRequest loginRequest) {
+        try {
+            if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Email và mật khẩu không được để trống"
+                ));
+            }
+
+            String email = loginRequest.getEmail().trim();
+            String password = loginRequest.getPassword();
+
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "success", true,
+                            "message", "Đăng nhập thành công",
+                            "email", email
+                    ));
+
+        } catch (AuthenticationException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "success", false,
+                            "error", "Email hoặc mật khẩu không chính xác"
+                    ));
+        }
     }
 }

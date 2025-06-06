@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Entity
 @Table(name = "StaffDetails")
@@ -18,9 +19,9 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class StaffDetails implements Serializable {
 
-    @Id
     // This ID will be the same as the User's ID due to @MapsId on the 'user' field.
     // The column name in the DB is StaffID.
+    @Id
     @Column(name = "StaffID")
     private Long staffId;
 
@@ -28,6 +29,9 @@ public class StaffDetails implements Serializable {
     @MapsId // Uses the ID of the User entity as the ID for StaffDetails
     @JoinColumn(name = "StaffID") // This is the FK column in StaffDetails table that references Users.UserID
     private User staff;
+
+    @OneToMany(mappedBy = "staff", fetch = FetchType.LAZY)
+    private Set<Booking> bookings;
 
     @Size(max = 50, message = "Position must be less than 50 characters")
     @Column(name = "Position", length = 50)

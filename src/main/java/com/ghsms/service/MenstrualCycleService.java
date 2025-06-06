@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,23 +21,43 @@ public class MenstrualCycleService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
-    public MenstrualCycle trackCycle(Long customerId, LocalDate startDate, LocalDate endDate, String notes) {
-        List<MenstrualCycle> previousCycles = cycleRepository
-            .findByCustomerUserIdOrderByStartDateDesc(customerId);
+
+    // Thêm thông tin theo dõi chu kỳ kinh nguyệt
+    public MenstrualCycle trackCycle(Long customerId, LocalDate startDate, Integer cycleLength, Integer menstruationDuration, String notes) {
 
         MenstrualCycle cycle = new MenstrualCycle();
-        cycle.setCustomer(userRepository.findById(customerId).orElseThrow());
-        cycle.setStartDate(startDate);
-        cycle.setEndDate(endDate);
-        cycle.setNotes(notes);
+        cycle.setCustomer(userRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liêu người dùng với ID")));
 
-        // Calculate cycle length based on previous cycles
-        if (!previousCycles.isEmpty()) {
-            MenstrualCycle lastCycle = previousCycles.get(0);
-            cycle.setCycleLength((int) lastCycle.getStartDate().until(startDate).getDays());
+        // Check if customer already has a cycle
+        cycleRepository.findByCustomerUserId(customerId)
+                .ifPresent(existingCycle -> {
+                    throw new RuntimeException("Người dùng đã có chu kỳ được theo dõi, vui lòng xóa hoặc cập nhật chu kỳ hiện tại.");
+                });
+
+        cycle.setStartDate(startDate);
+        // kiểm tra độ dài của chu kỳ kinh nguyệt và số ngày hành kinh
+
+        if(cycleLength != null){
+            if (cycleLength < 20 || cycleLength > 45) {
+                throw new RuntimeException("Số ngày giữa 2 chu kỳ phải từ 20 đến 45 ngày, nếu không bạn nên đi kiểm tra sức khỏe ");
+            }else{
+                cycle.setCycleLength(cycleLength);
+            }
         } else {
-            cycle.setCycleLength(28); // Default cycle length
+            cycle.setCycleLength(28);
         }
+
+        if(menstruationDuration != null){
+            if (menstruationDuration < 1 || menstruationDuration > 10) {
+                throw new RuntimeException("Số ngày hành kinh phải từ 1 đến 10 ngày, nếu không bạn nên đi kiểm tra sức khỏe ");
+            }else{
+                cycle.setMenstruationDuration(menstruationDuration);
+            }
+        } else {
+            cycle.setMenstruationDuration(5); // default value;
+        }
+
+        cycle.setNotes(notes);
 
         // Calculate predictions
         calculatePredictions(cycle);
@@ -44,18 +65,27 @@ public class MenstrualCycleService {
     }
 
     private void calculatePredictions(MenstrualCycle cycle) {
+        // end period date
+        cycle.setEndDate(cycle.getStartDate().plusDays(cycle.getCycleLength() - 1));
+
+        //set ovulation prediction (typically 14 days before next period)
+        cycle.setPredictedOvulationDate(cycle.getStartDate().plusDays(cycle.getCycleLength() - 14));
+
+        //set predicted fertile window start date
+        cycle.setPredictedFertileWindowStartDate(cycle.getStartDate().plusDays(cycle.getCycleLength() - 17));
+
+        //set predicted fertile window end date
+        cycle.setPredictedFertileWindowEndDate((cycle.getPredictedOvulationDate()));
+
         // Next period prediction
         cycle.setNextPredictedDate(cycle.getStartDate().plusDays(cycle.getCycleLength()));
-
-        // Ovulation prediction (typically 14 days before next period)
-        cycle.setOvulationDate(cycle.getNextPredictedDate().minusDays(14));
     }
 
     @Scheduled(cron = "0 0 8 * * *") // Run at 8 AM daily
     public void sendReminders() {
         LocalDate today = LocalDate.now();
         List<MenstrualCycle> upcomingCycles = cycleRepository
-            .findByNextPredictedDateEquals(today.plusDays(2));
+                .findByNextPredictedDateEquals(today.plusDays(2));
 
         for (MenstrualCycle cycle : upcomingCycles) {
             createNotification(cycle);
@@ -65,14 +95,11 @@ public class MenstrualCycleService {
     private void createNotification(MenstrualCycle cycle) {
         Notification notification = new Notification();
         notification.setUser(cycle.getCustomer());
-        notification.setMessage("Your next period is predicted to start in 2 days");
+        notification.setMessage("Chu kỳ kinh nguyệt của bạn dự kiến sẽ bắt đầu trong 2 ngày tới.");
         notification.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(notification);
     }
 
-    public List<MenstrualCycle> getCycleHistory(Long customerId) {
-        return cycleRepository.findByCustomerUserIdOrderByStartDateDesc(customerId);
-    }
 
     public LocalDate getPredictedNextDate(Long customerId) {
         MenstrualCycle currentCycle = getCurrentCycle(customerId);
@@ -81,15 +108,76 @@ public class MenstrualCycleService {
 
     public LocalDate getOvulationDate(Long customerId) {
         MenstrualCycle currentCycle = getCurrentCycle(customerId);
-        return currentCycle != null ? currentCycle.getOvulationDate() : null;
+        return currentCycle != null ? currentCycle.getPredictedOvulationDate() : null;
     }
 
     public MenstrualCycle getCurrentCycle(Long customerId) {
-        List<MenstrualCycle> cycles = cycleRepository
-                .findByCustomerUserIdOrderByStartDateDesc(customerId);
-        if (cycles.isEmpty()) {
-            throw new RuntimeException("No cycles found for customer: " + customerId);
+        return cycleRepository.findByCustomerUserId(customerId).
+                orElseThrow(() -> new RuntimeException("Vui lòng nhập chu kỳ kinh nguyệt của bạn trước khi thực hiện chức năng này"));
+    }
+
+    public void deleteMenstrualCycle(Long customerId, Long cycleId) {
+        MenstrualCycle cycle = cycleRepository.findById(cycleId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt này"));
+
+        // Verify the cycle belongs to the customer
+        if (!cycle.getCustomer().getUserId().equals(customerId)) {
+            throw new RuntimeException("Không có quyền xóa chu kỳ kinh nguyệt này");
         }
-        return cycles.get(0);
+
+        cycleRepository.delete(cycle);
+    }
+
+    public MenstrualCycle getAllPredicted(Long customerId) {
+        Optional<MenstrualCycle> cycles = cycleRepository
+                .findByCustomerUserId(customerId);
+        if (cycles.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt của bạn: " + customerId);
+        }
+        return cycles.get();
+    }
+
+    public MenstrualCycle updateCycle(Long customerId, Long cycleId, LocalDate startDate,
+                                      Integer cycleLength, Integer menstruationDuration, String notes) {
+
+        MenstrualCycle cycle = cycleRepository.findById(cycleId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt của khách hàng"));
+
+        // Verify ownership
+        if (!cycle.getCustomer().getUserId().equals(customerId)) {
+            throw new RuntimeException("Không có quyền cập nhật chu kỳ kinh nguyệt này");
+        }
+
+        // Update start date
+        cycle.setStartDate(startDate);
+
+        // Validate and update cycle length
+        if (cycleLength != null) {
+            if (cycleLength < 20 || cycleLength > 45) {
+                throw new RuntimeException("Số ngày giữa 2 chu kỳ phải từ 20 đến 45 ngày, nếu không bạn nên đi kiểm tra sức khỏe");
+            }
+            cycle.setCycleLength(cycleLength);
+        }
+
+        // Validate and update menstruation duration
+        if (menstruationDuration != null) {
+            if (menstruationDuration < 1 || menstruationDuration > 10) {
+                throw new RuntimeException("Số ngày hành kinh phải từ 1 đến 10 ngày, nếu không bạn nên đi kiểm tra sức khỏe");
+            }
+            cycle.setMenstruationDuration(menstruationDuration);
+        }
+
+        // Validate and update notes
+        if (notes != null && notes.length() > 255) {
+            throw new RuntimeException("Chú thích nên ít hơn 255 ký tự");
+        }
+        if (notes != null) {
+            cycle.setNotes(notes);
+        }
+
+        // Recalculate predictions
+        calculatePredictions(cycle);
+
+        return cycleRepository.save(cycle);
     }
 }

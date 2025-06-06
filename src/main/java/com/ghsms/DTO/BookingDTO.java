@@ -1,41 +1,30 @@
 package com.ghsms.DTO;
 
-    import com.ghsms.file_enum.BookingStatus;
-    import com.ghsms.file_enum.ServiceBookingCategory;
-    import jakarta.persistence.Column;
-    import jakarta.validation.constraints.Pattern;
-    import lombok.Data;
-    import jakarta.validation.constraints.NotNull;
-    import lombok.Getter;
-    import lombok.RequiredArgsConstructor;
-    import lombok.Setter;
+import com.ghsms.file_enum.BookingStatus;
+import com.ghsms.file_enum.ServiceBookingCategory;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
-    import java.time.LocalDate;
-    import java.util.List;
+import java.io.Serializable;
+import java.util.List;
+
 @RequiredArgsConstructor
 @Getter
 @Setter
-@Data
-public class BookingDTO {
+public class BookingDTO implements Serializable {
+
     private Long bookingId;
 
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "Customer ID is required")
     private Long userId;
 
-    private List<Long> serviceIds;
+    private Long staffId; // có thể để null khi khách vừa đặt
 
-    public BookingDTO(Long bookingId, Long userId, List<Long> serviceIds, String bookingDate, String timeSlot, String paymentCode, BookingStatus status, String serviceName, ServiceBookingCategory category, String customerName) {
-        this.bookingId = bookingId;
-        this.userId = userId;
-        this.serviceIds = serviceIds;
-        this.bookingDate = bookingDate;
-        this.timeSlot = timeSlot;
-        this.paymentCode = paymentCode;
-        this.status = status;
-        this.serviceName = serviceName;
-        this.category = category;
-        this.customerName = customerName;
-    }
+    private List<Long> serviceIds;
 
     @NotNull(message = "Booking date is required")
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Ngày phải đúng định dạng yyyy-MM-dd")
@@ -50,11 +39,19 @@ public class BookingDTO {
     private String paymentCode;
 
     private BookingStatus status;
+
+    // Optional: thêm tên dịch vụ nếu dùng ở view
     private String serviceName;
+
     private ServiceBookingCategory category;
+
+    // Thông tin liên hệ khách (tùy theo use-case)
     private String customerName;
 
+    @Pattern(regexp = "^0\\d{9}$", message = "Số điện thoại phải bắt đầu bằng 0 và có 10 số")
+    private String customerPhone;
 
-
+    @Email(message = "Email không hợp lệ")
+    private String customerEmail;
 
 }

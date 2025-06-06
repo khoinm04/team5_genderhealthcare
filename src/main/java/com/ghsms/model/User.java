@@ -66,13 +66,16 @@ public class User implements Serializable {
     // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
     // For StaffDetails and ConsultantDetails (OneToOne)
 
-    @Transient
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+
+    @OneToOne(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;
 
     @Transient
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ConsultantDetails consultantDetails;
+
+    @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private CustomerDetails customerDetails;
 
 
 }

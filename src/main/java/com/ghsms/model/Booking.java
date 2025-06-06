@@ -27,7 +27,7 @@ public class Booking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CustomerID", nullable = false)
-    private User customer;
+    private CustomerDetails customer;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -36,6 +36,10 @@ public class Booking {
             inverseJoinColumns = @JoinColumn(name = "ServiceID")
     )
     private Set<Service> services = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "StaffID")
+    private StaffDetails staff;
 
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Ngày phải đúng định dạng yyyy-MM-dd")
     @Column(name = "BookingDate")
