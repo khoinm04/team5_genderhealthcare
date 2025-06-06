@@ -1,7 +1,7 @@
 import React from "react";
-import Header from "./Header";
-import BlogList from "./BlogList";
-import Footer from "./Footer";
+import Header from "../components/Header";
+import BlogList from "../components/BlogList";
+import Footer from "../components/Footer";
 
 export default function BlogPage() {
   return (

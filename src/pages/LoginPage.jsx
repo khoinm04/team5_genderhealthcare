@@ -1,7 +1,7 @@
 // LoginPage.jsx
 import React from "react";
-import LoginForm from "./LoginForm";
-import SocialLoginButtons from "./SocialLoginButtons";
+import LoginForm from "../components/LoginForm";
+import SocialLoginButtons from "../components/SocialLoginButtons";
 import { Link } from "react-router-dom";
 
 export default function LoginPage() {
