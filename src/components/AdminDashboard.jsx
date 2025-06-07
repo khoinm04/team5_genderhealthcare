@@ -204,10 +204,9 @@ const AdminDashboard = () => {
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {recentActivity.map((activity) => (
               <div key={activity.id} className={`flex items-center p-3 border-l-4 border-blue-200 bg-blue-50 rounded`}>
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
-                  activity.type === 'login' ? 'bg-green-100' :
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${activity.type === 'login' ? 'bg-green-100' :
                   activity.type === 'logout' ? 'bg-red-100' : 'bg-blue-100'
-                }`}>
+                  }`}>
                   {activity.type === 'login' ? (
                     <UserCheck className="h-4 w-4 text-green-600" />
                   ) : activity.type === 'logout' ? (
@@ -312,19 +311,17 @@ const AdminDashboard = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.role === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
                     user.role === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
+                      'bg-green-100 text-green-800'
+                    }`}>
                     {user.role}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${
-                      user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {user.is_active ? 'Hoạt động' : 'Không hoạt động'}
                     </span>
                     {user.isOnline && (
@@ -449,11 +446,10 @@ const AdminDashboard = () => {
                     <span className="font-medium text-gray-900">{message.sender}</span>
                     <span className="text-gray-500">→</span>
                     <span className="text-gray-700">{message.recipient}</span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      message.type === 'booking' ? 'bg-blue-100 text-blue-800' :
+                    <span className={`px-2 py-1 text-xs rounded-full ${message.type === 'booking' ? 'bg-blue-100 text-blue-800' :
                       message.type === 'consultation' ? 'bg-green-100 text-green-800' :
-                      'bg-purple-100 text-purple-800'
-                    }`}>
+                        'bg-purple-100 text-purple-800'
+                      }`}>
                       {message.type}
                     </span>
                   </div>
@@ -504,9 +500,8 @@ const AdminDashboard = () => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3">
                     <h4 className="font-medium text-gray-900">{notification.title}</h4>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      notification.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-2 py-1 text-xs rounded-full ${notification.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {notification.status === 'active' ? 'Hoạt động' : 'Ẩn'}
                     </span>
                   </div>
@@ -518,11 +513,10 @@ const AdminDashboard = () => {
                     <Send className="h-3 w-3 mr-1" />
                     Gửi
                   </button>
-                  <button className={`px-3 py-1 text-sm rounded ${
-                    notification.status === 'active'
-                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                      : 'bg-green-100 text-green-700 hover:bg-green-200'
-                  }`}
+                  <button className={`px-3 py-1 text-sm rounded ${notification.status === 'active'
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
                     onClick={() => { /* Toggle status logic here */ }}
                   >
                     {notification.status === 'active' ? 'Ẩn' : 'Hiển thị'}
@@ -642,6 +636,20 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Hàm logout
+  const handleLogout = () => {
+    // Nếu bạn dùng sessionStorage
+    sessionStorage.clear();  // hoặc sessionStorage.removeItem('userSessionKey')
+
+    // Nếu bạn cần gọi API backend để logout (hủy session server)
+    // fetch('/api/logout', { method: 'POST' }).then(() => {
+    //   window.location.href = '/login';
+    // });
+
+    // Chuyển về trang đăng nhập
+    window.location.href = '/login';
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -654,8 +662,15 @@ const AdminDashboard = () => {
               <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">A</span>
               </div>
+              <button
+                onClick={handleLogout}
+                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+              >
+                Đăng xuất
+              </button>
             </div>
           </div>
+
         </div>
       </header>
 
@@ -665,44 +680,40 @@ const AdminDashboard = () => {
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'dashboard'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'dashboard'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Tổng quan
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'users'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'users'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <Users className="h-4 w-4 mr-2" />
               Người dùng
             </button>
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'messages'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'messages'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Tin nhắn
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'notifications'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'notifications'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <Bell className="h-4 w-4 mr-2" />
               Thông báo
