@@ -8,35 +8,78 @@ export default function Header() {
     axios.get("http://localhost:8080/gender-health-care/signingoogle", {
       withCredentials: true,
     })
-    .then((res) => {
-      const userData = res.data.user;
-      setUser(userData);
+      .then((res) => {
+        const userData = res.data.user;
+        setUser(userData);
 
-      if (userData && userData.userId !== undefined) {
-        // Chuyển userId thành chuỗi khi lưu sessionStorage
-        sessionStorage.setItem("userId", userData.userId.toString());
-        console.log("Stored userId in sessionStorage:", userData.userId);
+        if (userData && userData.userId !== undefined) {
+          sessionStorage.setItem("userId", userData.userId.toString());
+          console.log("Stored userId in sessionStorage:", userData.userId);
+        }
+      })
+      .catch((err) => {
+        console.error("kiểm tra đăng nhập google thất bại: ", err);
+        checkLoginFromSessionStorage();
+      });
+
+    function checkLoginFromSessionStorage() {
+      const storedUser = sessionStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          setUser(userObj);
+        } catch (e) {
+          console.error("Lỗi parse user trong sessionStorage:", e);
+          setUser(null);
+          sessionStorage.removeItem("user");
+        }
+      } else {
+        setUser(null);
       }
-    })
-    .catch((err) => {
-      console.error(err);
-      setUser(null);
-      sessionStorage.removeItem("userId");
-    });
+    }
+
   }, []);
 
 
+
+  // const handleLogout = () => {
+  //   axios.post("http://localhost:8080/gender-health-care/logout", {}, {
+  //     withCredentials: true,
+  //   })
+  //     .then((response) => {
+  //       const logoutUrl = response.data.logoutUrl;
+
+  //       // ✅ Nếu là Google Login → chỉ cần redirect, không fetch hay axios
+  //       if (logoutUrl) {
+  //         // Xóa dữ liệu local trước khi rời đi
+  //         sessionStorage.removeItem("userId");
+  //         window.location.href = logoutUrl;
+  //         return;
+  //       }
+
+  //       // ✅ Nếu là login thủ công
+  //       sessionStorage.removeItem("user");
+  //       window.location.href = "/";
+  //     })
+  //     .catch((err) => {
+  //       console.error("Logout failed", err);
+  //     });
+  // };
+
   const handleLogout = () => {
-    axios
-    .post("http://localhost:8080/gender-health-care/logout", {}, {
+    axios.post("http://localhost:8080/gender-health-care/logout", {}, {
       withCredentials: true,
     })
-    .then(() => {
-      setUser(null);
-      sessionStorage.removeItem("userId"); // xóa userId khi logout
-    })
-    .catch((err) => console.error("Logout failed", err))
+      .then(() => {
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("userId")
+        window.location.href = "/"; // về homepage
+      })
+      .catch((err) => {
+        console.error("Logout failed", err);
+      });
   };
+
 
   const menuItems = [
     { name: "Trang chủ", path: "/" },
@@ -89,20 +132,29 @@ export default function Header() {
 
         <div className="flex shrink-0 items-center gap-2">
           {user ? (
-            <>
-              <span className="font-bold">{user.name}</span>
-              <img
-                src={user.imageUrl}
-                alt="avatar"
-                className="w-10 h-10 rounded-full"
-              />
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col text-right">
+                <span className="font-bold">{user.name || "Người dùng"}</span>
+                <span className="text-xs text-gray-600">{user.email || ""}</span>
+              </div>
+              {user.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gray-500 text-white flex items-center justify-center rounded-full overflow-hidden">
+                  <img src="/image/messi.png" alt="avt" className="w-full h-full object-cover"/>
+                </div>
+              )}
               <button
-              onClick={handleLogout}
-              className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+                onClick={handleLogout}
+                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
               >
                 Đăng xuất
               </button>
-            </>
+            </div>
           ) : (
             <>
               <a

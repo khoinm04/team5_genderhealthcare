@@ -11,6 +11,8 @@ import MenstrualBookingPage from "./components/MenstrualBookingPage";
 import Services from "./components/Services";
 import Register from "./components/Register";
 import AdminDashboard from "./components/AdminDashboard";
+import ForgotPassword from "./components/ForgotPassword";
+import OtpPasswordForm from "./components/OtpPasswordForm";
 
 
 export default function App() {
@@ -41,6 +43,8 @@ export default function App() {
           <Route path="/booking/sti" element={<STIBookingPage />} />  
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<OtpPasswordForm />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
