@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle, QrCode, Copy, Check } from 'lucide-react';
+import axios from 'axios';
 
 const ConsultationBooking = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -17,40 +18,91 @@ const ConsultationBooking = ({ onClose }) => {
   const [latestBooking, setLatestBooking] = useState(null);
   const [paymentCode, setPaymentCode] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Updated services to match backend enum
-  const services = [
-    {
-      id: 1,
-      name: 'Tư vấn tổng quát',
-      duration: '30 phút',
-      price: '200,000đ',
-      category: 'GENERAL_CONSULTATION'
-    },
-    {
-      id: 2,
-      name: 'Tư vấn chuyên khoa',
-      duration: '45 phút',
-      price: '350,000đ',
-      category: 'SPECIALIST_CONSULTATION'
-    },
-    {
-      id: 3,
-      name: 'Tái khám',
-      duration: '20 phút',
-      price: '150,000đ',
-      category: 'RE_EXAMINATION'
-    },
-    {
-      id: 4,
-      name: 'Tư vấn khẩn cấp',
-      duration: '60 phút',
-      price: '500,000đ',
-      category: 'EMERGENCY_CONSULTATION'
+  // Fetch services from backend on component mount
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/services');
+      if (response.ok) {
+        const servicesData = await response.json();
+        setServices(servicesData);
+      } else {
+        // Fallback to default services if API call fails
+        setServices([
+          {
+            serviceId: 1,
+            serviceName: 'General Consultation',
+            category: 'GENERAL_CONSULTATION',
+            price: 50.00,
+            description: 'Regular health checkup and consultation'
+          },
+          {
+            serviceId: 2,
+            serviceName: 'Specialist Consultation',
+            category: 'SPECIALIST_CONSULTATION',
+            price: 100.00,
+            description: 'Consultation with specialist doctor'
+          },
+          {
+            serviceId: 3,
+            serviceName: 'Re-examination',
+            category: 'RE_EXAMINATION',
+            price: 30.00,
+            description: 'Follow-up consultation'
+          },
+          {
+            serviceId: 4,
+            serviceName: 'Emergency Consultation',
+            category: 'EMERGENCY_CONSULTATION',
+            price: 150.00,
+            description: 'Urgent medical consultation'
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      // Use fallback services
+      setServices([
+        {
+          serviceId: 1,
+          serviceName: 'General Consultation',
+          category: 'GENERAL_CONSULTATION',
+          price: 50.00,
+          description: 'Regular health checkup and consultation'
+        },
+        {
+          serviceId: 2,
+          serviceName: 'Specialist Consultation',
+          category: 'SPECIALIST_CONSULTATION',
+          price: 100.00,
+          description: 'Consultation with specialist doctor'
+        },
+        {
+          serviceId: 3,
+          serviceName: 'Re-examination',
+          category: 'RE_EXAMINATION',
+          price: 30.00,
+          description: 'Follow-up consultation'
+        },
+        {
+          serviceId: 4,
+          serviceName: 'Emergency Consultation',
+          category: 'EMERGENCY_CONSULTATION',
+          price: 150.00,
+          description: 'Urgent medical consultation'
+        }
+      ]);
     }
-  ];
+  };
 
-  // Updated time slots to match backend format (HH:mm-HH:mm)
+  // Time slots matching backend format (HH:mm-HH:mm)
   const timeSlots = [
     '08:00-08:30', '08:30-09:00', '09:00-09:30', '09:30-10:00',
     '10:00-10:30', '10:30-11:00', '14:00-14:30', '14:30-15:00',
@@ -70,22 +122,26 @@ const ConsultationBooking = ({ onClose }) => {
     return date.toLocaleDateString('vi-VN');
   };
 
-  const formatDateForBackend = (dateString) => {
-    // Backend expects YYYY-MM-DD for bookingDate
-    // The input type="date" already gives this format, so just return it.
-    return dateString;
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
   };
 
   const handleServiceSelect = (service) => {
     setSelectedService(service);
+    setError('');
   };
 
   const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
+    setError('');
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
+    setError('');
   };
 
   const handleContactInfoChange = (field, value) => {
@@ -93,6 +149,7 @@ const ConsultationBooking = ({ onClose }) => {
       ...prev,
       [field]: value
     }));
+    setError('');
   };
 
   const canProceedToNextStep = () => {
@@ -106,7 +163,7 @@ const ConsultationBooking = ({ onClose }) => {
       case 4:
         return contactInfo.fullName && contactInfo.phone && contactInfo.email;
       case 5:
-        return true; // Payment step - always can proceed (after booking is created)
+        return true;
       default:
         return false;
     }
@@ -131,7 +188,6 @@ const ConsultationBooking = ({ onClose }) => {
         setCopiedCode(true);
         setTimeout(() => setCopiedCode(false), 2000);
       } catch (err) {
-        // Fallback for older browsers (less reliable)
         const textArea = document.createElement('textarea');
         textArea.value = paymentCode;
         document.body.appendChild(textArea);
@@ -139,120 +195,159 @@ const ConsultationBooking = ({ onClose }) => {
         document.execCommand('copy');
         document.body.removeChild(textArea);
         setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
+        setTimeout(() => setCopiedCode(false, degrees, Fahrenheit), 2000);
       }
     }
   };
 
   const handleConfirmBooking = async () => {
-    if (canProceedToNextStep()) {
+    const userId = Number(sessionStorage.getItem('userId'));
+
+    if (!userId) {
+      setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    if (!canProceedToNextStep()) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
       const bookingData = {
-        userId: 1, // <<< IMPORTANT: This should come from an actual authenticated user. Hardcoded for demonstration.
-        serviceIds: [selectedService.id], // Backend expects an array of service IDs
-        bookingDate: formatDateForBackend(selectedDate), // YYYY-MM-DD
-        timeSlot: selectedTime, // HH:mm-HH:mm
+        userId: userId,
+        serviceIds: [selectedService.serviceId],
+        bookingDate: selectedDate,
+        timeSlot: selectedTime,
         customerName: contactInfo.fullName,
         customerPhone: contactInfo.phone,
-        customerEmail: contactInfo.email,
-        notes: contactInfo.notes // Optional, based on backend DTO
+        customerEmail: contactInfo.email
       };
 
-      try {
-        const response = await fetch('http://localhost:8080/api/bookings', { // <<< API Endpoint for your backend
-          method: 'POST',
+      const bookingResponse = await axios.post(
+        'http://localhost:8080/api/bookings',
+        bookingData,
+        {
+          withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
-            // If your backend requires authentication (e.g., JWT), you would add:
-            // 'Authorization': `Bearer YOUR_AUTH_TOKEN`
           },
-          body: JSON.stringify(bookingData)
-        });
-
-        if (!response.ok) {
-          // Attempt to parse error message from backend
-          let errorMessage = 'Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.';
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          } catch (jsonError) {
-            // If response is not JSON, use generic message
-            console.error('Error parsing backend error response:', jsonError);
-          }
-          throw new Error(errorMessage);
         }
+      );
 
-        const responseData = await response.json();
-        // responseData should contain 'booking' and 'paymentCode' from your backend
-        // e.g., { booking: { ... }, paymentCode: "PAY-20231026-1234" }
+      const responseData = bookingResponse.data;
 
-        const newAppointment = {
-          id: responseData.booking.bookingId, // Use ID from backend response
-          service: selectedService, // Retain selected service details from frontend for display
-          date: responseData.booking.bookingDate, // Use date from backend (should be same as selectedDate)
-          time: responseData.booking.timeSlot, // Use time from backend (should be same as selectedTime)
-          contact: contactInfo,
-          status: responseData.booking.status, // Get status from backend, e.g., 'PENDING_PAYMENT'
-          createdAt: new Date().toLocaleString('vi-VN'), // Could also get from backend if provided
-          paymentCode: responseData.paymentCode // Get payment code from backend
-        };
-        
-        setAppointments(prev => [...prev, newAppointment]);
-        setLatestBooking(newAppointment);
-        setPaymentCode(newAppointment.paymentCode); // Set payment code for display
-        setCurrentStep(5); // Move to payment step
+      // Xử lý dữ liệu trả về, cập nhật state, chuyển bước UI...
+      const newAppointment = {
+        id: responseData.booking.bookingId,
+        service: selectedService,
+        date: responseData.booking.bookingDate,
+        time: responseData.booking.timeSlot,
+        contact: {
+          ...contactInfo,
+          notes: contactInfo.notes
+        },
+        status: responseData.booking.status,
+        createdAt: new Date().toLocaleString('vi-VN'),
+        paymentCode: responseData.paymentCode,
+        customerName: responseData.booking.customerName || contactInfo.fullName
+      };
 
-      } catch (error) {
-        console.error('Error creating booking:', error);
-        alert(error.message); // Show the specific error message from backend or a generic one
+      setAppointments(prev => [...prev, newAppointment]);
+      setLatestBooking(newAppointment);
+      setPaymentCode(responseData.paymentCode);
+      setCurrentStep(5);
+
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        setError(error.response.data.error || error.response.data.message || 'Có lỗi xảy ra từ server.');
+      } else {
+        setError(error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePaymentConfirmation = () => {
-    // In a real application, this would trigger an API call to confirm payment status
-    // For now, we just mark it as successful in the UI
-    setShowSuccess(true);
-    // Reset form after successful booking and (simulated) payment confirmation
-    // Note: The latestBooking state and paymentCode are still retained for the success panel.
-    setCurrentStep(1); // Go back to step 1 for new booking
-    setSelectedService(null);
-    setSelectedDate('');
-    setSelectedTime('');
-    setContactInfo({
-      fullName: '',
-      phone: '',
-      email: '',
-      notes: ''
-    });
-    setPaymentCode(''); // Clear payment code after confirming
+
+
+  const handlePaymentConfirmation = async () => {
+    if (!latestBooking) return;
+
+    setLoading(true);
+    try {
+      // Update booking status to CONFIRMED
+      const response = await fetch(`http://localhost:8080/api/bookings/${latestBooking.id}/status?status=CONFIRMED`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const updatedBookingData = await response.json();
+
+        // Update the booking status in local state
+        setAppointments(prev =>
+          prev.map(appointment =>
+            appointment.id === latestBooking.id
+              ? { ...appointment, status: 'CONFIRMED' }
+              : appointment
+          )
+        );
+
+        setShowSuccess(true);
+
+        // Reset form
+        setCurrentStep(1);
+        setSelectedService(null);
+        setSelectedDate('');
+        setSelectedTime('');
+        setContactInfo({
+          fullName: '',
+          phone: '',
+          email: '',
+          notes: ''
+        });
+        setPaymentCode('');
+      } else {
+        throw new Error('Không thể cập nhật trạng thái thanh toán');
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      setError('Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.');
+    }
+    finally {
+      setLoading(false);
+    }
   };
 
   const handleNewBooking = () => {
     setShowSuccess(false);
     setLatestBooking(null);
     setCurrentStep(1);
+    setError('');
   };
 
   const renderProgressBar = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3, 4, 5].map((step) => (
         <div key={step} className="flex items-center">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-            step <= currentStep ? 'bg-blue-600' : 'bg-gray-300'
-          }`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${step <= currentStep ? 'bg-blue-600' : 'bg-gray-300'
+            }`}>
             {step}
           </div>
           {step < 5 && (
-            <div className={`w-12 h-1 mx-2 ${
-              step < currentStep ? 'bg-blue-600' : 'bg-gray-300'
-            }`} />
+            <div className={`w-12 h-1 mx-2 ${step < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+              }`} />
           )}
         </div>
       ))}
     </div>
   );
 
-  // Success Panel Component
   const renderSuccessPanel = () => {
     if (!showSuccess || !latestBooking) return null;
 
@@ -269,32 +364,50 @@ const ConsultationBooking = ({ onClose }) => {
 
           <div className="text-left mb-8">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">Thông tin cuộc hẹn:</h3>
-            
+
             <div className="space-y-3 text-sm">
               <div>
                 <span className="font-semibold text-gray-700">Dịch vụ: </span>
-                <span className="text-gray-600">{latestBooking.service.name}</span>
+                <span className="text-gray-600">{latestBooking.service.serviceName}</span>
               </div>
-              
+
               <div>
                 <span className="font-semibold text-gray-700">Ngày: </span>
                 <span className="text-gray-600">{formatDate(latestBooking.date)}</span>
               </div>
-              
+
               <div>
                 <span className="font-semibold text-gray-700">Giờ: </span>
                 <span className="text-gray-600">{latestBooking.time}</span>
               </div>
-              
+
               <div>
                 <span className="font-semibold text-gray-700">Họ tên: </span>
                 <span className="text-gray-600">{latestBooking.contact.fullName}</span>
               </div>
+
+              <div>
+                <span className="font-semibold text-gray-700">Số điện thoại: </span>
+                <span className="text-gray-600">{latestBooking.contact.phone}</span>
+              </div>
+
+              <div>
+                <span className="font-semibold text-gray-700">Email: </span>
+                <span className="text-gray-600">{latestBooking.contact.email}</span>
+              </div>
+
+              {latestBooking.contact.notes && (
+                <div>
+                  <span className="font-semibold text-gray-700">Ghi chú: </span>
+                  <span className="text-gray-600">{latestBooking.contact.notes}</span>
+                </div>
+              )}
+
               {latestBooking.paymentCode && (
-                 <div>
-                   <span className="font-semibold text-gray-700">Mã thanh toán: </span>
-                   <span className="text-gray-600 font-mono">{latestBooking.paymentCode}</span>
-                 </div>
+                <div>
+                  <span className="font-semibold text-gray-700">Mã thanh toán: </span>
+                  <span className="text-gray-600 font-mono">{latestBooking.paymentCode}</span>
+                </div>
               )}
             </div>
           </div>
@@ -328,21 +441,22 @@ const ConsultationBooking = ({ onClose }) => {
             <div className="space-y-4">
               {services.map((service) => (
                 <div
-                  key={service.id}
+                  key={service.serviceId}
                   onClick={() => handleServiceSelect(service)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selectedService?.id === service.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${selectedService?.serviceId === service.serviceId
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="font-semibold text-gray-800">{service.name}</h3>
-                      <p className="text-sm text-gray-600">Thời gian: {service.duration}</p>
+                      <h3 className="font-semibold text-gray-800">{service.serviceName}</h3>
+                      <p className="text-sm text-gray-600">{service.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold text-blue-600">{service.price}</p>
+                      <p className="text-lg font-semibold text-blue-600">
+                        {formatPrice(service.price)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -365,7 +479,6 @@ const ConsultationBooking = ({ onClose }) => {
                 onChange={handleDateChange}
                 min={getMinDate()}
                 className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="mm/dd/yyyy"
               />
               <p className="text-sm text-gray-600 mt-2">* Chỉ có thể đặt lịch từ ngày mai trở đi</p>
             </div>
@@ -384,11 +497,10 @@ const ConsultationBooking = ({ onClose }) => {
                 <button
                   key={time}
                   onClick={() => handleTimeSelect(time)}
-                  className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 text-sm ${
-                    selectedTime === time
-                      ? 'border-blue-500 bg-blue-500 text-white'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
+                  className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 text-sm ${selectedTime === time
+                    ? 'border-blue-500 bg-blue-500 text-white'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
                 >
                   {time}
                 </button>
@@ -469,9 +581,8 @@ const ConsultationBooking = ({ onClose }) => {
               <QrCode className="w-6 h-6 mr-2" />
               Thanh toán QR Code
             </h2>
-            
+
             <div className="max-w-md mx-auto">
-              {/* QR Code Display */}
               <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 text-center">
                 <div className="w-64 h-64 mx-auto bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mb-4">
                   <div className="text-center">
@@ -479,8 +590,7 @@ const ConsultationBooking = ({ onClose }) => {
                     <p className="text-sm text-gray-500">QR Code thanh toán</p>
                   </div>
                 </div>
-                
-                {/* Payment Code */}
+
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">Mã thanh toán:</p>
                   <div className="flex items-center justify-center space-x-2">
@@ -500,15 +610,13 @@ const ConsultationBooking = ({ onClose }) => {
                   )}
                 </div>
 
-                {/* Amount */}
                 <div className="border-t pt-4">
                   <p className="text-lg font-semibold text-gray-800">
-                    Số tiền: <span className="text-blue-600">{selectedService?.price}</span>
+                    Số tiền: <span className="text-blue-600">{formatPrice(selectedService?.price)}</span>
                   </p>
                 </div>
               </div>
 
-              {/* Payment Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-blue-800 mb-2">Hướng dẫn thanh toán:</h3>
                 <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
@@ -520,14 +628,14 @@ const ConsultationBooking = ({ onClose }) => {
                 </ol>
               </div>
 
-              {/* Confirm Payment Button */}
               <button
                 onClick={handlePaymentConfirmation}
-                className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Xác nhận đã thanh toán
+                {loading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán'}
               </button>
-              
+
               <p className="text-xs text-gray-500 text-center mt-2">
                 * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
               </p>
@@ -544,7 +652,6 @@ const ConsultationBooking = ({ onClose }) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header with Close Button */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 relative">
             {onClose && (
               <button
@@ -560,24 +667,27 @@ const ConsultationBooking = ({ onClose }) => {
           </div>
 
           <div className="p-8">
-            {/* Progress Bar */}
             {renderProgressBar()}
 
-            {/* Step Content */}
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+
             <div className="min-h-[400px]">
               {renderStepContent()}
             </div>
 
-            {/* Navigation Buttons */}
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
               <button
                 onClick={handleBack}
                 disabled={currentStep === 1}
-                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  currentStep === 1
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-500 text-white hover:bg-gray-600'
-                }`}
+                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${currentStep === 1
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-500 text-white hover:bg-gray-600'
+                  }`}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Quay lại
@@ -587,11 +697,10 @@ const ConsultationBooking = ({ onClose }) => {
                 <button
                   onClick={handleNext}
                   disabled={!canProceedToNextStep()}
-                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep()
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${canProceedToNextStep()
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   Tiếp theo
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -599,14 +708,13 @@ const ConsultationBooking = ({ onClose }) => {
               ) : currentStep === 4 ? (
                 <button
                   onClick={handleConfirmBooking}
-                  disabled={!canProceedToNextStep()}
-                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep()
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  disabled={!canProceedToNextStep() || loading}
+                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${canProceedToNextStep() && !loading
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
-                  Tạo đơn đặt lịch
+                  {loading ? 'Đang tạo...' : 'Tạo đơn đặt lịch'}
                 </button>
               ) : null}
             </div>
@@ -617,13 +725,25 @@ const ConsultationBooking = ({ onClose }) => {
                 <h3 className="font-semibold text-gray-800 mb-4">Thông tin đặt lịch:</h3>
                 <div className="space-y-2 text-sm">
                   {selectedService && (
-                    <p><strong>Dịch vụ:</strong> {selectedService.name} - {selectedService.price}</p>
+                    <p><strong>Dịch vụ:</strong> {selectedService.serviceName} - {formatPrice(selectedService.price)}</p>
                   )}
                   {selectedDate && (
                     <p><strong>Ngày:</strong> {formatDate(selectedDate)}</p>
                   )}
                   {selectedTime && (
                     <p><strong>Giờ:</strong> {selectedTime}</p>
+                  )}
+                  {contactInfo.fullName && (
+                    <p><strong>Họ tên:</strong> {contactInfo.fullName}</p>
+                  )}
+                  {contactInfo.phone && (
+                    <p><strong>Số điện thoại:</strong> {contactInfo.phone}</p>
+                  )}
+                  {contactInfo.email && (
+                    <p><strong>Email:</strong> {contactInfo.email}</p>
+                  )}
+                  {contactInfo.notes && (
+                    <p><strong>Ghi chú:</strong> {contactInfo.notes}</p>
                   )}
                 </div>
               </div>
@@ -640,24 +760,23 @@ const ConsultationBooking = ({ onClose }) => {
                 <div key={appointment.id} className="p-4 border border-gray-200 rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold text-gray-800">{appointment.contact.fullName}</h3>
-                      <p className="text-sm text-gray-600">{appointment.service.name}</p>
+                      <h3 className="font-semibold text-gray-800">{appointment.service.serviceName}</h3>
+                      <p className="text-sm text-gray-600">Mã thanh toán: {appointment.paymentCode}</p>
+                      <p className="text-sm text-gray-600">Trạng thái: {appointment.status}</p>
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      appointment.status === 'PENDING_PAYMENT' 
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {appointment.status === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Đã xác nhận'}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-lg font-semibold text-blue-600">{formatPrice(appointment.service.price)}</p>
+                      <p className="text-sm text-gray-600">{formatDate(appointment.date)} | {appointment.time}</p>
+                    </div>
                   </div>
                   <div className="text-sm text-gray-600">
-                    <p><strong>Ngày:</strong> {formatDate(appointment.date)} - {appointment.time}</p>
-                    <p><strong>Liên hệ:</strong> {appointment.contact.phone} | {appointment.contact.email}</p>
-                    {appointment.paymentCode && (
-                      <p><strong>Mã thanh toán:</strong> {appointment.paymentCode}</p>
+                    <p><strong>Họ tên:</strong> {appointment.customerName}</p>
+                    <p><strong>Số điện thoại:</strong> {appointment.contact.phone}</p>
+                    <p><strong>Email:</strong> {appointment.contact.email}</p>
+                    {appointment.contact.notes && (
+                      <p><strong>Ghi chú:</strong> {appointment.contact.notes}</p>
                     )}
-                    <p className="text-xs mt-2">Đặt lúc: {appointment.createdAt}</p>
+                    <p><strong>Ngày tạo:</strong> {appointment.createdAt}</p>
                   </div>
                 </div>
               ))}
@@ -666,7 +785,6 @@ const ConsultationBooking = ({ onClose }) => {
         )}
       </div>
 
-      {/* Success Modal */}
       {renderSuccessPanel()}
     </div>
   );

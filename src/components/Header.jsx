@@ -5,26 +5,40 @@ export default function Header() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get("http://localhost:8080/gender-health-care/signingoogle", {
+    // Check session endpoint that matches your backend
+    axios.get("http://localhost:8080/api/auth/session", {
       withCredentials: true,
     })
-    .then((res) => {
-      const userData = res.data.user;
-      setUser(userData);
+      .then((res) => {
+        const userData = res.data;
+        setUser(userData);
 
-      if (userData && userData.userId !== undefined) {
-        // Chuyển userId thành chuỗi khi lưu sessionStorage
-        sessionStorage.setItem("userId", userData.userId.toString());
-        console.log("Stored userId in sessionStorage:", userData.userId);
+        if (userData && userData.userId !== undefined) {
+          sessionStorage.setItem("userId", userData.userId.toString());
+          console.log("Stored userId in sessionStorage:", userData.userId);
+        }
+      })
+      .catch((err) => {
+        console.error("kiểm tra đăng nhập thất bại: ", err);
+        checkLoginFromSessionStorage();
+      });
+
+    function checkLoginFromSessionStorage() {
+      const storedUser = sessionStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          setUser(userObj);
+        } catch (e) {
+          console.error("Lỗi parse user trong sessionStorage:", e);
+          setUser(null);
+          sessionStorage.removeItem("user");
+        }
+      } else {
+        setUser(null);
       }
-    })
-    .catch((err) => {
-      console.error(err);
-      setUser(null);
-      sessionStorage.removeItem("userId");
-    });
+    }
   }, []);
-
 
   const handleLogout = () => {
     axios
@@ -91,14 +105,16 @@ export default function Header() {
           {user ? (
             <>
               <span className="font-bold">{user.name}</span>
-              <img
-                src={user.imageUrl}
-                alt="avatar"
-                className="w-10 h-10 rounded-full"
-              />
+              {user?.imageUrl && (
+                <img
+                  src={user.imageUrl}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full"
+                />
+              )}
               <button
-              onClick={handleLogout}
-              className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+                onClick={handleLogout}
+                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
               >
                 Đăng xuất
               </button>

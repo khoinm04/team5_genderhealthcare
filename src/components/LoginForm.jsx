@@ -11,18 +11,35 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const [role, setRole] = useState("ROLE_ADMIN"); // default là admin
+
 
   const handleSubmit = async () => {
+    console.log("Selected role:", role);
+
     if (!username.trim() || !password) {
       alert("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
       return;
     }
 
     try {
-      console.log({ username, password });
+      console.log({ username, password, role });
+
+      let loginUrl = "";
+      switch (role) {
+        case "ROLE_ADMIN":
+          loginUrl = "http://localhost:8080/api/auth/admin/login";
+          break;
+        case "ROLE_CUSTOMER":
+          loginUrl = "http://localhost:8080/api/auth/customer/login";
+          break;
+        default:
+          alert("Vui lòng chọn role hợp lệ.");
+          return;
+      }
 
       const response = await axios.post(
-        "http://localhost:8080/api/auth/admin/login",
+        loginUrl,
         {
           email: username,
           password: password
@@ -32,31 +49,47 @@ export default function LoginForm() {
             "Content-Type": "application/json",
             "Accept": "application/json"
           },
-          withCredentials: true // rất quan trọng để gửi cookie session
+          withCredentials: true
         }
       );
 
+      console.log("Response data:", response.data); // <-- Đặt ở đây để kiểm tra dữ liệu trả về
+
       const data = response.data;
-      // Nếu backend không trả token, không cần lưu token ở đây
-      // sessionStorage.setItem("token", data.token);
 
-      // Bạn có thể lưu một số info user nếu backend trả về (ví dụ email)
-      sessionStorage.setItem("admin", JSON.stringify({ email: data.email }));
+      // ✅ Lưu role thực tế từ backend
+      sessionStorage.setItem("user", JSON.stringify({ email: data.email, role: data.role, name : data.name }));
+      console.log("User in sessionStorage:", sessionStorage.getItem("user"));
 
-      navigate("/admin");
+      // ✅ Điều hướng theo role thực tế
+      console.log("Role từ backend:", data.role);
+
+      if (data.role === "Admin" ) {
+        navigate("/admin");
+      } else if (data.role === "Customer") {
+        navigate("/");
+      } else {
+        alert("Không xác định được role.");
+      }
+
     } catch (error) {
       alert("Đăng nhập thất bại: " + (error.response?.data?.error || error.message));
     }
   };
+
 
   return (
     <div className="flex flex-col items-center w-full pt-5 pb-8 max-w-md mx-auto">
       <span className="text-[#1C0C11] text-[32px] font-bold mt-4 mb-6">Xin chào</span>
 
       <div className="flex flex-col w-full py-3 px-4 gap-2">
+
+      </div>
+      <div className="flex flex-col w-full py-3 px-4 gap-2">
         <label htmlFor="username" className="text-[#1C0C11] text-base font-bold">
           Tên đăng nhập hoặc email
         </label>
+
         <input
           id="username"
           type="text"
@@ -65,7 +98,7 @@ export default function LoginForm() {
           onChange={(e) => setUsername(e.target.value)}
           className="bg-[#FCF7F9] w-full h-10 rounded-xl border border-solid border-[#E8D1D6] px-3"
         />
-      </div>
+        </div>
 
       <div className="flex flex-col w-full py-3 px-4 gap-2 relative">
         <label htmlFor="password" className="text-[#1C0C11] text-base font-bold">
