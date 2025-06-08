@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="container mx-auto flex flex-col md:flex-row justify-between gap-10">
         {/* 1. Logo và mô tả */}
         <div className="max-w-xs flex flex-col">
-          <h2 className="h5 font-semibold text-[#061178] mb-4">Gender Health Care</h2>
+          <h2 className="h10 font-semibold text-[#061178] mb-4">Gender Health Care</h2>
           <p className="text-[#6b6a7a]">
             Phần mềm quản lý dịch vụ chăm sóc sức khỏe giới tính - Nâng cao chất lượng chăm sóc sức khỏe cho cộng đồng.
           </p>
@@ -14,7 +14,7 @@ export default function Footer() {
 
         {/* 2. Liên kết nhanh */}
         <div className="col-12 col-md-2">
-          <h3 className="h5 font-semibold mb-4">Liên kết</h3>
+          <h3 className="h10 font-semibold mb-4">Liên kết</h3>
           <ul className="list-unstyled space-y-2">
             <li>
               <a
@@ -57,7 +57,7 @@ export default function Footer() {
 
         {/* 3. Thông tin liên hệ */}
         <div className="max-w-xs flex flex-col">
-          <h3 className="h5 font-semibold mb-4">Liên hệ</h3>
+          <h3 className="h10 font-semibold mb-4">Liên hệ</h3>
           <p>
             Email:{" "}
             <a
@@ -82,7 +82,7 @@ export default function Footer() {
 
         {/* 4. Mạng xã hội */}
         <div className="col-12 col-md-2">
-          <h3 className="h5 font-semibold mb-4">Mạng xã hội</h3>
+          <h3 className="h10 font-semibold mb-4">Mạng xã hội</h3>
           <div className="flex gap-3">
             {/* Facebook */}
             <a
@@ -123,12 +123,6 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Copyright */}
-      <div className="border-t mt-4 pt-4 text-center">
-        <small className="text-[#6b6a7a]">
-          © 2025 Gender Health Care. All rights reserved.
-        </small>
-      </div>
     </footer>
   );
 }

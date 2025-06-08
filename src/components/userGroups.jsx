@@ -1,57 +1,57 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const userGroups = [
   {
     title: "Nam giới",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho nam giới.",
-    image:
-      "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=400&q=80",
+    description: "Chăm sóc sức khỏe và phong độ phái mạnh.",
+    icon: "👨",
+    slug: "nam-gioi",
   },
   {
     title: "Nữ giới",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho nữ giới.",
-    image:
-      "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80",
+    description: "Bảo vệ sức khỏe giới tính, an tâm mỗi ngày.",
+    icon: "👩",
+    slug: "nu-gioi",
   },
   {
     title: "Mẹ bầu",
-    description: "Hỗ trợ chăm sóc sức khỏe cho phụ nữ mang thai.",
-    image:
-      "https://images.unsplash.com/photo-1606795157712-4e2aee2d0e6a?auto=format&fit=crop&w=400&q=80",
+    description: "Đồng hành cùng mẹ từ thai kỳ đến ngày sinh nở.",
+    icon: "🤰",
+    slug: "me-bau",
   },
   {
     title: "Trẻ em",
-    description: "Chăm sóc sức khỏe giới tính và phát triển cho trẻ em.",
-    image:
-      "https://images.unsplash.com/photo-1534126511673-b6899657816a?auto=format&fit=crop&w=400&q=80",
+    description: "Phát triển toàn diện cho trẻ nhỏ và vị thành niên.",
+    icon: "🧒",
+    slug: "tre-em",
   },
   {
     title: "Người già",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho người cao tuổi.",
-    image:
-      "https://images.unsplash.com/photo-1532634726-4d9ec9e8b88b?auto=format&fit=crop&w=400&q=80",
+    description: "Nâng cao chất lượng sống cho người lớn tuổi.",
+    icon: "🧓",
+    slug: "nguoi-gia",
   },
 ];
 
-
 export default function UserGroups() {
   return (
-    <section className="max-w-[960px] mx-auto px-4 py-10">
+    <section className="max-w-[1200px] mx-auto px-4 py-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        {userGroups.map(({ title, description, image }) => (
-          <div
+        {userGroups.map(({ title, description, icon, slug }) => (
+          <Link
             key={title}
-            className="bg-white rounded-lg shadow-md p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-lg transition-shadow"
+            to={`/groups/${slug}`}
+            className="bg-white rounded-2xl shadow-md p-7 flex flex-col items-center text-center hover:shadow-xl hover:border-pink-300 border border-transparent transition-all group min-h-[230px] no-underline"
+            style={{ textDecoration: "none" }} // Loại bỏ gạch chân
           >
-            <img
-              src={image}
-              alt={title}
-              className="w-full h-40 object-cover rounded-md mb-4"
-              loading="lazy"
-            />
-            <h3 className="text-xl font-semibold mb-2">{title}</h3>
-            <p className="text-gray-600">{description}</p>
-          </div>
+            <div className="text-5xl mb-3">{icon}</div>
+            <h3 className="text-base font-semibold mb-1">{title}</h3>
+            <p className="text-gray-600 text-[14px] mb-3">{description}</p>
+            <span className="inline-block mt-auto bg-pink-100 text-pink-700 px-4 py-1 rounded-full font-medium text-sm transition-all hover:bg-pink-200">
+              Khám phá
+            </span>
+          </Link>
         ))}
       </div>
     </section>

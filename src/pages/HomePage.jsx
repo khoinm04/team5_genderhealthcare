@@ -9,7 +9,7 @@ const slides = [
     id: 1,
     title: "Chăm sóc sức khỏe giới tính toàn diện",
     description:
-      "Hỗ trợ bạn theo dõi chu kỳ sinh sản, đặt lịch tư vấn và quản lý dịch vụ y tế dễ dàng.",
+      "Theo dõi chu kỳ sinh sản và nhận tư vấn y tế ngay trên ứng dụng.",
     bgImage:
       "url('https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1470&q=80')",
   },

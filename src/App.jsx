@@ -3,13 +3,15 @@ import axios from "axios";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import BlogPage from "./pages/BlogPage";
+import BlogPost from "./pages/BlogPost";   // Đã import BlogPost
 import LoginPage from "./pages/LoginPage";
 import { UserContext } from "./UserContext";
 import ConsultationBooking from "./components/ConsultationBooking";
-import STIBookingPage from "./components/STIBookingPage";
-import MenstrualBookingPage from "./components/MenstrualBookingPage";
+import STIBookingPage from "./pages/STIBookingPage";
+import MenstrualBookingPage from "./pages/MenstrualCyclePage";
 import Services from "./components/Services";
 import Register from "./components/register";
+import UserGroupDetail from "./components/UserGroupDetail";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -18,7 +20,7 @@ export default function App() {
   useEffect(() => {
     axios
       .get("http://localhost:8080/gender-health-care/signingoogle", {
-        withCredentials: true, // để gửi cookie nếu có
+        withCredentials: true,
       })
       .then((res) => {
         setUser(res.data.user);
@@ -32,7 +34,7 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <div>Đang tải dữ liệu...</div>; // Thông báo khi đang tải dữ liệu
+    return <div>Đang tải dữ liệu...</div>;
   }
 
   return (
@@ -41,11 +43,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />  {/* THÊM DÒNG NÀY */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
           <Route path="/booking/menstrual" element={<MenstrualBookingPage />} />
           <Route path="/booking/sti" element={<STIBookingPage />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/groups/:groupSlug" element={<UserGroupDetail />} />
+          
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>

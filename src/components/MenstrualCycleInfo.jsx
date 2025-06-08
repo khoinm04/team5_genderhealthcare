@@ -1,44 +1,17 @@
-// src/components/MenstrualCycleInfo.jsx
-import React, { useEffect, useState } from 'react';
-import { getCurrentCycle, getNextPeriod, getOvulationDate } from '../services/MenstrualCycleService';
+import React from "react";
 
-const MenstrualCycleInfo = ({ customerId }) => {
-  const [cycleInfo, setCycleInfo] = useState(null);
-  const [nextPeriod, setNextPeriod] = useState(null);
-  const [ovulationDate, setOvulationDate] = useState(null);
-
-  useEffect(() => {
-    const fetchCycleData = async () => {
-      try {
-        const cycleResponse = await getCurrentCycle(customerId);
-        setCycleInfo(cycleResponse.data);
-        
-        const nextPeriodResponse = await getNextPeriod(customerId);
-        setNextPeriod(nextPeriodResponse.data);
-        
-        const ovulationResponse = await getOvulationDate(customerId);
-        setOvulationDate(ovulationResponse.data);
-      } catch (error) {
-        console.error('Error fetching menstrual cycle data:', error);
-      }
-    };
-
-    fetchCycleData();
-  }, [customerId]);
-
-  if (!cycleInfo) {
-    return <div>Đang tải thông tin chu kỳ...</div>;
-  }
-
+const MenstrualCycleInfo = ({ cycle }) => {
+  if (!cycle) return null;
   return (
-    <div className="max-w-md mx-auto mt-4">
-      <h2 className="text-xl font-bold">Thông tin chu kỳ kinh nguyệt</h2>
-      <p><strong>Ngày bắt đầu:</strong> {cycleInfo.startDate}</p>
-      <p><strong>Độ dài chu kỳ:</strong> {cycleInfo.cycleLength} ngày</p>
-      <p><strong>Số ngày hành kinh:</strong> {cycleInfo.menstruationDuration} ngày</p>
-      <p><strong>Dự báo kỳ kinh tiếp theo:</strong> {nextPeriod}</p>
-      <p><strong>Ngày rụng trứng:</strong> {ovulationDate}</p>
-      <p><strong>Chú thích:</strong> {cycleInfo.notes || 'Không có'}</p>
+    <div className="w-full max-w-lg mx-auto mt-8 bg-violet-50 p-6 rounded-2xl shadow space-y-2">
+      <h3 className="text-lg font-semibold mb-3 text-[#8f5ed3]">Thông tin chu kỳ hiện tại</h3>
+      <div><span className="font-semibold">Ngày bắt đầu:</span> {cycle.startDate}</div>
+      <div><span className="font-semibold">Ngày kết thúc:</span> {cycle.endDate}</div>
+      <div><span className="font-semibold">Số ngày giữa 2 chu kỳ:</span> {cycle.cycleLength}</div>
+      <div><span className="font-semibold">Số ngày hành kinh:</span> {cycle.menstruationDuration}</div>
+      <div><span className="font-semibold">Ngày dự kiến tiếp theo:</span> {cycle.nextPredictedDate}</div>
+      <div><span className="font-semibold">Ngày rụng trứng dự kiến:</span> {cycle.predictedOvulationDate}</div>
+      <div><span className="font-semibold">Ghi chú:</span> {cycle.notes || "--"}</div>
     </div>
   );
 };
