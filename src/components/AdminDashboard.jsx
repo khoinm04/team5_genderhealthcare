@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, MessageSquare, Bell, BarChart3, Calendar, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
+import axios from 'axios';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -73,32 +74,44 @@ const AdminDashboard = () => {
 
   // Mock data with online status
   const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Khách hàng', roleid: 1, is_active: true, joinDate: '2024-01-15', lastLogin: '2024-06-02', isOnline: true },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Tư vấn viên', roleid: 2, is_active: true, joinDate: '2024-02-20', lastLogin: '2024-06-01', isOnline: true },
-    { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'Quản trị viên', roleid: 3, is_active: true, joinDate: '2024-01-10', lastLogin: '2024-06-03', isOnline: false },
-    { id: 4, name: 'Alice Brown', email: 'alice@example.com', role: 'Khách hàng', roleid: 1, is_active: false, joinDate: '2024-03-05', lastLogin: '2024-05-15', isOnline: false },
+    // { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Khách hàng', roleid: 1, is_active: true, joinDate: '2024-01-15', lastLogin: '2024-06-02', isOnline: true },
+    // { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Tư vấn viên', roleid: 2, is_active: true, joinDate: '2024-02-20', lastLogin: '2024-06-01', isOnline: true },
+    // { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'Quản trị viên', roleid: 3, is_active: true, joinDate: '2024-01-10', lastLogin: '2024-06-03', isOnline: false },
+    // { id: 4, name: 'Alice Brown', email: 'alice@example.com', role: 'Khách hàng', roleid: 1, is_active: false, joinDate: '2024-03-05', lastLogin: '2024-05-15', isOnline: false },
   ]);
 
   // Initialize online users
   useEffect(() => {
-    setOnlineUsers(users.filter(user => user.isOnline));
-    setRecentActivity([
-      { id: 1, type: 'login', user: 'John Doe', action: 'Người dùng đã đăng nhập', timestamp: '2024-06-03 10:45', role: 'Khách hàng' },
-      { id: 2, type: 'activity', user: 'Jane Smith', action: 'Bắt đầu tư vấn', timestamp: '2024-06-03 10:30', role: 'Tư vấn viên' },
-      { id: 3, type: 'login', user: 'Mike Johnson', action: 'Người dùng đã đăng nhập', timestamp: '2024-06-03 10:15', role: 'Khách hàng' },
-    ]);
-  }, []);
+  axios.get('http://localhost:8080/api/admin/users', { withCredentials: true })
+    .then((res) => {
+    console.log("Phản hồi từ server:", res.data); // 👈 thêm dòng này
+
+      const fetchedUsers = res.data;
+
+      if (Array.isArray(fetchedUsers)) {
+        setUsers(fetchedUsers);
+        setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
+      } else {
+        console.error("API trả về không phải mảng:", fetchedUsers);
+      }
+    })
+    .catch((err) => {
+      console.error("Lỗi khi lấy dữ liệu user:", err);
+    });
+}, []);
+
+
 
   const messages = [
-    { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
-    { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
-    { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
+    // { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
+    // { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
+    // { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
   ];
 
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
-    { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
-    { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
+    // { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
+    // { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
+    // { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
   ]);
 
   const stats = {
@@ -405,7 +418,7 @@ const AdminDashboard = () => {
                 Hủy
               </button>
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={handleSaveChanges}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
               >
                 Lưu thay đổi
@@ -649,6 +662,44 @@ const AdminDashboard = () => {
     // Chuyển về trang đăng nhập
     window.location.href = '/login';
   };
+
+  const handleSaveChanges = async () => {
+    const userId = sessionStorage.getItem("userId");
+    if (!userId || !selectedUser) {
+      alert("Thiếu thông tin người dùng để cập nhật");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: selectedUser.name,
+          email: selectedUser.email,
+          roleName: selectedUser.roleName, // ví dụ "ROLE_CUSTOMER"
+        }),
+        withCredentials: true,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Cập nhật thất bại");
+      }
+
+      await response.json();
+
+      alert("Cập nhật thành công!");
+      sessionStorage.removeItem("userId"); // optional: dọn dẹp
+      setSelectedUser(null);               // đóng form
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      alert("Lỗi khi cập nhật: " + error.message);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100">
