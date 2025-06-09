@@ -5,12 +5,11 @@ export default function Header() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check session endpoint that matches your backend
-    axios.get("http://localhost:8080/api/auth/session", {
+    axios.get("http://localhost:8080/gender-health-care/signingoogle", {
       withCredentials: true,
     })
       .then((res) => {
-        const userData = res.data;
+        const userData = res.data.user;
         setUser(userData);
 
         if (userData && userData.userId !== undefined) {
@@ -19,7 +18,7 @@ export default function Header() {
         }
       })
       .catch((err) => {
-        console.error("kiểm tra đăng nhập thất bại: ", err);
+        console.error("kiểm tra đăng nhập google thất bại: ", err);
         checkLoginFromSessionStorage();
       });
 
@@ -38,19 +37,49 @@ export default function Header() {
         setUser(null);
       }
     }
+
   }, []);
 
+
+
+  // const handleLogout = () => {
+  //   axios.post("http://localhost:8080/gender-health-care/logout", {}, {
+  //     withCredentials: true,
+  //   })
+  //     .then((response) => {
+  //       const logoutUrl = response.data.logoutUrl;
+
+  //       // ✅ Nếu là Google Login → chỉ cần redirect, không fetch hay axios
+  //       if (logoutUrl) {
+  //         // Xóa dữ liệu local trước khi rời đi
+  //         sessionStorage.removeItem("userId");
+  //         window.location.href = logoutUrl;
+  //         return;
+  //       }
+
+  //       // ✅ Nếu là login thủ công
+  //       sessionStorage.removeItem("user");
+  //       window.location.href = "/";
+  //     })
+  //     .catch((err) => {
+  //       console.error("Logout failed", err);
+  //     });
+  // };
+
   const handleLogout = () => {
-    axios
-    .post("http://localhost:8080/gender-health-care/logout", {}, {
+    axios.post("http://localhost:8080/gender-health-care/logout", {}, {
       withCredentials: true,
     })
-    .then(() => {
-      setUser(null);
-      sessionStorage.removeItem("userId"); // xóa userId khi logout
-    })
-    .catch((err) => console.error("Logout failed", err))
+      .then(() => {
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("userId")
+        window.location.href = "/"; // về homepage
+      })
+      .catch((err) => {
+        console.error("Logout failed", err);
+      });
   };
+
 
   const menuItems = [
     { name: "Trang chủ", path: "/" },
@@ -103,14 +132,21 @@ export default function Header() {
 
         <div className="flex shrink-0 items-center gap-2">
           {user ? (
-            <>
-              <span className="font-bold">{user.name}</span>
-              {user?.imageUrl && (
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col text-right">
+                <span className="font-bold">{user.name || "Người dùng"}</span>
+                <span className="text-xs text-gray-600">{user.email || ""}</span>
+              </div>
+              {user.imageUrl ? (
                 <img
                   src={user.imageUrl}
                   alt="avatar"
                   className="w-10 h-10 rounded-full"
                 />
+              ) : (
+                <div className="w-10 h-10 bg-gray-500 text-white flex items-center justify-center rounded-full overflow-hidden">
+                  <img src="/image/messi.png" alt="avt" className="w-full h-full object-cover"/>
+                </div>
               )}
               <button
                 onClick={handleLogout}
@@ -118,7 +154,7 @@ export default function Header() {
               >
                 Đăng xuất
               </button>
-            </>
+            </div>
           ) : (
             <>
               <a

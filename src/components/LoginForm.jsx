@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import { useUser } from "../UserContext";
 
 
 
@@ -11,20 +11,17 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const [role, setRole] = useState("ROLE_ADMIN"); // default là admin
+  const [role,] = useState("ROLE_ADMIN"); // default là admin
+  const { setUser } = useUser();
 
 
   const handleSubmit = async () => {
-    console.log("Selected role:", role);
-
     if (!username.trim() || !password) {
       alert("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
       return;
     }
 
     try {
-      console.log({ username, password, role });
-
       let loginUrl = "";
       switch (role) {
         case "ROLE_ADMIN":
@@ -42,41 +39,49 @@ export default function LoginForm() {
         loginUrl,
         {
           email: username,
-          password: password
+          password: password,
         },
         {
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
           },
-          withCredentials: true
+          withCredentials: true,
         }
       );
 
-      console.log("Response data:", response.data); // <-- Đặt ở đây để kiểm tra dữ liệu trả về
-
       const data = response.data;
 
-      // ✅ Lưu role thực tế từ backend
-      sessionStorage.setItem("user", JSON.stringify({ email: data.email, role: data.role, name : data.name }));
-      console.log("User in sessionStorage:", sessionStorage.getItem("user"));
+      if (data.success) {
+        const userData = {
+          email: data.email,
+          role: data.role,
+          name: data.name,
+          userId: data.userId,
+        };
 
-      // ✅ Điều hướng theo role thực tế
-      console.log("Role từ backend:", data.role);
+        // ✅ Lưu trạng thái người dùng vào Context
+        setUser(userData);
 
-      if (data.role === "Admin" ) {
-        navigate("/admin");
-      } else if (data.role === "Customer") {
-        navigate("/");
+        // ✅ (Tuỳ chọn) Lưu vào sessionStorage để giữ trạng thái khi reload
+        sessionStorage.setItem("user", JSON.stringify(userData));
+
+        // ✅ Điều hướng dựa theo vai trò
+        if (data.role === "Admin" || data.role === "ROLE_ADMIN") {
+          navigate("/admin");
+        } else if (data.role === "Customer" || data.role === "ROLE_CUSTOMER") {
+          navigate("/");
+        } else {
+          alert("Không xác định được vai trò người dùng.");
+        }
       } else {
-        alert("Không xác định được role.");
+        alert(data.error || "Đăng nhập thất bại");
       }
 
     } catch (error) {
       alert("Đăng nhập thất bại: " + (error.response?.data?.error || error.message));
     }
   };
-
 
   return (
     <div className="flex flex-col items-center w-full pt-5 pb-8 max-w-md mx-auto">
@@ -98,7 +103,7 @@ export default function LoginForm() {
           onChange={(e) => setUsername(e.target.value)}
           className="bg-[#FCF7F9] w-full h-10 rounded-xl border border-solid border-[#E8D1D6] px-3"
         />
-        </div>
+      </div>
 
       <div className="flex flex-col w-full py-3 px-4 gap-2 relative">
         <label htmlFor="password" className="text-[#1C0C11] text-base font-bold">
@@ -161,7 +166,7 @@ export default function LoginForm() {
 
       <span
         className="text-[#964F66] text-sm my-2 cursor-pointer hover:underline"
-        onClick={() => alert("Chức năng quên mật khẩu chưa được triển khai")}
+        onClick={() => navigate("/forgot-password")}
       >
         Quên mật khẩu?
       </span>

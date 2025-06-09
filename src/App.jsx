@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import HomePage from "./components/HomePage";
+import HomePage from "./pages/Homepage";
 import BlogPage from "./components/BlogPage";
 import LoginPage from "./components/LoginPage";
 import { UserContext } from "./UserContext";
 import ConsultationBooking from "./components/ConsultationBooking";
 import STIBookingPage from "./components/STIBookingPage";
-import MenstrualBookingPage from "./components/MenstrualBookingPage";
 import Services from "./components/Services";
 import Register from "./components/Register";
 import AdminDashboard from "./components/AdminDashboard";
+import ForgotPassword from "./components/ForgotPassword";
+import OtpPasswordForm from "./components/OtpPasswordForm";
+import MenstrualCycleForm from "./components/MenstrualCycleForm";
 
 
 export default function App() {
@@ -30,17 +32,19 @@ export default function App() {
   }, []);
 
   return (
-    <UserContext.Provider value={{user}}>
+    <UserContext.Provider value={{ user, setUser }}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
-          <Route path="/booking/menstrual" element={<MenstrualBookingPage />} />
+          <Route path="/booking/menstrual" element={<MenstrualCycleForm />} />
           <Route path="/booking/sti" element={<STIBookingPage />} />  
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<OtpPasswordForm />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>

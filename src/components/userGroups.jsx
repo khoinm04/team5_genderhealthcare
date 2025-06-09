@@ -1,56 +1,57 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const userGroups = [
   {
     title: "Nam giới",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho nam giới.",
-    image:
-      "https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse3.mm.bing.net%2Fth%3Fid%3DOIP.s2E6lmMu3dWhkFUsBtgebwHaJX%26pid%3DApi&sp=1748698501Td9a7e7f051304ccf83c5e8fdc5df26f1af20e46b4f4e082a6a8b40259dcb04c1", // ảnh thực tế nam giới
+    description: "Chăm sóc sức khỏe và phong độ phái mạnh.",
+    icon: "👨",
+    slug: "nam-gioi",
   },
   {
     title: "Nữ giới",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho nữ giới.",
-    image:
-      "https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse2.explicit.bing.net%2Fth%2Fid%2FOIP.I0XOTspHQYIjaw-7EU_ZngHaKi%3Fpid%3DApi&sp=1748698547T768395557ea8c1ca0b92f6ea3985ff03626b578107f09c0769c0aaeabb70bc71", // ảnh thực tế nữ giới
+    description: "Bảo vệ sức khỏe giới tính, an tâm mỗi ngày.",
+    icon: "👩",
+    slug: "nu-gioi",
   },
   {
     title: "Mẹ bầu",
-    description: "Hỗ trợ chăm sóc sức khỏe cho phụ nữ mang thai.",
-    image:
-      "https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse2.mm.bing.net%2Fth%3Fid%3DOIP.308x2GzZZstFq1tSXUvLRAHaLH%26pid%3DApi&sp=1748698580T2c1df9838025c5b501fb3146d67ff0129ec371738845839165d7d518c2f3ee43", // ảnh mẹ bầu
+    description: "Đồng hành cùng mẹ từ thai kỳ đến ngày sinh nở.",
+    icon: "🤰",
+    slug: "me-bau",
   },
   {
     title: "Trẻ em",
-    description: "Chăm sóc sức khỏe giới tính và phát triển cho trẻ em.",
-    image:
-      "https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse1.explicit.bing.net%2Fth%3Fid%3DOIP._3djIRVxnh0casqh1UdFqQHaE-%26pid%3DApi&sp=1748698654T266fcb118ab5d81e3de3671514e7bcbdfaf73bfd408582f239ad65447ce1c89c", // ảnh trẻ em
+    description: "Phát triển toàn diện cho trẻ nhỏ và vị thành niên.",
+    icon: "🧒",
+    slug: "tre-em",
   },
   {
     title: "Người già",
-    description: "Dịch vụ chăm sóc sức khỏe giới tính cho người cao tuổi.",
-    image:
-      "https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse4.mm.bing.net%2Fth%3Fid%3DOIP.Xl-eFl3lxQ_M5jPyKJkZAgHaDt%26pid%3DApi&sp=1748698733T7ae07d43cded44b1aac39142d2eecceb0ec72fe51e7636ad2f5728a1cdeab0d7", // ảnh người già
+    description: "Nâng cao chất lượng sống cho người lớn tuổi.",
+    icon: "🧓",
+    slug: "nguoi-gia",
   },
 ];
 
 export default function UserGroups() {
   return (
-    <section className="max-w-[960px] mx-auto px-4 py-10">
+    <section className="max-w-[1200px] mx-auto px-4 py-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        {userGroups.map(({ title, description, image }) => (
-          <div
+        {userGroups.map(({ title, description, icon, slug }) => (
+          <Link
             key={title}
-            className="bg-white rounded-lg shadow-md p-4 flex flex-col items-center text-center cursor-pointer hover:shadow-lg transition-shadow"
+            to={`/groups/${slug}`}
+            className="bg-white rounded-2xl shadow-md p-7 flex flex-col items-center text-center hover:shadow-xl hover:border-pink-300 border border-transparent transition-all group min-h-[230px] no-underline"
+            style={{ textDecoration: "none" }} // Loại bỏ gạch chân
           >
-            <img
-              src={image}
-              alt={title}
-              className="w-full h-40 object-cover rounded-md mb-4"
-              loading="lazy"
-            />
-            <h3 className="text-xl font-semibold mb-2">{title}</h3>
-            <p className="text-gray-600">{description}</p>
-          </div>
+            <div className="text-5xl mb-3">{icon}</div>
+            <h3 className="text-base font-semibold mb-1">{title}</h3>
+            <p className="text-gray-600 text-[14px] mb-3">{description}</p>
+            <span className="inline-block mt-auto bg-pink-100 text-pink-700 px-4 py-1 rounded-full font-medium text-sm transition-all hover:bg-pink-200">
+              Khám phá
+            </span>
+          </Link>
         ))}
       </div>
     </section>

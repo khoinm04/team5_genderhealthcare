@@ -38,28 +38,28 @@ const ConsultationBooking = ({ onClose }) => {
         setServices([
           {
             serviceId: 1,
-            serviceName: 'General Consultation',
+            serviceName: 'Tư vấn tổng quát',
             category: 'GENERAL_CONSULTATION',
             price: 50.00,
             description: 'Regular health checkup and consultation'
           },
           {
             serviceId: 2,
-            serviceName: 'Specialist Consultation',
+            serviceName: 'Tư vấn chuyên khoa',
             category: 'SPECIALIST_CONSULTATION',
             price: 100.00,
             description: 'Consultation with specialist doctor'
           },
           {
             serviceId: 3,
-            serviceName: 'Re-examination',
+            serviceName: 'Tái khám',
             category: 'RE_EXAMINATION',
             price: 30.00,
             description: 'Follow-up consultation'
           },
           {
             serviceId: 4,
-            serviceName: 'Emergency Consultation',
+            serviceName: 'Tư vấn khẩn cấp',
             category: 'EMERGENCY_CONSULTATION',
             price: 150.00,
             description: 'Urgent medical consultation'
