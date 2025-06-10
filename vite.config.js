@@ -2,11 +2,18 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,       // cố định port bạn muốn dùng, ví dụ 5173 hoặc 3000
-    strictPort: true, // nếu port 5173 đang bị chiếm, sẽ báo lỗi chứ không tự động tăng port
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      // tất cả request bắt đầu bằng /api sẽ được proxy tới localhost:8080
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });

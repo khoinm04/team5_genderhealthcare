@@ -12,65 +12,31 @@ const AdminDashboard = () => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
   const [notificationForm, setNotificationForm] = useState({
+
     title: '',
     content: '',
     status: 'active'
   });
+
+  // const [formData, setFormData] = useState({
+  //   name: "",
+  //   email: "",
+  //   roleName: "",
+  //   isActive: false,
+  // });
+
+  const ROLE_LABEL_TO_VALUE = {
+  "Khách hàng": "ROLE_CUSTOMER",
+  "Tư vấn viên": "ROLE_CONSULTANT",
+  "Quản trị viên": "ROLE_ADMIN",
+  "Quản lý": "ROLE_MANAGER",
+  "Nhân viên": "ROLE_STAFF",
+};
+
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // Thêm state này
 
   // Simulate real-time user activity
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate new user login
-      if (Math.random() > 0.7) {
-        const newUsers = [
-          'Michael Johnson', 'Sarah Wilson', 'David Chen', 'Emma Davis',
-          'Alex Rodriguez', 'Lisa Thompson', 'James Miller', 'Maria Garcia'
-        ];
-        const roles = ['Khách hàng', 'Tư vấn viên'];
-        const randomUser = {
-          id: Date.now(),
-          name: newUsers[Math.floor(Math.random() * newUsers.length)],
-          email: `user${Date.now()}@example.com`,
-          role: roles[Math.floor(Math.random() * roles.length)],
-          roleid: Math.floor(Math.random() * 2) + 1,
-          is_active: true,
-          joinDate: new Date().toISOString().split('T')[0],
-          lastLogin: new Date().toLocaleString(),
-          isOnline: true,
-          loginTime: new Date().toLocaleString()
-        };
-
-        setUsers(prev => [randomUser, ...prev]);
-        setOnlineUsers(prev => [randomUser, ...prev]);
-        setRecentActivity(prev => [{
-          id: Date.now(),
-          type: 'login',
-          user: randomUser.name,
-          action: 'Người dùng đã đăng nhập',
-          timestamp: new Date().toLocaleString(),
-          role: randomUser.role
-        }, ...prev.slice(0, 9)]);
-      }
-
-      // Simulate user logout
-      if (Math.random() > 0.8 && onlineUsers.length > 0) {
-        const userToLogout = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
-        setOnlineUsers(prev => prev.filter(u => u.id !== userToLogout.id));
-        setUsers(prev => prev.map(u => u.id === userToLogout.id ? { ...u, isOnline: false } : u));
-        setRecentActivity(prev => [{
-          id: Date.now(),
-          type: 'logout',
-          user: userToLogout.name,
-          action: 'Người dùng đã đăng xuất',
-          timestamp: new Date().toLocaleString(),
-          role: userToLogout.role
-        }, ...prev.slice(0, 9)]);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [onlineUsers]);
 
   // Mock data with online status
   const [users, setUsers] = useState([
@@ -82,23 +48,23 @@ const AdminDashboard = () => {
 
   // Initialize online users
   useEffect(() => {
-  axios.get('http://localhost:8080/api/admin/users', { withCredentials: true })
-    .then((res) => {
-    console.log("Phản hồi từ server:", res.data); // 👈 thêm dòng này
+    axios.get('http://localhost:8080/api/admin/users', { withCredentials: true })
+      .then((res) => {
+        console.log("Phản hồi từ server:", res.data); // 👈 thêm dòng này
 
-      const fetchedUsers = res.data;
+        const fetchedUsers = res.data;
 
-      if (Array.isArray(fetchedUsers)) {
-        setUsers(fetchedUsers);
-        setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
-      } else {
-        console.error("API trả về không phải mảng:", fetchedUsers);
-      }
-    })
-    .catch((err) => {
-      console.error("Lỗi khi lấy dữ liệu user:", err);
-    });
-}, []);
+        if (Array.isArray(fetchedUsers)) {
+          setUsers(fetchedUsers);
+          setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
+        } else {
+          console.error("API trả về không phải mảng:", fetchedUsers);
+        }
+      })
+      .catch((err) => {
+        console.error("Lỗi khi lấy dữ liệu user:", err);
+      });
+  }, []);
 
 
 
@@ -126,7 +92,7 @@ const AdminDashboard = () => {
   };
 
   const filteredUsers = users.filter(user =>
-    userFilter === 'all' || user.role.toLowerCase() === userFilter
+    userFilter === 'all' || user.roleName === userFilter
   );
 
   const filteredMessages = messages.filter(message =>
@@ -289,10 +255,13 @@ const AdminDashboard = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Tất cả vai trò</option>
-            <option value="customer">Khách hàng</option>
-            <option value="consultant">Tư vấn viên</option>
-            <option value="admin">Quản trị viên</option>
+            <option value="Khách hàng">Khách hàng</option>
+            <option value="Tư vấn viên">Tư vấn viên</option>
+            <option value="Nhân viên">Nhân viên</option>
+            <option value="Quản trị viên">Quản trị viên</option>
+            <option value="Quản lý">Quản lý</option>
           </select>
+
         </div>
       </div>
 
@@ -324,18 +293,20 @@ const AdminDashboard = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
-                    user.role === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.roleName === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
+                    user.roleName === 'Nhân viên' ? 'bg-red-100 text-red-800' :
+                      user.roleName === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
+                        user.roleName === 'Khách hàng' ? 'bg-green-100 text-green-800' :
+                          'bg-green-100 text-green-800'
                     }`}>
-                    {user.role}
+                    {user.roleName}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                      {user.is_active ? 'Hoạt động' : 'Không hoạt động'}
+                      {user.active ? 'Hoạt động' : 'Không hoạt động'}
                     </span>
                     {user.isOnline && (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
@@ -373,43 +344,51 @@ const AdminDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-lg font-semibold mb-4">Chỉnh sửa người dùng: {selectedUser.name}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tên</label>
-                <input
-                  type="text"
-                  defaultValue={selectedUser.name}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
+            <form id="editUserForm">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên</label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={selectedUser.name}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={selectedUser.email}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Vai trò</label>
+                  <select
+                    name="roleName"
+                    defaultValue={selectedUser.roleName}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="ROLE_CUSTOMER">Khách hàng</option>
+                    <option value="ROLE_CONSULTANT">Tư vấn viên</option>
+                    <option value="ROLE_ADMIN">Quản trị viên</option>
+                    <option value="ROLE_MANAGER">Quản lý</option>
+                    <option value="ROLE_STAFF">Nhân viên</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    defaultChecked={selectedUser.active}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 block text-sm text-gray-900">Tài khoản hoạt động</label>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  defaultValue={selectedUser.email}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Vai trò</label>
-                <select
-                  defaultValue={selectedUser.role}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="Khách hàng">Khách hàng</option>
-                  <option value="Tư vấn viên">Tư vấn viên</option>
-                  <option value="Quản trị viên">Quản trị viên</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  defaultChecked={selectedUser.is_active}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">Tài khoản hoạt động</label>
-              </div>
-            </div>
+            </form>
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setSelectedUser(null)}
@@ -663,42 +642,51 @@ const AdminDashboard = () => {
     window.location.href = '/login';
   };
 
+
   const handleSaveChanges = async () => {
-    const userId = sessionStorage.getItem("userId");
-    if (!userId || !selectedUser) {
+    const userId = selectedUser?.userId; // Get userId from selectedUser
+    
+    if (!userId) {
       alert("Thiếu thông tin người dùng để cập nhật");
       return;
     }
 
+    const form = document.getElementById("editUserForm");
+    const formData = new FormData(form);
+
+    const name = formData.get("name");
+    const email = formData.get("email");
+    const roleName = formData.get("roleName");
+    const isActive = formData.get("isActive") === "on";
+
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      await axios.put(
+        `/api/admin/users/${userId}`,
+        {
+          name,
+          email,
+          roleName,
+          isActive,
         },
-        body: JSON.stringify({
-          name: selectedUser.name,
-          email: selectedUser.email,
-          roleName: selectedUser.roleName, // ví dụ "ROLE_CUSTOMER"
-        }),
-        withCredentials: true,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Cập nhật thất bại");
-      }
-
-      await response.json();
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
 
       alert("Cập nhật thành công!");
-      sessionStorage.removeItem("userId"); // optional: dọn dẹp
-      setSelectedUser(null);               // đóng form
+      setSelectedUser(null);
     } catch (error) {
       console.error("Lỗi khi cập nhật:", error);
-      alert("Lỗi khi cập nhật: " + error.message);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Cập nhật thất bại";
+      alert("Lỗi khi cập nhật: " + errorMessage);
     }
-  };
+};
+
+
 
 
   return (
