@@ -1,14 +1,26 @@
-// LoginPage.jsx
-import React from "react";
-import LoginForm from "../components/LoginForm";
-import SocialLoginButtons from "../components/SocialLoginButtons";
-import { Link } from "react-router-dom";
+import React, { useState, useContext } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { UserContext } from '../UserContext';
+import LoginForm from '../components/LoginForm';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 
 export default function LoginPage() {
-  // Hàm xử lý đăng nhập giả lập
-  function handleLogin(username, password) {
-    alert(`Đăng nhập với username: ${username}, mật khẩu: ${password}`);
-    // Sau này sẽ gọi API login ở đây
+  const { setUser } = useContext(UserContext);
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+
+  async function handleLogin(username, password) {
+    try {
+      const response = await axios.post('http://localhost:8080/api/auth/login', {
+        username,
+        password
+      }, { withCredentials: true });
+      setUser(response.data);
+      navigate('/menstrual-cycles');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    }
   }
 
   return (
@@ -18,11 +30,16 @@ export default function LoginPage() {
       </div>
 
       <div className="flex flex-col items-center flex-grow py-10 px-4">
+        {error && (
+          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+            {error}
+          </div>
+        )}
         <LoginForm onLogin={handleLogin} />
         <SocialLoginButtons />
 
         <p className="text-[#964F66] text-sm text-center my-4">
-          Chưa có tài khoản?{" "}
+          Chưa có tài khoản?{' '}
           <Link to="/register" className="text-[#8C66D9] hover:underline">
             Đăng ký
           </Link>

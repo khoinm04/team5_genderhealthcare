@@ -8,10 +8,11 @@ import LoginPage from "./pages/LoginPage";
 import { UserContext } from "./UserContext";
 import ConsultationBooking from "./components/ConsultationBooking";
 import STIBookingPage from "./pages/STIBookingPage";
-import MenstrualBookingPage from "./pages/MenstrualCyclePage";
 import Services from "./components/Services";
 import Register from "./components/register";
 import UserGroupDetail from "./components/UserGroupDetail";
+import MenstrualCyclePage from "./pages/MenstrualCyclePage";
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -45,8 +46,8 @@ export default function App() {
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPost />} />  {/* THÊM DÒNG NÀY */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/booking/consultation" element={<ConsultationBooking />} />
-          <Route path="/booking/menstrual" element={<MenstrualBookingPage />} />
+          <Route path="/booking" element={<ConsultationBooking />} />
+          <Route path="/menstrual-cycle" element={<MenstrualCyclePage />} />
           <Route path="/booking/sti" element={<STIBookingPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/groups/:groupSlug" element={<UserGroupDetail />} />

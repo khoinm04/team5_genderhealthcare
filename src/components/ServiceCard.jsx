@@ -6,6 +6,7 @@ export default function ServiceCard({
   title,
   description,
   icon,
+  link,          // <-- nhận prop link
   className = "",
 }) {
   const navigate = useNavigate();
@@ -16,8 +17,8 @@ export default function ServiceCard({
     if (!user) {
       setMessage("Vui lòng đăng nhập");
       setTimeout(() => setMessage(""), 3000); // 3 giây ẩn thông báo
-    } else {
-      navigate("/booking");
+    } else if (link) {
+      navigate(link);
     }
   };
 
