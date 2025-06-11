@@ -15,7 +15,7 @@ const AdminDashboard = () => {
 
     title: '',
     content: '',
-    status: 'active'
+    status: 'isActive'
   });
 
   // const [formData, setFormData] = useState({
@@ -24,15 +24,6 @@ const AdminDashboard = () => {
   //   roleName: "",
   //   isActive: false,
   // });
-
-  const ROLE_LABEL_TO_VALUE = {
-  "Khách hàng": "ROLE_CUSTOMER",
-  "Tư vấn viên": "ROLE_CONSULTANT",
-  "Quản trị viên": "ROLE_ADMIN",
-  "Quản lý": "ROLE_MANAGER",
-  "Nhân viên": "ROLE_STAFF",
-};
-
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // Thêm state này
 
@@ -297,7 +288,8 @@ const AdminDashboard = () => {
                     user.roleName === 'Nhân viên' ? 'bg-red-100 text-red-800' :
                       user.roleName === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
                         user.roleName === 'Khách hàng' ? 'bg-green-100 text-green-800' :
-                          'bg-green-100 text-green-800'
+                          user.roleName === 'Quản lý' ? 'bg-green-100 text-green-800' :
+                            'bg-green-100 text-green-800'
                     }`}>
                     {user.roleName}
                   </span>
@@ -306,7 +298,7 @@ const AdminDashboard = () => {
                   <div className="flex flex-col">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                      {user.active ? 'Hoạt động' : 'Không hoạt động'}
+                      {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
                     </span>
                     {user.isOnline && (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
@@ -321,7 +313,7 @@ const AdminDashboard = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => handleEditUser(user)}
                     className="text-blue-600 hover:text-blue-900"
                   >
                     <Edit className="h-4 w-4 inline" />
@@ -329,8 +321,8 @@ const AdminDashboard = () => {
                   <button className="text-green-600 hover:text-green-900">
                     <Eye className="h-4 w-4 inline" />
                   </button>
-                  <button className={`${user.is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
-                    {user.is_active ? <Ban className="h-4 w-4 inline" /> : <Check className="h-4 w-4 inline" />}
+                  <button className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
+                    {user.isActive ? <Ban className="h-4 w-4 inline" /> : <Check className="h-4 w-4 inline" />}
                   </button>
                 </td>
               </tr>
@@ -381,12 +373,16 @@ const AdminDashboard = () => {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    name="isActive"
-                    defaultChecked={selectedUser.active}
+                    checked={!!selectedUser?.isActive} // ép kiểu boolean
+                    onChange={handleCheckboxChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label className="ml-2 block text-sm text-gray-900">Tài khoản hoạt động</label>
+
+                  <label className="ml-2 block text-sm text-gray-900">
+                    Tài khoản hoạt động
+                  </label>
                 </div>
+
               </div>
             </form>
             <div className="flex justify-end space-x-3 mt-6">
@@ -644,8 +640,8 @@ const AdminDashboard = () => {
 
 
   const handleSaveChanges = async () => {
-    const userId = selectedUser?.userId; // Get userId from selectedUser
-    
+    const userId = selectedUser?.userId;
+
     if (!userId) {
       alert("Thiếu thông tin người dùng để cập nhật");
       return;
@@ -654,20 +650,17 @@ const AdminDashboard = () => {
     const form = document.getElementById("editUserForm");
     const formData = new FormData(form);
 
-    const name = formData.get("name");
-    const email = formData.get("email");
-    const roleName = formData.get("roleName");
-    const isActive = formData.get("isActive") === "on";
+    const updateData = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      roleName: formData.get("roleName"),
+      isActive: selectedUser.isActive  // Get isActive from selectedUser state
+    };
 
     try {
       await axios.put(
         `/api/admin/users/${userId}`,
-        {
-          name,
-          email,
-          roleName,
-          isActive,
-        },
+        updateData,
         {
           headers: {
             "Content-Type": "application/json",
@@ -684,8 +677,60 @@ const AdminDashboard = () => {
         error.response?.data?.message || error.message || "Cập nhật thất bại";
       alert("Lỗi khi cập nhật: " + errorMessage);
     }
-};
+  };
+  const handleEditUser = (user) => {
+    setSelectedUser({
+      ...user,
+      isActive: Boolean(user.isActive) // Ensure it's a boolean
+    });
+  };
 
+  // const handleSaveChanges = async () => {
+  //     const userId = selectedUser?.userId;
+
+  //     if (!userId) {
+  //       alert("Thiếu thông tin người dùng để cập nhật");
+  //       return;
+  //     }
+
+  //     try {
+  //       const updateData = {
+  //         name: selectedUser.name,
+  //         email: selectedUser.email,
+  //         roleName: selectedUser.roleName,
+  //         isActive: selectedUser.isActive // Make sure this is a boolean
+  //       };
+
+  //       console.log('Sending update data:', updateData); // Debug log
+
+  //       const response = await axios.put(
+  //         `/api/admin/users/${userId}`,
+  //         updateData,
+  //         {
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           withCredentials: true,
+  //         }
+  //       );
+
+  //       console.log('Response:', response.data); // Debug log
+  //       alert("Cập nhật thành công!");
+  //       // Refresh the user list or update the local state
+  //       setSelectedUser(null);
+  //     } catch (error) {
+  //       console.error("Lỗi khi cập nhật:", error);
+  //       alert("Lỗi khi cập nhật: " + (error.response?.data || error.message));
+  //     }
+  // };
+
+  // Update checkbox handler
+  const handleCheckboxChange = (e) => {
+    setSelectedUser(prev => ({
+      ...prev,
+      isActive: e.target.checked
+    }));
+  };
 
 
 

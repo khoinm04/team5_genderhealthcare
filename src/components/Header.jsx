@@ -12,6 +12,9 @@ export default function Header() {
         const userData = res.data.user;
         setUser(userData);
 
+        // 👉 Log vai trò người dùng
+      console.log("Vai trò người dùng (roleName):", userData.roleName);
+      
         if (userData && userData.userId !== undefined) {
           sessionStorage.setItem("userId", userData.userId.toString());
           console.log("Stored userId in sessionStorage:", userData.userId);
