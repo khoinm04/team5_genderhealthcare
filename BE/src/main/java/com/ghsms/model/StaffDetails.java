@@ -34,7 +34,7 @@ public class StaffDetails implements Serializable {
     private Set<Booking> bookings;
 
     @Size(max = 50, message = "Position must be less than 50 characters")
-    @Column(name = "Position", length = 50)
+    @Column(name = "Position", columnDefinition = "nvarchar(100)")
     private String position;
 
     @Size(max = 100, message = "Department must be less than 100 characters")

@@ -1,5 +1,6 @@
 package com.ghsms.config;
 
+import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.model.Role;
 import com.ghsms.model.User;
@@ -48,6 +49,7 @@ public class DataLoader {
                         .name("System Administrator")
                         .role(adminRole)
                         .isActive(true)
+                        .authProvider(AuthProvider.LOCAL)
                         .build();
 
                 userRepository.save(adminUser);

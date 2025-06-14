@@ -3,22 +3,20 @@ package com.ghsms.config;
 import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
 import com.ghsms.service.CustomUserDetailsService;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import com.ghsms.service.JwtService;
+import com.ghsms.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -27,9 +25,9 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
-import java.util.List;
 import java.util.Map;
 @Configuration
 @EnableWebSecurity
@@ -38,6 +36,15 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final JwtService jwtService;
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
+    }
+
+
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -62,40 +69,42 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .authenticationProvider(authenticationProvider()) // Add this line here
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
-
-                )
-                .httpBasic(Customizer.withDefaults())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oauthUserService())
                         )
                         .successHandler((request, response, authentication) -> {
-                            // Store user information in session
-                            HttpSession session = request.getSession();
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-                            session.setAttribute("user", oauth2User.getAttributes());
-                            response.sendRedirect("http://localhost:5173");
+                            String email = oauth2User.getAttribute("email");
+                            User user = customOAuth2UserService.processOAuthPostLogin(
+                                    null,
+                                    email,
+                                    oauth2User.getAttribute("name"),
+                                    oauth2User.getAttribute("picture")
+                            );
+
+                            String token = jwtService.generateToken(user);
+
+                            String redirectUrl = "http://localhost:5173/oauth2-success?token=" + token;
+                            response.sendRedirect(redirectUrl);
                         })
                 )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
-                        .permitAll()
-                );
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
 
 
         return http.build();
     }
+
 
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauthUserService() {

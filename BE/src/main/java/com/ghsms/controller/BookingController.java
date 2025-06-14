@@ -16,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
+import com.ghsms.config.UserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,11 +33,17 @@ public class BookingController {
 
     @PostMapping
     @Operation(summary = "Create a new booking")
-    public ResponseEntity<?> createBooking(@Valid @RequestBody BookingDTO bookingDTO) {
+    public ResponseEntity<?> createBooking(
+            @Valid @RequestBody BookingDTO bookingDTO,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
         try {
-            Booking booking = bookingService.createBooking(bookingDTO);
+            // Gán userId từ token vào DTO thay vì nhận từ client
+            bookingDTO.setUserId(user.getId());
 
+            Booking booking = bookingService.createBooking(bookingDTO);
             BookingDTO response = convertToDTO(booking);
+
             return ResponseEntity.ok()
                     .body(Map.of(
                             "message", "Booking created successfully",
@@ -48,6 +56,7 @@ public class BookingController {
                     .body(Map.of("error", e.getReason()));
         }
     }
+
 
     @GetMapping("/payment/{paymentCode}")
     @Operation(summary = "Get booking by payment code")

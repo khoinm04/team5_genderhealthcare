@@ -19,7 +19,6 @@ public class BookingDTO implements Serializable {
 
     private Long bookingId;
 
-    @NotNull(message = "Customer ID is required")
     private Long userId;
 
     private Long staffId; // có thể để null khi khách vừa đặt

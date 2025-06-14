@@ -1,6 +1,8 @@
 package com.ghsms.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.model.ConsultantDetails;
 import com.ghsms.model.StaffDetails;
 import jakarta.persistence.*;
@@ -29,13 +31,13 @@ public class User implements Serializable {
     @Column(name = "UserID")
     private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "RoleID",nullable = false)
     private Role role;
 
     @NotBlank(message = "Tên đầy đủ không được để trống")
     @Size(max = 100, message = "tên nên ít hơn 100 ký tự")
-    @Column(name = "Name", length = 100)
+    @Column(name = "Name", columnDefinition = "nvarchar(100)")
     private String name;
 
     @Column(name = "ImageUrl", length = 255)
@@ -56,12 +58,18 @@ public class User implements Serializable {
     private String phoneNumber;
 
     @Builder.Default
-    @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
-    private boolean isActive = true;
+    @Column(name = "IsActive", columnDefinition = "BIT CONSTRAINT DF_User_IsActive DEFAULT 1")
+    private Boolean isActive = true;
 
-//    @CreationTimestamp
-//    @Column(name = "CreatedAt", nullable = false, updatable = false)
-//    private LocalDateTime createdAt;
+    @CreationTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "M/d/yyyy, h:mm:ss a")
+    @Column(name = "CreatedAt")
+    private LocalDateTime createdAt;
+
+    @CreationTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "M/d/yyyy, h:mm:ss a")
+    @Column(name = "LastLogin")
+    private LocalDateTime lastLogin;
 
     // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
     // For StaffDetails and ConsultantDetails (OneToOne)
@@ -70,12 +78,16 @@ public class User implements Serializable {
     @OneToOne(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;
 
-    @Transient
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private ConsultantDetails consultantDetails;
+//    @Transient
+//    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+//    private ConsultantDetails consultantDetails;
 
     @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CustomerDetails customerDetails;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
 
 }
