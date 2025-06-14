@@ -11,32 +11,21 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const [role,] = useState("ROLE_ADMIN"); // default là admin
   const { setUser } = useUser();
+  const [errorMessage, setErrorMessage] = useState("");
 
 
   const handleSubmit = async () => {
+    setErrorMessage(""); // reset lỗi cũ
+
     if (!username.trim() || !password) {
-      alert("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+      setErrorMessage("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
       return;
     }
 
     try {
-      let loginUrl = "";
-      switch (role) {
-        case "ROLE_ADMIN":
-          loginUrl = "http://localhost:8080/api/auth/admin/login";
-          break;
-        case "ROLE_CUSTOMER":
-          loginUrl = "http://localhost:8080/api/auth/customer/login";
-          break;
-        default:
-          alert("Vui lòng chọn role hợp lệ.");
-          return;
-      }
-
       const response = await axios.post(
-        loginUrl,
+        "http://localhost:8080/api/auth/customer/login",
         {
           email: username,
           password: password,
@@ -44,44 +33,45 @@ export default function LoginForm() {
         {
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
-          withCredentials: true,
+          }
         }
       );
 
-      const data = response.data;
+      const { token, user } = response.data;
 
-      if (data.success) {
-        const userData = {
-          email: data.email,
-          role: data.role,
-          name: data.name,
-          userId: data.userId,
-        };
+      if (!token || !user) {
+        setErrorMessage("Không nhận được thông tin người dùng hoặc token.");
+        return;
+      }
 
-        // ✅ Lưu trạng thái người dùng vào Context
-        setUser(userData);
+      const userData = {
+        ...user,
+        token,
+      };
 
-        // ✅ (Tuỳ chọn) Lưu vào sessionStorage để giữ trạng thái khi reload
-        sessionStorage.setItem("user", JSON.stringify(userData));
+      // ✅ Lưu token riêng ra localStorage
+    localStorage.setItem("token", token);
 
-        // ✅ Điều hướng dựa theo vai trò
-        if (data.role === "Admin" || data.role === "ROLE_ADMIN") {
-          navigate("/admin");
-        } else if (data.role === "Customer" || data.role === "ROLE_CUSTOMER") {
-          navigate("/");
-        } else {
-          alert("Không xác định được vai trò người dùng.");
-        }
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      sessionStorage.setItem("user", JSON.stringify(user));
+      sessionStorage.setItem("userId", user.userId.toString());
+
+      if (user.roleName === "Quản trị viên") {
+        navigate("/admin");
+      } else if (user.roleName === "Khách hàng") {
+        navigate("/");
       } else {
-        alert(data.error || "Đăng nhập thất bại");
+        setErrorMessage("Không xác định được vai trò người dùng.");
       }
 
     } catch (error) {
-      alert("Đăng nhập thất bại: " + (error.response?.data?.error || error.message));
+      const message = error.response?.data?.error || "Đăng nhập thất bại. Vui lòng thử lại.";
+      setErrorMessage(message);
     }
   };
+
+
 
   return (
     <div className="flex flex-col items-center w-full pt-5 pb-8 max-w-md mx-auto">
@@ -163,7 +153,9 @@ export default function LoginForm() {
           )}
         </button>
       </div>
-
+      {errorMessage && (
+        <p className="text-red-500 text-sm px-4 mt-2">{errorMessage}</p>
+      )}
       <span
         className="text-[#964F66] text-sm my-2 cursor-pointer hover:underline"
         onClick={() => navigate("/forgot-password")}

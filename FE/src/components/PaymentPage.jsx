@@ -13,69 +13,72 @@ const PaymentPage = () => {
   const [bookingDetails, setBookingDetails] = useState(null);
 
   useEffect(() => {
-    if (!paymentCode || !amount || !testName || !bookingId) {
-      alert("Thông tin thanh toán không hợp lệ. Vui lòng thử lại.");
+  if (!paymentCode || !amount || !testName || !bookingId) {
+    alert("Thông tin thanh toán không hợp lệ. Vui lòng thử lại.");
+    navigate("/booking/sti?tab=book-test");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+  // Fetch initial booking details
+  axios
+    .get(`/api/bookings/payment/${paymentCode}`, config)
+    .then((response) => {
+      setBookingDetails(response.data);
+      if (response.data.status === "CONFIRMED") {
+        setPaymentStatus("completed");
+      }
+    })
+    .catch((err) => {
+      console.error("Lỗi lấy chi tiết booking:", err);
+      alert("Không thể tải thông tin booking. Vui lòng thử lại.");
       navigate("/booking/sti?tab=book-test");
+    });
 
-      return;
-    }
+  // Countdown timer
+  const timer = setInterval(() => {
+    setTimeLeft((prev) => {
+      if (prev <= 0) {
+        clearInterval(timer);
+        setPaymentStatus("timeout");
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
 
-    // Fetch initial booking details
+  // Poll payment status
+  const pollPayment = setInterval(() => {
     axios
-      .get(`/api/bookings/payment/${paymentCode}`, {
-        withCredentials: true,
-      })
+      .get(`/api/bookings/payment/${paymentCode}`, config)
       .then((response) => {
-        setBookingDetails(response.data);
         if (response.data.status === "CONFIRMED") {
+          clearInterval(pollPayment);
+          clearInterval(timer);
           setPaymentStatus("completed");
+          setBookingDetails(response.data);
+          setTimeout(() => {
+            navigate("/booking/sti?tab=results");
+          }, 3000);
         }
       })
       .catch((err) => {
-        console.error("Lỗi lấy chi tiết booking:", err);
-        alert("Không thể tải thông tin booking. Vui lòng thử lại.");
-        navigate("/booking/sti?tab=book-test");
+        console.error("Lỗi kiểm tra trạng thái thanh toán:", err);
       });
+  }, 5000);
 
-    // Countdown timer
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          setPaymentStatus("timeout");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  return () => {
+    clearInterval(timer);
+    clearInterval(pollPayment);
+  };
+}, [paymentCode, amount, testName, bookingId, navigate]);
 
-    // Poll payment status
-    const pollPayment = setInterval(() => {
-      axios
-        .get(`/api/bookings/payment/${paymentCode}`, {
-          withCredentials: true,
-        })
-        .then((response) => {
-          if (response.data.status === "CONFIRMED") {
-            clearInterval(pollPayment);
-            clearInterval(timer);
-            setPaymentStatus("completed");
-            setBookingDetails(response.data);
-            setTimeout(() => {
-              navigate("/booking/sti?tab=results");
-            }, 3000);
-          }
-        })
-        .catch((err) => {
-          console.error("Lỗi kiểm tra trạng thái thanh toán:", err);
-        });
-    }, 5000);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(pollPayment);
-    };
-  }, [paymentCode, navigate, bookingId]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -183,7 +186,7 @@ const PaymentPage = () => {
               Phiên thanh toán đã hết hạn. Vui lòng đặt lịch lại.
             </p>
             <button
-              onClick={() => navigate("/sti-test?tab=book-test")}
+              onClick={() => navigate("/api/bookings")}
               className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Quay lại đặt lịch

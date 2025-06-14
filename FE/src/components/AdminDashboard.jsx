@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, MessageSquare, Bell, BarChart3, Calendar, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
+import { Users, MessageSquare, Bell, BarChart3, Calendar, Trash, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
 import axios from 'axios';
 
+
+
 const AdminDashboard = () => {
+  const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUser, setSelectedUser] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all');
@@ -30,21 +33,38 @@ const AdminDashboard = () => {
   // Simulate real-time user activity
 
   // Mock data with online status
-  const [users, setUsers] = useState([
-    // { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Khách hàng', roleid: 1, is_active: true, joinDate: '2024-01-15', lastLogin: '2024-06-02', isOnline: true },
-    // { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Tư vấn viên', roleid: 2, is_active: true, joinDate: '2024-02-20', lastLogin: '2024-06-01', isOnline: true },
-    // { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'Quản trị viên', roleid: 3, is_active: true, joinDate: '2024-01-10', lastLogin: '2024-06-03', isOnline: false },
-    // { id: 4, name: 'Alice Brown', email: 'alice@example.com', role: 'Khách hàng', roleid: 1, is_active: false, joinDate: '2024-03-05', lastLogin: '2024-05-15', isOnline: false },
-  ]);
 
   // Initialize online users
   useEffect(() => {
-    axios.get('http://localhost:8080/api/admin/users', { withCredentials: true })
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser) {
+      console.warn("Không có user trong localStorage/sessionStorage");
+      return;
+    }
+
+    let token = null;
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      token = parsedUser.token;
+    } catch (e) {
+      console.error("Lỗi parse user:", e);
+      return;
+    }
+
+    if (!token) {
+      console.warn("Không có token trong user object");
+      return;
+    }
+
+    axios.get("http://localhost:8080/api/admin/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      }
+    })
       .then((res) => {
-        console.log("Phản hồi từ server:", res.data); // 👈 thêm dòng này
-
+        console.log("Phản hồi từ server:", res.data);
         const fetchedUsers = res.data;
-
         if (Array.isArray(fetchedUsers)) {
           setUsers(fetchedUsers);
           setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
@@ -55,7 +75,10 @@ const AdminDashboard = () => {
       .catch((err) => {
         console.error("Lỗi khi lấy dữ liệu user:", err);
       });
+
   }, []);
+
+
 
 
 
@@ -318,11 +341,18 @@ const AdminDashboard = () => {
                   >
                     <Edit className="h-4 w-4 inline" />
                   </button>
-                  <button className="text-green-600 hover:text-green-900">
+                  {/* <button className="text-green-600 hover:text-green-900">
                     <Eye className="h-4 w-4 inline" />
-                  </button>
+                  </button> */}
                   <button className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
                     {user.isActive ? <Ban className="h-4 w-4 inline" /> : <Check className="h-4 w-4 inline" />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(user)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Xóa tài khoản"
+                  >
+                    <Trash className="h-4 w-4 inline" />
                   </button>
                 </td>
               </tr>
@@ -405,6 +435,22 @@ const AdminDashboard = () => {
     </div>
   );
 
+  {selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full">
+            <h2 className="text-lg font-bold mb-2">Thông tin người dùng</h2>
+            <p><strong>Email:</strong> {selectedUser.email}</p>
+            <p><strong>Role:</strong> {selectedUser.role}</p>
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
   const MessagingPanel = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -445,9 +491,9 @@ const AdminDashboard = () => {
                   <p className="mt-1 text-sm text-gray-500">{message.timestamp}</p>
                 </div>
                 <div className="flex space-x-2">
-                  <button className="text-blue-600 hover:text-blue-800">
+                  {/* <button className="text-blue-600 hover:text-blue-800">
                     <Eye className="h-4 w-4" />
-                  </button>
+                  </button> */}
                   <button className="text-red-600 hover:text-red-800">
                     <X className="h-4 w-4" />
                   </button>
@@ -628,7 +674,7 @@ const AdminDashboard = () => {
   const handleLogout = () => {
     // Nếu bạn dùng sessionStorage
     sessionStorage.clear();  // hoặc sessionStorage.removeItem('userSessionKey')
-
+    localStorage.clear();
     // Nếu bạn cần gọi API backend để logout (hủy session server)
     // fetch('/api/logout', { method: 'POST' }).then(() => {
     //   window.location.href = '/login';
@@ -654,18 +700,25 @@ const AdminDashboard = () => {
       name: formData.get("name"),
       email: formData.get("email"),
       roleName: formData.get("roleName"),
-      isActive: selectedUser.isActive  // Get isActive from selectedUser state
+      isActive: selectedUser.isActive
     };
-
     try {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const token = storedUser?.token;
+
+      if (!token) {
+        alert("Token không tồn tại, vui lòng đăng nhập lại.");
+        return;
+      }
+
       await axios.put(
         `/api/admin/users/${userId}`,
         updateData,
         {
           headers: {
             "Content-Type": "application/json",
-          },
-          withCredentials: true,
+            "Authorization": `Bearer ${token}`
+          }
         }
       );
 
@@ -677,13 +730,47 @@ const AdminDashboard = () => {
         error.response?.data?.message || error.message || "Cập nhật thất bại";
       alert("Lỗi khi cập nhật: " + errorMessage);
     }
+
   };
+
+
   const handleEditUser = (user) => {
     setSelectedUser({
       ...user,
       isActive: Boolean(user.isActive) // Ensure it's a boolean
     });
   };
+  const handleDeleteUser = async (user) => {
+  const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
+  if (!confirmed) return;
+
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+      const token = storedUser?.token;
+
+    if (!token) {
+      alert("Không tìm thấy token, vui lòng đăng nhập lại.");
+      return;
+    }
+
+    await axios.delete(`/api/admin/users/${user.userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    alert("Xóa thành công!");
+    // cập nhật danh sách nếu cần
+  } catch (error) {
+    console.error("Lỗi khi xóa:", error);
+    const msg = error.response?.data?.message || "Không thể xóa người dùng.";
+    alert(msg);
+  }
+};
+
+
+
+
 
   // const handleSaveChanges = async () => {
   //     const userId = selectedUser?.userId;

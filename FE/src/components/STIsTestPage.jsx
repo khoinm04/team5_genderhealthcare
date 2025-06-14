@@ -22,19 +22,23 @@ const STIsTestPage = () => {
   const userId = Number(sessionStorage.getItem("userId"));
 
   useEffect(() => {
-    if (!userId) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
-    // Fetch user's bookings instead of direct test results
     axios
-      .get(`/api/bookings/user/${userId}`, {
-        withCredentials: true,
+      .get(`/api/bookings/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
       .then((res) => {
-        // Fetch test results for each booking
         const bookings = res.data;
+
         const testResultsPromises = bookings.map((booking) =>
           axios.get(`/api/bookings/sti/${booking.bookingId}/test-results`, {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           })
         );
 
@@ -55,22 +59,25 @@ const STIsTestPage = () => {
                 details: {
                   patientInfo: {
                     name: result.customerName,
-                    age: "N/A", // Backend doesn't provide age
-                    gender: "N/A", // Add if available in backend
-                    phone: "N/A", // Add if available
-                    email: "N/A", // Add if available
+                    age: "N/A",
+                    gender: "N/A",
+                    phone: "N/A",
+                    email: "N/A",
                   },
                   testResults: {
                     [result.testName]: {
                       status: result.result ? "abnormal" : "normal",
                       result: result.result || "Chưa có kết quả",
-                      normalRange: "N/A", // Add if backend provides
+                      normalRange: "N/A",
                     },
                   },
                   doctorNotes: result.notes || "Không có ghi chú",
-                  nextAppointment: null, // Add if backend provides
+                  nextAppointment: null,
                 },
-                downloadUrl: result.status === "COMPLETED" ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF` : null,
+                downloadUrl:
+                  result.status === "COMPLETED"
+                    ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF`
+                    : null,
               }))
             );
           })
@@ -81,37 +88,40 @@ const STIsTestPage = () => {
       .catch((err) => {
         console.error("Lỗi lấy danh sách booking:", err);
       });
-  }, [userId]);
+  }, []);
+
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "text-green-600 bg-green-100";
-      case "pending":
-        return "text-yellow-600 bg-yellow-100";
-      case "in_progress":
-        return "text-blue-600 bg-blue-100";
-      case "canceled":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  };
+  switch (status.toLowerCase()) {
+    case "completed":
+    case "confirmed":
+      return "text-green-600 bg-green-100";
+    case "pending":
+      return "text-yellow-600 bg-yellow-100";
+    case "in_progress":
+      return "text-blue-600 bg-blue-100";
+    case "canceled":
+      return "text-red-600 bg-red-100";
+    default:
+      return "text-gray-600 bg-gray-100";
+  }
+};
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4" />;
-      case "pending":
-        return <Clock className="h-4 w-4" />;
-      case "in_progress":
-        return <Clock className="h-4 w-4" />;
-      case "canceled":
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <AlertCircle className="h-4 w-4" />;
-    }
-  };
+const getStatusIcon = (status) => {
+  switch (status.toLowerCase()) {
+    case "completed":
+    case "confirmed":
+      return <CheckCircle className="h-4 w-4" />;
+    case "pending":
+    case "in_progress":
+      return <Clock className="h-4 w-4" />;
+    case "canceled":
+      return <AlertCircle className="h-4 w-4" />;
+    default:
+      return <AlertCircle className="h-4 w-4" />;
+  }
+};
+
 
   const handleViewDetails = (result) => {
     setSelectedResult(result);
@@ -144,353 +154,345 @@ const STIsTestPage = () => {
       });
   };
 
-const STIsTestBooking = () => {
-  const [selectedTest, setSelectedTest] = useState(null);
-  const [bookingData, setBookingData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    date: "",
-    time: "",
-    notes: "",
-  });
-  const navigate = useNavigate();
-
-  const availableTests = [
-    {
-      id: 5,
-      name: "Xét nghiệm HIV",
-      description: "Phát hiện virus gây suy giảm miễn dịch mắc phải",
-      price: 200000,
-      duration: "30 phút",
-      preparation: "Không cần nhịn ăn",
-      category: "STI_HIV",
-    },
-    {
-      id: 6,
-      name: "Xét nghiệm giang mai (Syphilis)",
-      description: "Phát hiện vi khuẩn Treponema pallidum",
-      price: 150000,
-      duration: "20 phút",
-      preparation: "Không cần nhịn ăn",
-      category: "STI_Syphilis",
-    },
-    {
-      id: 7,
-      name: "Xét nghiệm lậu (Gonorrhea)",
-      description: "Phát hiện vi khuẩn Neisseria gonorrhoeae",
-      price: 180000,
-      duration: "25 phút",
-      preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-      category: "STI_Gonorrhea",
-    },
-    {
-      id: 8,
-      name: "Xét nghiệm Chlamydia",
-      description: "Phát hiện vi khuẩn Chlamydia trachomatis",
-      price: 170000,
-      duration: "25 phút",
-      preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-      category: "STI_Chlamydia",
-    },
-  ];
-
-  const timeSlots = [
-    "08:00-08:30",
-    "08:30-09:00",
-    "09:00-09:30",
-    "09:30-10:00",
-    "10:00-10:30",
-    "10:30-11:00",
-    "14:00-14:30",
-    "14:30-15:00",
-    "15:00-15:30",
-    "15:30-16:00",
-    "16:00-16:30",
-    "16:30-17:00",
-  ];
-
-  const handleTestSelection = (testId) => {
-    setSelectedTest((prev) => {
-      return prev?.id === testId
-        ? null
-        : availableTests.find((t) => t.id === testId);
+  const STIsTestBooking = () => {
+    const [selectedTest, setSelectedTest] = useState(null);
+    const [bookingData, setBookingData] = useState({
+      name: "",
+      phone: "",
+      email: "",
+      date: "",
+      time: "",
+      notes: "",
     });
-  };
+    const navigate = useNavigate();
 
-  const handleInputChange = (field, value) => {
-    setBookingData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+    const availableTests = [
+      {
+        id: 5,
+        name: "Xét nghiệm HIV",
+        description: "Phát hiện virus gây suy giảm miễn dịch mắc phải",
+        price: 200000,
+        duration: "30 phút",
+        preparation: "Không cần nhịn ăn",
+        category: "STI_HIV",
+      },
+      {
+        id: 6,
+        name: "Xét nghiệm giang mai (Syphilis)",
+        description: "Phát hiện vi khuẩn Treponema pallidum",
+        price: 150000,
+        duration: "20 phút",
+        preparation: "Không cần nhịn ăn",
+        category: "STI_Syphilis",
+      },
+      {
+        id: 7,
+        name: "Xét nghiệm lậu (Gonorrhea)",
+        description: "Phát hiện vi khuẩn Neisseria gonorrhoeae",
+        price: 180000,
+        duration: "25 phút",
+        preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
+        category: "STI_Gonorrhea",
+      },
+      {
+        id: 8,
+        name: "Xét nghiệm Chlamydia",
+        description: "Phát hiện vi khuẩn Chlamydia trachomatis",
+        price: 170000,
+        duration: "25 phút",
+        preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
+        category: "STI_Chlamydia",
+      },
+    ];
 
-  const calculateTotal = () => (selectedTest ? selectedTest.price : 0);
+    const timeSlots = [
+      "08:00-08:30",
+      "08:30-09:00",
+      "09:00-09:30",
+      "09:30-10:00",
+      "10:00-10:30",
+      "10:30-11:00",
+      "14:00-14:30",
+      "14:30-15:00",
+      "15:00-15:30",
+      "15:30-16:00",
+      "16:00-16:30",
+      "16:30-17:00",
+    ];
 
-  const handleBooking = async () => {
-    const userId = Number(sessionStorage.getItem("userId"));
-
-    if (!userId) {
-      alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
-      return;
-    }
-
-    if (!selectedTest) {
-      alert("Vui lòng chọn ít nhất một xét nghiệm");
-      return;
-    }
-
-    if (
-      !bookingData.name ||
-      !bookingData.phone ||
-      !bookingData.email ||
-      !bookingData.date ||
-      !bookingData.time
-    ) {
-      alert("Vui lòng điền đầy đủ thông tin");
-      return;
-    }
-
-    const payload = {
-      userId: userId,
-      staffId: null,
-      serviceIds: [selectedTest.id],
-      bookingDate: bookingData.date,
-      timeSlot: bookingData.time,
-      paymentCode: null,
-      status: null,
-      isStiBooking: true,
-      customerGender: null,
-      customerName: bookingData.name,
-      customerPhone: bookingData.phone,
-      customerEmail: bookingData.email,
-      category: selectedTest.category,
+    const handleTestSelection = (testId) => {
+      setSelectedTest((prev) => {
+        return prev?.id === testId
+          ? null
+          : availableTests.find((t) => t.id === testId);
+      });
     };
 
-    try {
-      const response = await axios.post("/api/bookings/sti", payload, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    const handleInputChange = (field, value) => {
+      setBookingData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    };
 
-      if (response.status === 200 || response.status === 201) {
-        navigate("/payment", {
-          state: {
-            paymentCode: response.data.paymentCode,
-            amount: calculateTotal(),
-            testName: selectedTest.name,
-            bookingId: response.data.bookingId,
+    const calculateTotal = () => (selectedTest ? selectedTest.price : 0);
+
+    const handleBooking = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("Bạn chưa đăng nhập. Vui lòng đăng nhập để đặt lịch.");
+        return;
+      }
+
+      if (!selectedTest) {
+        alert("Vui lòng chọn ít nhất một xét nghiệm");
+        return;
+      }
+
+      const { name, phone, email, date, time } = bookingData;
+
+      if (!name || !phone || !email || !date || !time) {
+        alert("Vui lòng điền đầy đủ thông tin");
+        return;
+      }
+
+      const payload = {
+        staffId: null,
+        serviceIds: [selectedTest.id],
+        bookingDate: date,
+        timeSlot: time,
+        paymentCode: null,
+        status: null,
+        isStiBooking: true,
+        customerGender: null,
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email,
+        category: selectedTest.category,
+      };
+
+      try {
+        const response = await axios.post("/api/bookings/sti", payload, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
-      } else {
-        alert("Có lỗi xảy ra. Vui lòng thử lại.");
-      }
-    } catch (error) {
-      console.error("Lỗi đặt lịch:", error.response?.data || error.message);
-      alert("Không thể gửi đặt lịch. Vui lòng thử lại sau.");
-    }
-  };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Test Selection */}
-      <div className="lg:col-span-2">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Chọn xét nghiệm
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableTests.map((test) => (
-              <div
-                key={test.id}
-                onClick={() => handleTestSelection(test.id)}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedTest?.id === test.id
+        if (response.status === 200 || response.status === 201) {
+          navigate("/payment", {
+            state: {
+              paymentCode: response.data.paymentCode,
+              amount: calculateTotal(),
+              testName: selectedTest.name,
+              bookingId: response.data.booking.bookingId,
+            },
+          });
+        } else {
+          alert("Có lỗi xảy ra. Vui lòng thử lại.");
+        }
+      } catch (error) {
+        console.error("Lỗi đặt lịch:", error.response?.data || error.message);
+        alert("Không thể gửi đặt lịch. Vui lòng thử lại sau.");
+      }
+    };
+
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Test Selection */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Chọn xét nghiệm
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableTests.map((test) => (
+                <div
+                  key={test.id}
+                  onClick={() => handleTestSelection(test.id)}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedTest?.id === test.id
                     ? "border-purple-600 bg-purple-50"
                     : "border-gray-200 hover:border-purple-300"
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{test.name}</h3>
-                  <span className="text-purple-600 font-bold">
-                    {test.price.toLocaleString("vi-VN")} đ
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-2">
-                  {test.description}
-                </p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>⏱ {test.duration}</span>
-                  <span className="bg-gray-100 px-2 py-1 rounded">
-                    {test.category.replace("STI_", "")}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Booking Form */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Thông tin đặt lịch
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Họ và tên *
-              </label>
-              <input
-                type="text"
-                value={bookingData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Nhập họ và tên"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số điện thoại *
-              </label>
-              <input
-                type="tel"
-                value={bookingData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Nhập số điện thoại"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={bookingData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className="w-full pxBra3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Nhập địa chỉ email"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ngày xét nghiệm *
-              </label>
-              <input
-                type="date"
-                value={bookingData.date}
-                onChange={(e) => handleInputChange("date", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-          </div>
-
-          {/* Time Selection */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giờ xét nghiệm *
-            </label>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-              {timeSlots.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => handleInputChange("time", time)}
-                  className={`p-2 text-sm border rounded-lg transition-colors ${
-                    bookingData.time === time
-                      ? "border-purple-600 bg-purple-50 text-purple-600"
-                      : "border-gray-300 hover:border-purple-300"
-                  }`}
+                    }`}
                 >
-                  {time}
-                </button>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900">{test.name}</h3>
+                    <span className="text-purple-600 font-bold">
+                      {test.price.toLocaleString("vi-VN")} đ
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {test.description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>⏱ {test.duration}</span>
+                    <span className="bg-gray-100 px-2 py-1 rounded">
+                      {test.category.replace("STI_", "")}
+                    </span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ghi chú (không bắt buộc)
-            </label>
-            <textarea
-              value={bookingData.notes}
-              onChange={(e) => handleInputChange("notes", e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Thông tin bổ sung..."
-            />
+          {/* Booking Form */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Thông tin đặt lịch
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Họ và tên *
+                </label>
+                <input
+                  type="text"
+                  value={bookingData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Nhập họ và tên"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số điện thoại *
+                </label>
+                <input
+                  type="tel"
+                  value={bookingData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={bookingData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="w-full pxBra3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Nhập địa chỉ email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ngày xét nghiệm *
+                </label>
+                <input
+                  type="date"
+                  value={bookingData.date}
+                  onChange={(e) => handleInputChange("date", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+            </div>
+
+            {/* Time Selection */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Giờ xét nghiệm *
+              </label>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                {timeSlots.map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => handleInputChange("time", time)}
+                    className={`p-2 text-sm border rounded-lg transition-colors ${bookingData.time === time
+                      ? "border-purple-600 bg-purple-50 text-purple-600"
+                      : "border-gray-300 hover:border-purple-300"
+                      }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ghi chú (không bắt buộc)
+              </label>
+              <textarea
+                value={bookingData.notes}
+                onChange={(e) => handleInputChange("notes", e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Thông tin bổ sung..."
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Booking Summary */}
-      <div className="lg:col-span-1">
-        <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
-            Tóm tắt đặt lịch
-          </h3>
+        {/* Booking Summary */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Tóm tắt đặt lịch
+            </h3>
 
-          {selectedTest ? (
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{selectedTest.name}</p>
-                  <p className="text-sm text-gray-500">{selectedTest.duration}</p>
+            {selectedTest ? (
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{selectedTest.name}</p>
+                    <p className="text-sm text-gray-500">{selectedTest.duration}</p>
+                  </div>
+                  <span className="font-medium text-purple-600">
+                    {selectedTest.price.toLocaleString("vi-VN")} đ
+                  </span>
                 </div>
-                <span className="font-medium text-purple-600">
-                  {selectedTest.price.toLocaleString("vi-VN")} đ
-                </span>
               </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 mb-6">Chưa chọn xét nghiệm nào</p>
-          )}
+            ) : (
+              <p className="text-gray-500 mb-6">Chưa chọn xét nghiệm nào</p>
+            )}
 
-          {selectedTest && (
-            <div className="border-t pt-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900">
-                  Tổng cộng:
-                </span>
-                <span className="text-xl font-bold text-purple-600">
-                  {calculateTotal().toLocaleString("vi-VN")} đ
-                </span>
+            {selectedTest && (
+              <div className="border-t pt-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold text-gray-900">
+                    Tổng cộng:
+                  </span>
+                  <span className="text-xl font-bold text-purple-600">
+                    {calculateTotal().toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <button
-            onClick={handleBooking}
-            disabled={!selectedTest}
-            className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
-              selectedTest
+            <button
+              onClick={handleBooking}
+              disabled={!selectedTest}
+              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${selectedTest
                 ? "bg-purple-600 hover:bg-purple-700 text-white"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            Đặt lịch xét nghiệm
-          </button>
+                }`}
+            >
+              Đặt lịch xét nghiệm
+            </button>
 
-          {/* Important Notes */}
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-semibold text-yellow-800 mb-2">
-              Lưu ý quan trọng:
-            </h4>
-            <ul className="text-sm text-yellow-700 space-y-1">
-              <li>• Mang theo CMND/CCCD khi đến xét nghiệm</li>
-              <li>• Tuân thủ hướng dẫn chuẩn bị trước xét nghiệm</li>
-              <li>• Kết quả sẽ có trong 1-3 ngày làm việc</li>
-              <li>• Thông tin được bảo mật tuyệt đối</li>
-            </ul>
+            {/* Important Notes */}
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="font-semibold text-yellow-800 mb-2">
+                Lưu ý quan trọng:
+              </h4>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• Mang theo CMND/CCCD khi đến xét nghiệm</li>
+                <li>• Tuân thủ hướng dẫn chuẩn bị trước xét nghiệm</li>
+                <li>• Kết quả sẽ có trong 1-3 ngày làm việc</li>
+                <li>• Thông tin được bảo mật tuyệt đối</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const STIsTestInfo = () => {
     const availableTests = [
@@ -912,11 +914,10 @@ const STIsTestBooking = () => {
                               {testName}
                             </h4>
                             <span
-                              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                result.status === "normal"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
+                              className={`px-3 py-1 rounded-full text-sm font-medium ${result.status === "normal"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                                }`}
                             >
                               {result.result}
                             </span>
@@ -1032,11 +1033,10 @@ const STIsTestBooking = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? "border-purple-500 text-purple-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
               >
                 <tab.icon className="h-5 w-5" />
                 <span>{tab.label}</span>

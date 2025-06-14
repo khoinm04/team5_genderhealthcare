@@ -88,6 +88,42 @@ public class DataLoader {
                 emergencyConsultation.setPrice(new BigDecimal("150.00"));
                 emergencyConsultation.setDescription("Urgent medical consultation");
                 serviceRepo.save(emergencyConsultation);
+
+                Service hivTest = new Service();
+                hivTest.setServiceName("Xét nghiệm HIV");
+                hivTest.setCategory(ServiceBookingCategory.STI_HIV);
+                hivTest.setPrice(new BigDecimal("200000.00"));
+                hivTest.setDescription("Phát hiện virus gây suy giảm miễn dịch mắc phải");
+                hivTest.setPreparation("Không cần nhịn ăn");
+                hivTest.setDuration("30 phút");
+                serviceRepo.save(hivTest);
+
+                Service syphilisTest = new Service();
+                syphilisTest.setServiceName("Xét nghiệm giang mai (Syphilis)");
+                syphilisTest.setCategory(ServiceBookingCategory.STI_Syphilis);
+                syphilisTest.setPrice(new BigDecimal("150000.00"));
+                syphilisTest.setDescription("Phát hiện vi khuẩn Treponema pallidum");
+                syphilisTest.setPreparation("Không cần nhịn ăn");
+                syphilisTest.setDuration("20 phút");
+                serviceRepo.save(syphilisTest);
+
+                Service gonorrheaTest = new Service();
+                gonorrheaTest.setServiceName("Xét nghiệm lậu (Gonorrhea)");
+                gonorrheaTest.setCategory(ServiceBookingCategory.STI_Gonorrhea);
+                gonorrheaTest.setPrice(new BigDecimal("180000.00"));
+                gonorrheaTest.setDescription("Phát hiện vi khuẩn Neisseria gonorrhoeae");
+                gonorrheaTest.setPreparation("Không quan hệ tình dục 24h trước xét nghiệm");
+                gonorrheaTest.setDuration("25 phút");
+                serviceRepo.save(gonorrheaTest);
+
+                Service chlamydiaTest = new Service();
+                chlamydiaTest.setServiceName("Xét nghiệm Chlamydia");
+                chlamydiaTest.setCategory(ServiceBookingCategory.STI_Chlamydia);
+                chlamydiaTest.setPrice(new BigDecimal("170000.00"));
+                chlamydiaTest.setDescription("Phát hiện vi khuẩn Chlamydia trachomatis");
+                chlamydiaTest.setPreparation("Không quan hệ tình dục 24h trước xét nghiệm");
+                chlamydiaTest.setDuration("25 phút");
+                serviceRepo.save(chlamydiaTest);
             }
         };
     }

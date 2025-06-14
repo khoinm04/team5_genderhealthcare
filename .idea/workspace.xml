@@ -5,57 +5,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d3848d6-7fd1-4800-8d85-3bc289243546" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/LoginRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/LoginRespone.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/MenstrualCycleDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/SignupRequestDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/TestResultDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/UserUpdateDTO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/config/WebConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/AdminController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/Is_Active.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/listener/LoginSuccessListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/CustomerDetails.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/TestResult.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/CustomerDetailsRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/TestResultRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/CustomUserDetailsService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/MailService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/OtpService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/RoleService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/UserService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/util/ReportGenerator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/util/RoleNameConverter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/BookingDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/BookingDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/UserDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/DTO/UserDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/config/DataLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/config/DataLoader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/config/SwaggerConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/AuthController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/BookingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/BookingController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/MenstrualCycleController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/MenstrualCycleController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/UserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/controller/UserController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/exceptions/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/exceptions/GlobalExceptionHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/RoleName.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/RoleName.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/TestStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/file_enum/TestStatus.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Booking.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/MenstrualCycle.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/MenstrualCycle.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Notification.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Notification.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Service.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/Service.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/StaffDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/StaffDetails.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/model/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/model/User.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/BookingRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/BookingRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/MenstrualCycleRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/MenstrualCycleRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/UserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/UserRepositoryCustom.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/repository/UserRepositoryImpl.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/service/BookingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/BookingService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/service/CustomOAuth2UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/CustomOAuth2UserService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/ghsms/service/MenstrualCycleService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/ghsms/service/MenstrualCycleService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/TestResultDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/TestResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/TestResultRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/util/ReportGenerator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/resources/application-secret.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/pages/GoogleCallback.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/BE/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/BE/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/DataLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/DataLoader.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/BookingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/BookingController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Booking.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Service.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Service.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/BookingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/BookingService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/AdminDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/AdminDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/ConsultationBooking.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/ConsultationBooking.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/Header.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/LoginForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/LoginForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/OtpPasswordForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/OtpPasswordForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/PaymentPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/PaymentPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/STIBookingPage.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/STIsTestPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/STIsTestPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/register.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/register.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/FE/vite.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +98,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "Spring Boot.GhsmsApplication (1).executor": "Run",
     "Spring Boot.GhsmsApplication.executor": "Run",
-    "git-widget-placeholder": "Nam",
+    "git-widget-placeholder": "Rebasing main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/FPT/Kì 5 - FPT/SWP391/team5/BE",
     "node.js.detected.package.eslint": "true",

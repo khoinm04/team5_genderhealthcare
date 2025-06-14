@@ -1,87 +1,89 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+
 export default function Header() {
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    axios.get("http://localhost:8080/gender-health-care/signingoogle", {
-      withCredentials: true,
-    })
-      .then((res) => {
-        const userData = res.data.user;
-        setUser(userData);
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
 
-        // 👉 Log vai trò người dùng
-      console.log("Vai trò người dùng (roleName):", userData.roleName);
-      
-        if (userData && userData.userId !== undefined) {
-          sessionStorage.setItem("userId", userData.userId.toString());
-          console.log("Stored userId in sessionStorage:", userData.userId);
-        }
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      const { token, ...userInfo } = parsedUser;
+
+      if (!token) {
+        console.warn("Không có token trong localStorage.");
+        return fallbackToSessionStorage();
+      }
+
+      // Đặt user tạm thời, sau đó xác thực lại nếu muốn
+      setUser(userInfo);
+
+      // ✅ Gọi lại API xác thực nếu bạn muốn kiểm tra token hoặc cập nhật avatar, name mới nhất
+      axios.get("http://localhost:8080/gender-health-care/signingoogle", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
-      .catch((err) => {
-        console.error("kiểm tra đăng nhập google thất bại: ", err);
-        checkLoginFromSessionStorage();
-      });
+        .then((res) => {
+          const userData = res.data.user;
+          localStorage.setItem("user", JSON.stringify({ ...userData, token }));
+          sessionStorage.setItem("user", JSON.stringify(userData));
+          sessionStorage.setItem("userId", userData.userId.toString());
+          setUser(userData); // Cập nhật user từ backend
+        })
+        .catch((err) => {
+          console.error("Token không hợp lệ hoặc đã hết hạn:", err);
+          localStorage.removeItem("user");
+          fallbackToSessionStorage();
+        });
 
-    function checkLoginFromSessionStorage() {
-      const storedUser = sessionStorage.getItem("user");
-      if (storedUser) {
-        try {
-          const userObj = JSON.parse(storedUser);
-          setUser(userObj);
-        } catch (e) {
-          console.error("Lỗi parse user trong sessionStorage:", e);
-          setUser(null);
-          sessionStorage.removeItem("user");
-        }
-      } else {
+    } catch (e) {
+      console.error("Không parse được user từ localStorage:", e);
+      fallbackToSessionStorage();
+    }
+  } else {
+    fallbackToSessionStorage();
+  }
+
+  function fallbackToSessionStorage() {
+    const sessionUser = sessionStorage.getItem("user");
+    if (sessionUser) {
+      try {
+        const parsed = JSON.parse(sessionUser);
+        setUser(parsed);
+      } catch (e) {
+        console.error("Lỗi parse user trong sessionStorage:", e);
+        sessionStorage.removeItem("user");
         setUser(null);
       }
+    } else {
+      setUser(null);
     }
+  }
+}, []);
 
-  }, []);
 
 
 
-  // const handleLogout = () => {
-  //   axios.post("http://localhost:8080/gender-health-care/logout", {}, {
-  //     withCredentials: true,
-  //   })
-  //     .then((response) => {
-  //       const logoutUrl = response.data.logoutUrl;
-
-  //       // ✅ Nếu là Google Login → chỉ cần redirect, không fetch hay axios
-  //       if (logoutUrl) {
-  //         // Xóa dữ liệu local trước khi rời đi
-  //         sessionStorage.removeItem("userId");
-  //         window.location.href = logoutUrl;
-  //         return;
-  //       }
-
-  //       // ✅ Nếu là login thủ công
-  //       sessionStorage.removeItem("user");
-  //       window.location.href = "/";
-  //     })
-  //     .catch((err) => {
-  //       console.error("Logout failed", err);
-  //     });
-  // };
 
   const handleLogout = () => {
-    axios.post("http://localhost:8080/gender-health-care/logout", {}, {
-      withCredentials: true,
-    })
-      .then(() => {
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("userId")
-        window.location.href = "/"; // về homepage
-      })
-      .catch((err) => {
-        console.error("Logout failed", err);
-      });
-  };
+  const token = localStorage.getItem("token");
+
+  axios.post("http://localhost:8080/gender-health-care/logout", {}, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }).finally(() => {
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("userId");
+    window.location.href = "/";
+  });
+};
+
 
 
   const menuItems = [

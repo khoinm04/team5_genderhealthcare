@@ -36,6 +36,12 @@ package com.ghsms.model;
         @Column(name = "Price", precision = 10, scale = 2)
         private BigDecimal price;
 
+        @Column(name = "Preparation")
+        private String preparation; // e.g., "Không cần nhịn ăn"
+
+        @Column(name = "Duration")
+        private String duration; // e.g., "30 phút"
+
         @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
         private boolean isActive = true;
     }

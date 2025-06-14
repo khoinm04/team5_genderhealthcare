@@ -12,32 +12,55 @@ import AdminDashboard from "./components/AdminDashboard";
 import ForgotPassword from "./components/ForgotPassword";
 import OtpPasswordForm from "./components/OtpPasswordForm";
 import MenstrualCycleForm from "./components/MenstrualCycleForm";
+import GoogleCallback from "./pages/GoogleCallback";
 import STIsTestPage from "./components/STIsTestPage";
 import PaymentPage from "./components/PaymentPage";
 
 export default function App() {
   const [user, setUser] = useState(null);
 
+  // ✅ Load user từ localStorage hoặc Google
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/gender-health-care/signingoogle", {
-        withCredentials: true,
-      })
-      .then((res) => {
-        const userData = res.data.user;
+    const storedUser = localStorage.getItem("user");
 
-        if (userData && userData.createdAt) {
-          userData.formattedCreateAt = format(new Date(userData.createdAt), 'M/d/yyyy, h:mm:ss a');
-        } else {
-          userData.formattedCreateAt = 'Không có ngày tạo';
-        }
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      // Nếu không có user trong localStorage, thử check Google login
+      axios
+        .get("http://localhost:8080/gender-health-care/signingoogle", {
+          withCredentials: true,
+        })
+        .then((res) => {
+          const userData = res.data.user;
 
-        setUser(userData);
-      })
-      .catch(() => {
-        setUser(null);
-      });
+          if (userData && userData.createdAt) {
+            userData.formattedCreateAt = format(new Date(userData.createdAt), "M/d/yyyy, h:mm:ss a");
+          } else {
+            userData.formattedCreateAt = "Không có ngày tạo";
+          }
+
+          setUser(userData);
+        })
+        .catch(() => {
+          setUser(null);
+        });
+    }
   }, []);
+
+  // ✅ Đồng bộ user giữa các tab khi login/logout
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "user") {
+        const newUser = e.newValue ? JSON.parse(e.newValue) : null;
+        setUser(newUser);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   return (
     <UserContext.Provider value={{ user, setUser }}>
       <BrowserRouter>
@@ -53,9 +76,9 @@ export default function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
+          <Route path="/oauth2-success" element={<GoogleCallback />} />
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
-  )
-  // import các component khác nếu có
+  );
 }

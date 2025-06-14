@@ -55,6 +55,10 @@ public class Booking {
     @Column(name = "TimeSlot")
     private String timeSlot;
 
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TestResult> testResults = new HashSet<>();
+
+
     @Enumerated(EnumType.STRING)
     @Column(name = "Status", length = 50)
     private BookingStatus status;
