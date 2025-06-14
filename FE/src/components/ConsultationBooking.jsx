@@ -212,7 +212,7 @@ const ConsultationBooking = ({ onClose }) => {
 
     setLoading(true);
     setError('');
-
+    console.log("dữ liệu bookingDate: " , selectedDate )
     try {
       const bookingData = {
         userId: userId,

@@ -1,5 +1,6 @@
 import React from "react";
 
+
 export default function STIBookingPage() {
   return (
     <div className="p-6">

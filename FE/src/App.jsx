@@ -7,13 +7,13 @@ import BlogPage from "./components/BlogPage";
 import LoginPage from "./components/LoginPage";
 import { UserContext } from "./UserContext";
 import ConsultationBooking from "./components/ConsultationBooking";
-import STIBookingPage from "./components/STIBookingPage";
 import Register from "./components/register";
 import AdminDashboard from "./components/AdminDashboard";
 import ForgotPassword from "./components/ForgotPassword";
 import OtpPasswordForm from "./components/OtpPasswordForm";
 import MenstrualCycleForm from "./components/MenstrualCycleForm";
-
+import STIsTestPage from "./components/STIsTestPage";
+import PaymentPage from "./components/PaymentPage";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -47,7 +47,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
           <Route path="/booking/menstrual" element={<MenstrualCycleForm />} />
-          <Route path="/booking/sti" element={<STIBookingPage />} />
+          <Route path="/booking/sti" element={<STIsTestPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
