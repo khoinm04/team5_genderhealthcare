@@ -34,7 +34,6 @@ public class MenstrualCycle {
     @Column(name = "StartDate")
     private LocalDate startDate;
 
-    @NotNull(message = " Ngày kết thúc không được để trống")
     @Column(name = "EndDate")
     private LocalDate endDate;
 
@@ -50,11 +49,9 @@ public class MenstrualCycle {
     @Max(value = 10, message = " Nếu số ngày hành kinh nhiều hơn 10 ngày thì bạn nên đi kiểm tra sức khỏe")
     private Integer menstruationDuration; // Default value, can be adjusted based on user input
 
-    @NotNull(message =" Dự báo ngày tiếp theo không được để trống")
     @Column(name = "NextPredictedDate")
     private LocalDate nextPredictedDate;
 
-    @NotNull(message =" Dữ báo ngày rụng trứng không được để trống")
     @Column(name = "PredictedOvulationDate")
     private LocalDate predictedOvulationDate;
 
