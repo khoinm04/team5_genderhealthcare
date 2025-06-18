@@ -57,6 +57,8 @@ public class BookingService {
                 customerDetails.setFullName(bookingDTO.getCustomerName());
                 customerDetails.setEmail(bookingDTO.getCustomerEmail());
                 customerDetails.setPhoneNumber(bookingDTO.getCustomerPhone());
+                customerDetails.setAge(bookingDTO.getCustomerAge());
+                customerDetails.setGender(bookingDTO.getCustomerGender());
                 customerDetails.setCustomer(user);
                 customerDetails = customerDetailsRepository.save(customerDetails);
             }
@@ -66,6 +68,8 @@ public class BookingService {
             customerDetails.setFullName(bookingDTO.getCustomerName());
             customerDetails.setEmail(bookingDTO.getCustomerEmail());
             customerDetails.setPhoneNumber(bookingDTO.getCustomerPhone());
+            customerDetails.setAge(bookingDTO.getCustomerAge());
+            customerDetails.setGender(bookingDTO.getCustomerGender());
             customerDetails = customerDetailsRepository.save(customerDetails);
         }
 
@@ -107,6 +111,8 @@ public class BookingService {
                 customerDetails.setFullName(bookingDTO.getCustomerName());
                 customerDetails.setEmail(bookingDTO.getCustomerEmail());
                 customerDetails.setPhoneNumber(bookingDTO.getCustomerPhone());
+                customerDetails.setAge(bookingDTO.getCustomerAge());
+                customerDetails.setGender(bookingDTO.getCustomerGender());
                 customerDetails.setCustomer(user);
                 customerDetails = customerDetailsRepository.save(customerDetails);
             }
@@ -115,6 +121,8 @@ public class BookingService {
             customerDetails.setFullName(bookingDTO.getCustomerName());
             customerDetails.setEmail(bookingDTO.getCustomerEmail());
             customerDetails.setPhoneNumber(bookingDTO.getCustomerPhone());
+            customerDetails.setAge(bookingDTO.getCustomerAge());
+            customerDetails.setGender(bookingDTO.getCustomerGender());
             customerDetails = customerDetailsRepository.save(customerDetails);
         }
 

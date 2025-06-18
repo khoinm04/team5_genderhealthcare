@@ -25,6 +25,10 @@ public class TestResultDTO {
     private LocalDateTime lastUpdated;
     private String notes;
     private ReportFormat format;
+    private Integer customerAge;
+    private String customerGender;
+    private String customerPhone;
+    private String customerEmail;
 
     // Additional fields for better tracking
     private String customerName;

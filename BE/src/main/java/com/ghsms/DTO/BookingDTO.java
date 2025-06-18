@@ -53,4 +53,8 @@ public class BookingDTO implements Serializable {
     @Email(message = "Email không hợp lệ")
     private String customerEmail;
 
+    private Integer customerAge;
+    private String customerGender;
+
+
 }

@@ -19,7 +19,7 @@ const STIsTestPage = () => {
   const [selectedResult, setSelectedResult] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [testResults, setTestResults] = useState([]);
-  const userId = Number(sessionStorage.getItem("userId"));
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -32,7 +32,7 @@ const STIsTestPage = () => {
         },
       })
       .then((res) => {
-        const bookings = res.data;
+        const bookings = res.data.bookings || [];
 
         const testResultsPromises = bookings.map((booking) =>
           axios.get(`/api/bookings/sti/${booking.bookingId}/test-results`, {
@@ -45,41 +45,41 @@ const STIsTestPage = () => {
         Promise.all(testResultsPromises)
           .then((results) => {
             const allTestResults = results.flatMap((result) => result.data.testResults);
-            setTestResults(
-              allTestResults.map((result) => ({
-                id: result.testResultId,
-                bookingId: result.bookingId,
-                patientName: result.customerName,
-                testDate: result.scheduledTime,
-                tests: [result.testName],
-                status: result.status.toLowerCase(),
-                currentPhase: result.currentPhase,
-                progressPercentage: result.progressPercentage,
-                estimatedMinutesRemaining: result.estimatedMinutesRemaining,
-                details: {
-                  patientInfo: {
-                    name: result.customerName,
-                    age: "N/A",
-                    gender: "N/A",
-                    phone: "N/A",
-                    email: "N/A",
-                  },
-                  testResults: {
-                    [result.testName]: {
-                      status: result.result ? "abnormal" : "normal",
-                      result: result.result || "Chưa có kết quả",
-                      normalRange: "N/A",
-                    },
-                  },
-                  doctorNotes: result.notes || "Không có ghi chú",
-                  nextAppointment: null,
-                },
-                downloadUrl:
-                  result.status === "COMPLETED"
-                    ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF`
-                    : null,
-              }))
-            );
+              setTestResults(
+                  allTestResults.map((result) => ({
+                      id: result.testResultId,
+                      bookingId: result.bookingId,
+                      patientName: result.customerName,
+                      testDate: result.scheduledTime,
+                      tests: [result.testName],
+                      status: result.status.toLowerCase(),
+                      currentPhase: result.currentPhase,
+                      progressPercentage: result.progressPercentage,
+                      estimatedMinutesRemaining: result.estimatedMinutesRemaining,
+                      details: {
+                          patientInfo: {
+                              name: result.customerName,
+                              age: result.customerAge || "N/A",
+                              gender: result.customerGender || "N/A",
+                              phone: result.customerPhone || "N/A",
+                              email: result.customerEmail || "N/A",
+                          },
+                          testResults: {
+                              [result.testName]: {
+                                  status: result.result ? "abnormal" : "normal",
+                                  result: result.result || "Chưa có kết quả",
+                                  normalRange: "N/A",
+                              },
+                          },
+                          doctorNotes: result.notes || "Không có ghi chú",
+                          nextAppointment: null,
+                      },
+                      downloadUrl:
+                          result.status === "completed"
+                              ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF`
+                              : null,
+                  }))
+              );
           })
           .catch((err) => {
             console.error("Lỗi lấy kết quả xét nghiệm:", err);
@@ -163,6 +163,8 @@ const getStatusIcon = (status) => {
       date: "",
       time: "",
       notes: "",
+      gender: "",
+      age: "",
     });
     const navigate = useNavigate();
 
@@ -257,6 +259,16 @@ const getStatusIcon = (status) => {
         return;
       }
 
+      const isValidEmail = email.includes("@");
+      const isValidPhone = /^\d{10,11}$/.test(phone);
+
+      if (!isValidEmail || !isValidPhone) {
+        alert("Vui lòng nhập email hoặc số điện thoại hợp lệ.");
+        return;
+      }
+
+      const amount = calculateTotal();
+
       const payload = {
         staffId: null,
         serviceIds: [selectedTest.id],
@@ -265,8 +277,9 @@ const getStatusIcon = (status) => {
         paymentCode: null,
         status: null,
         isStiBooking: true,
-        customerGender: null,
         customerName: name,
+        customerAge: bookingData.age,
+        customerGender: bookingData.gender,
         customerPhone: phone,
         customerEmail: email,
         category: selectedTest.category,
@@ -280,23 +293,28 @@ const getStatusIcon = (status) => {
           },
         });
 
-        if (response.status === 200 || response.status === 201) {
+        if (
+            (response.status === 200 || response.status === 201) &&
+            response.data?.paymentCode &&
+            response.data?.booking?.bookingId
+        ) {
           navigate("/payment", {
             state: {
               paymentCode: response.data.paymentCode,
-              amount: calculateTotal(),
+              amount: amount,
               testName: selectedTest.name,
               bookingId: response.data.booking.bookingId,
             },
           });
         } else {
-          alert("Có lỗi xảy ra. Vui lòng thử lại.");
+          alert("Lỗi phản hồi từ hệ thống. Vui lòng thử lại.");
         }
       } catch (error) {
         console.error("Lỗi đặt lịch:", error.response?.data || error.message);
         alert("Không thể gửi đặt lịch. Vui lòng thử lại sau.");
       }
     };
+
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -354,7 +372,39 @@ const getStatusIcon = (status) => {
                   placeholder="Nhập họ và tên"
                 />
               </div>
-              <div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tuổi *
+                    </label>
+                    <input
+                        type="number"
+                        value={bookingData.age}
+                        onChange={(e) => handleInputChange("age", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Nhập tuổi"
+                        min="0"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Giới tính *
+                    </label>
+                    <select
+                        value={bookingData.gender}
+                        onChange={(e) => handleInputChange("gender", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                        <option value="">-- Chọn giới tính --</option>
+                        <option value="MALE">Nam</option>
+                        <option value="FEMALE">Nữ</option>
+                        <option value="OTHER">Khác</option>
+                    </select>
+                </div>
+
+
+                <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số điện thoại *
                 </label>
@@ -848,11 +898,12 @@ const getStatusIcon = (status) => {
                   >
                     {getStatusIcon(selectedResult.status)}
                     <span>
-                      {selectedResult.status === "completed" && "Hoàn thành"}
-                      {result.status === "pending" && "Đang chờ"}
-                      {result.status === "in_progress" && "Đang xử lý"}
-                      {result.status === "canceled" && "Đã hủy"}
-                    </span>
+                        {selectedResult.status === "completed" && "Hoàn thành"}
+                      {selectedResult.status === "pending" && "Đang chờ"}
+                      {selectedResult.status === "in_progress" && "Đang xử lý"}
+                      {selectedResult.status === "canceled" && "Đã hủy"}
+</span>
+
                   </span>
                 </div>
                 <div className="md:col-span-2">

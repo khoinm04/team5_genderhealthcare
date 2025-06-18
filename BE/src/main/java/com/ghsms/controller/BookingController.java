@@ -7,6 +7,7 @@ import com.ghsms.file_enum.ReportFormat;
 import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.file_enum.TestStatus;
 import com.ghsms.model.Booking;
+import com.ghsms.model.CustomerDetails;
 import com.ghsms.model.Service;
 import com.ghsms.model.TestResult;
 import com.ghsms.service.BookingService;
@@ -171,6 +172,36 @@ public class BookingController {
         }
     }
 
+    @GetMapping("/user")
+    @Operation(summary = "Get STI bookings for current user")
+    public ResponseEntity<?> getUserStiBookings(@AuthenticationPrincipal UserPrincipal user) {
+        try {
+            Long userId = user.getId();
+
+            // Lấy tất cả booking của user
+            List<Booking> allBookings = bookingService.getUserBookings(userId);
+
+            // Lọc ra các booking có dịch vụ thuộc nhóm STI
+            List<Booking> stiBookings = allBookings.stream()
+                    .filter(booking -> booking.getServices().stream().allMatch(service ->
+                            service.getCategory() == ServiceBookingCategory.STI_HIV ||
+                                    service.getCategory() == ServiceBookingCategory.STI_Syphilis ||
+                                    service.getCategory() == ServiceBookingCategory.STI_Gonorrhea ||
+                                    service.getCategory() == ServiceBookingCategory.STI_Chlamydia
+                    ))
+                    .toList();
+
+            // Chuyển sang DTO nếu cần
+            List<BookingDTO> bookingDTOs = stiBookings.stream()
+                    .map(this::convertToDTO)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of("bookings", bookingDTOs));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Lỗi khi lấy danh sách lịch hẹn STI"));
+        }
+    }
 
 
 
@@ -200,7 +231,7 @@ public class BookingController {
     @GetMapping("/sti/test-result/{bookingId}/report")
     @Operation(summary = "Get test result report for an STI booking")
     public ResponseEntity<byte[]> getTestResultReport(@PathVariable Long bookingId,
-                                                      @RequestParam ReportFormat format) {
+                                                      @RequestParam ReportFormat format, @AuthenticationPrincipal UserPrincipal user) {
         try {
             byte[] report = bookingService.generateTestResultReport(bookingId, format);
             HttpHeaders headers = new HttpHeaders();
@@ -256,10 +287,17 @@ public class BookingController {
         dto.setBookingId(booking.getBookingId());
 
         // Fix customer related fields
-        if (booking.getCustomer() != null && booking.getCustomer().getCustomer() != null) {
-            dto.setUserId(booking.getCustomer().getCustomerId());
+        if (booking.getCustomer() != null) {
+            dto.setUserId(
+                    booking.getCustomer().getCustomer() != null
+                            ? booking.getCustomer().getCustomerId()
+                            : null
+            );
             dto.setCustomerName(booking.getCustomer().getFullName());
             dto.setCustomerPhone(booking.getCustomer().getPhoneNumber());
+            dto.setCustomerEmail(booking.getCustomer().getEmail());  // ✅ Thêm nếu cần
+            dto.setCustomerAge(booking.getCustomer().getAge());      // ✅ Tuổi
+            dto.setCustomerGender(booking.getCustomer().getGender()); // ✅ Giới tính
         }
 
         // Fix staff related fields
@@ -283,6 +321,7 @@ public class BookingController {
         return dto;
     }
 
+
     private TestResultDTO convertToTestResultDTO(TestResult testResult) {
         TestResultDTO dto = new TestResultDTO();
         dto.setTestResultId(testResult.getTestResultId());
@@ -299,10 +338,17 @@ public class BookingController {
         dto.setNotes(testResult.getNotes());
         dto.setFormat(testResult.getFormat());
 
-        // Additional tracking information
-        if (testResult.getBooking().getCustomer() != null) {
-            dto.setCustomerName(testResult.getBooking().getCustomer().getFullName());
+        // ✅ Thêm đầy đủ thông tin khách hàng
+        CustomerDetails customer = testResult.getBooking().getCustomer();
+        if (customer != null) {
+            dto.setCustomerName(customer.getFullName());
+            dto.setCustomerAge(customer.getAge());
+            dto.setCustomerGender(customer.getGender());
+            dto.setCustomerPhone(customer.getPhoneNumber());
+            dto.setCustomerEmail(customer.getEmail());
         }
+
+        // ✅ Thêm thông tin dịch vụ
         if (!testResult.getBooking().getServices().isEmpty()) {
             Service service = testResult.getBooking().getServices().iterator().next();
             dto.setServiceCategory(service.getCategory().name());
@@ -310,4 +356,5 @@ public class BookingController {
 
         return dto;
     }
+
 }
