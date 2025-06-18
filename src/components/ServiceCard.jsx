@@ -2,81 +2,81 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../UserContext";
 
-export default function ServiceCard({
-  title,
-  description,
-  icon,
-  link,          // <-- nhận prop link
-  className = "",
-}) {
+export default function ServiceCard({ title, description, icon, className, navigateTo }) {
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useUser();
-  const [message, setMessage] = useState("");
 
   const handleViewDetails = () => {
     if (!user) {
-      setMessage("Vui lòng đăng nhập");
-      setTimeout(() => setMessage(""), 3000); // 3 giây ẩn thông báo
-    } else if (link) {
-      navigate(link);
+      navigate("/login");
+      return;
     }
+    setIsOpen(true); // mở modal, không chuyển trang
   };
 
+  const handleConfirm = () => {
+    // Khi người dùng bấm nút xác nhận trong modal, điều hướng đến trang chi tiết
+    navigate(navigateTo);
+    setIsOpen(false);
+  };
+
+  const renderModalContent = () => (
+    <>
+      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      <p>{description}</p>
+      <p>Ở đây bạn có thể thêm các thông tin chi tiết khác như giá, lịch trình, hoặc hình ảnh.</p>
+      <button
+        onClick={handleConfirm}
+        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Đặt lịch dịch vụ
+      </button>
+    </>
+  );
+
   return (
-    <div
-      className={`flex flex-col justify-between cursor-pointer rounded-2xl p-4 text-center shadow-md transition-transform hover:scale-[1.03] hover:shadow-lg ${className}`}
-      role="group"
-      aria-label={title}
-      style={{ minHeight: "280px", backgroundColor: "#f9f0ff" }}
-    >
-      <div>
+    <>
+      <div
+        className={`bg-white rounded-lg p-6 shadow-md hover:shadow-lg hover:scale-[1.03] transition-transform cursor-pointer flex flex-col items-center text-center ${className}`}
+      >
         {typeof icon === "string" && icon.length <= 2 ? (
-          <div className="mb-4 select-none text-5xl">{icon}</div>
+          <div className="text-6xl mb-4 select-none">{icon}</div>
         ) : (
-          <img
-            src={icon}
-            alt={`${title} icon`}
-            className="mb-4 h-12 w-12 object-contain"
-            loading="lazy"
-            draggable={false}
-          />
+          <img src={icon} alt={`${title} icon`} className="w-14 h-14 mb-4 object-contain" />
         )}
 
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">{title}</h3>
-        <p className="mb-4 text-gray-600 min-h-[60px] text-sm">{description}</p>
+        <h3 className="text-xl font-semibold mb-3">{title}</h3>
+        <p className="text-gray-600 mb-6">{description}</p>
+        <button
+          className="mt-auto bg-[#E5195B] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#c4124a] transition-colors"
+          onClick={handleViewDetails}
+        >
+          Xem chi tiết
+        </button>
       </div>
 
-      <a
-        href="#"
-        onClick={(e) => {
-          e.preventDefault();
-          handleViewDetails();
-        }}
-        className="inline-flex w-full justify-center py-2 font-medium text-indigo-600 hover:text-indigo-800 transition-colors text-sm"
-        aria-label={`Tìm hiểu thêm về dịch vụ ${title}`}
-      >
-        Tìm hiểu thêm
-        <svg
-          className="ml-2 h-4 w-4 stroke-current transition-colors"
-          fill="none"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
+      {isOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+          onClick={() => setIsOpen(false)}
         >
-          <line x1="5" y1="12" x2="19" y2="12" />
-          <polyline points="12 5 19 12 12 19" />
-        </svg>
-      </a>
+          <div
+            className="bg-white rounded-lg p-6 max-w-lg mx-4 relative overflow-auto max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close modal"
+            >
+              ✖
+            </button>
 
-      {/* Hiện thông báo lỗi nếu chưa đăng nhập */}
-      {message && (
-        <div className="mt-2 text-red-600 font-semibold text-sm select-none">
-          {message}
+            {renderModalContent()}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

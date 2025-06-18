@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Calendar, Clock, User, Phone, Mail, MessageSquare,
-  ChevronLeft, ChevronRight, X, CheckCircle, QrCode, Copy, Check
-} from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle, QrCode, Copy, Check } from 'lucide-react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+
 
 const ConsultationBooking = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -25,25 +24,87 @@ const ConsultationBooking = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Lấy danh sách dịch vụ từ backend
+  // Fetch services from backend on component mount
   useEffect(() => {
     fetchServices();
   }, []);
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/services');
-      if (response.status === 200) {
-        setServices(response.data);
+      const response = await fetch('http://localhost:8080/api/services');
+      if (response.ok) {
+        const servicesData = await response.json();
+        setServices(servicesData);
       } else {
-        setServices(getFallbackServices());
+        // Fallback to default services if API call fails
+        setServices([
+          {
+            serviceId: 1,
+            serviceName: 'Tư vấn tổng quát',
+            category: 'GENERAL_CONSULTATION',
+            price: 50.00,
+            description: 'Regular health checkup and consultation'
+          },
+          {
+            serviceId: 2,
+            serviceName: 'Tư vấn chuyên khoa',
+            category: 'SPECIALIST_CONSULTATION',
+            price: 100.00,
+            description: 'Consultation with specialist doctor'
+          },
+          {
+            serviceId: 3,
+            serviceName: 'Tái khám',
+            category: 'RE_EXAMINATION',
+            price: 30.00,
+            description: 'Follow-up consultation'
+          },
+          {
+            serviceId: 4,
+            serviceName: 'Tư vấn khẩn cấp',
+            category: 'EMERGENCY_CONSULTATION',
+            price: 150.00,
+            description: 'Urgent medical consultation'
+          }
+        ]);
       }
     } catch (error) {
-      setServices(getFallbackServices());
+      console.error('Error fetching services:', error);
+      // Use fallback services
+      setServices([
+        {
+          serviceId: 1,
+          serviceName: 'General Consultation',
+          category: 'GENERAL_CONSULTATION',
+          price: 50.00,
+          description: 'Regular health checkup and consultation'
+        },
+        {
+          serviceId: 2,
+          serviceName: 'Specialist Consultation',
+          category: 'SPECIALIST_CONSULTATION',
+          price: 100.00,
+          description: 'Consultation with specialist doctor'
+        },
+        {
+          serviceId: 3,
+          serviceName: 'Re-examination',
+          category: 'RE_EXAMINATION',
+          price: 30.00,
+          description: 'Follow-up consultation'
+        },
+        {
+          serviceId: 4,
+          serviceName: 'Emergency Consultation',
+          category: 'EMERGENCY_CONSULTATION',
+          price: 150.00,
+          description: 'Urgent medical consultation'
+        }
+      ]);
     }
   };
 
-  // Danh sách giờ cố định
+  // Time slots matching backend format (HH:mm-HH:mm)
   const timeSlots = [
     '08:00-08:30', '08:30-09:00', '09:00-09:30', '09:30-10:00',
     '10:00-10:30', '10:30-11:00', '14:00-14:30', '14:30-15:00',
@@ -51,41 +112,6 @@ const ConsultationBooking = ({ onClose }) => {
     '19:00-19:30', '19:30-20:00', '20:00-20:30', '20:30-21:00'
   ];
 
-  // Hàm fallback cho dịch vụ nếu backend lỗi
-  function getFallbackServices() {
-    return [
-      {
-        serviceId: 1,
-        serviceName: 'Tư vấn tổng quát',
-        category: 'GENERAL_CONSULTATION',
-        price: 200000,
-        description: 'Tư vấn sức khỏe tổng quát, khám định kỳ.'
-      },
-      {
-        serviceId: 2,
-        serviceName: 'Tư vấn chuyên khoa',
-        category: 'SPECIALIST_CONSULTATION',
-        price: 350000,
-        description: 'Tư vấn cùng chuyên gia, bác sĩ chuyên khoa.'
-      },
-      {
-        serviceId: 3,
-        serviceName: 'Tái khám',
-        category: 'RE_EXAMINATION',
-        price: 150000,
-        description: 'Tái khám và nhận kết quả, hướng dẫn điều trị.'
-      },
-      {
-        serviceId: 4,
-        serviceName: 'Tư vấn khẩn cấp',
-        category: 'EMERGENCY_CONSULTATION',
-        price: 500000,
-        description: 'Hỗ trợ và tư vấn các vấn đề sức khỏe khẩn cấp.'
-      }
-    ];
-  }
-
-  // Các hàm xử lý
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -171,50 +197,109 @@ const ConsultationBooking = ({ onClose }) => {
         document.execCommand('copy');
         document.body.removeChild(textArea);
         setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
+        setTimeout(() => setCopiedCode(false, degrees, Fahrenheit), 2000);
       }
     }
   };
+const handlePaymentConfirmation = async () => {
+  try {
+    setLoading(true);
+    const token = localStorage.getItem('token');
 
-  const handleConfirmBooking = async () => {
-    const userId = Number(sessionStorage.getItem('userId'));
-    if (!userId) {
-      setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+    if (!token) {
+      alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
       return;
     }
+
+    if (!latestBooking || !latestBooking.id) {
+      alert("Không tìm thấy thông tin booking để xác nhận.");
+      return;
+    }
+
+    const response = await axios.patch(
+      `http://localhost:8080/api/bookings/${latestBooking.id}/status`,
+      null,
+      {
+        params: { status: 'PAID' },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    alert("Xác nhận thanh toán thành công!");
+    console.log("Booking updated:", response.data.booking);
+
+    // Nếu muốn cập nhật trạng thái UI hoặc chuyển bước:
+    setCurrentStep(6); // ví dụ: chuyển sang bước hoàn tất
+  } catch (error) {
+    console.error("Lỗi xác nhận thanh toán:", error);
+    alert("Đã xảy ra lỗi khi xác nhận thanh toán.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+// Handle payment confirmation
+  const handleConfirmBooking = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError("Không tìm thấy token đăng nhập. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    let decoded; // 👈 Khai báo bên ngoài
+    try {
+      decoded = jwtDecode(token); // 👈 Gán giá trị bên trong
+    } catch (e) {
+      setError("Token không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    const userEmail = decoded.sub;
+    if (!userEmail) {
+      setError("Không tìm thấy thông tin người dùng trong token. Vui lòng đăng nhập lại.");
+      return;
+    }
+
     if (!canProceedToNextStep()) return;
 
     setLoading(true);
     setError('');
-
     try {
       const bookingData = {
-        userId: userId,
+        userEmail: userEmail,
         serviceIds: [selectedService.serviceId],
         bookingDate: selectedDate,
         timeSlot: selectedTime,
         customerName: contactInfo.fullName,
         customerPhone: contactInfo.phone,
-        customerEmail: contactInfo.email,
-        notes: contactInfo.notes
+        customerEmail: contactInfo.email
       };
 
       const bookingResponse = await axios.post(
         'http://localhost:8080/api/bookings',
         bookingData,
         {
-          withCredentials: true,
-          headers: { 'Content-Type': 'application/json' }
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Gửi token JWT ở đây
+          },
         }
       );
 
       const responseData = bookingResponse.data;
+
       const newAppointment = {
         id: responseData.booking.bookingId,
         service: selectedService,
         date: responseData.booking.bookingDate,
         time: responseData.booking.timeSlot,
-        contact: { ...contactInfo },
+        contact: {
+          ...contactInfo,
+          notes: contactInfo.notes
+        },
         status: responseData.booking.status,
         createdAt: new Date().toLocaleString('vi-VN'),
         paymentCode: responseData.paymentCode,
@@ -227,47 +312,13 @@ const ConsultationBooking = ({ onClose }) => {
       setCurrentStep(5);
 
     } catch (error) {
-      setError(error?.response?.data?.error || error?.response?.data?.message || 'Có lỗi xảy ra từ server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePaymentConfirmation = async () => {
-    if (!latestBooking) return;
-    setLoading(true);
-    try {
-      const response = await axios.patch(
-        `http://localhost:8080/api/bookings/${latestBooking.id}/status?status=CONFIRMED`,
-        {},
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (response.status === 200) {
-        setAppointments(prev =>
-          prev.map(appointment =>
-            appointment.id === latestBooking.id
-              ? { ...appointment, status: 'CONFIRMED' }
-              : appointment
-          )
-        );
-        setShowSuccess(true);
-
-        setCurrentStep(1);
-        setSelectedService(null);
-        setSelectedDate('');
-        setSelectedTime('');
-        setContactInfo({
-          fullName: '',
-          phone: '',
-          email: '',
-          notes: ''
-        });
-        setPaymentCode('');
+      console.error('Error creating booking:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        setError(error.response.data.error || error.response.data.message || 'Có lỗi xảy ra từ server.');
       } else {
-        throw new Error('Không thể cập nhật trạng thái thanh toán');
+        setError(error.message);
       }
-    } catch (error) {
-      setError('Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -280,27 +331,26 @@ const ConsultationBooking = ({ onClose }) => {
     setError('');
   };
 
-  // Progress bar đẹp
   const renderProgressBar = () => (
     <div className="flex items-center justify-center mb-8">
       {[1, 2, 3, 4, 5].map((step) => (
         <div key={step} className="flex items-center">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold
-            ${step <= currentStep ? 'bg-blue-600' : 'bg-gray-300'}
-          `}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${step <= currentStep ? 'bg-blue-600' : 'bg-gray-300'
+            }`}>
             {step}
           </div>
           {step < 5 && (
-            <div className={`w-12 h-1 mx-2 ${step < currentStep ? 'bg-blue-600' : 'bg-gray-300'}`} />
+            <div className={`w-12 h-1 mx-2 ${step < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+              }`} />
           )}
         </div>
       ))}
     </div>
   );
 
-  // Thành công
   const renderSuccessPanel = () => {
     if (!showSuccess || !latestBooking) return null;
+
     return (
       <div className="fixed inset-0 bg-blue-100 bg-opacity-80 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-3xl shadow-lg max-w-sm w-full mx-4 p-8 text-center">
@@ -309,40 +359,50 @@ const ConsultationBooking = ({ onClose }) => {
               <CheckCircle className="w-12 h-12 text-white" />
             </div>
           </div>
+
           <h2 className="text-2xl font-bold text-gray-800 mb-8">Đặt lịch thành công!</h2>
+
           <div className="text-left mb-8">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">Thông tin cuộc hẹn:</h3>
+
             <div className="space-y-3 text-sm">
               <div>
                 <span className="font-semibold text-gray-700">Dịch vụ: </span>
                 <span className="text-gray-600">{latestBooking.service.serviceName}</span>
               </div>
+
               <div>
                 <span className="font-semibold text-gray-700">Ngày: </span>
                 <span className="text-gray-600">{formatDate(latestBooking.date)}</span>
               </div>
+
               <div>
                 <span className="font-semibold text-gray-700">Giờ: </span>
                 <span className="text-gray-600">{latestBooking.time}</span>
               </div>
+
               <div>
                 <span className="font-semibold text-gray-700">Họ tên: </span>
                 <span className="text-gray-600">{latestBooking.contact.fullName}</span>
               </div>
+
               <div>
                 <span className="font-semibold text-gray-700">Số điện thoại: </span>
                 <span className="text-gray-600">{latestBooking.contact.phone}</span>
               </div>
+
               <div>
                 <span className="font-semibold text-gray-700">Email: </span>
                 <span className="text-gray-600">{latestBooking.contact.email}</span>
               </div>
+
               {latestBooking.contact.notes && (
                 <div>
                   <span className="font-semibold text-gray-700">Ghi chú: </span>
                   <span className="text-gray-600">{latestBooking.contact.notes}</span>
                 </div>
               )}
+
               {latestBooking.paymentCode && (
                 <div>
                   <span className="font-semibold text-gray-700">Mã thanh toán: </span>
@@ -351,11 +411,13 @@ const ConsultationBooking = ({ onClose }) => {
               )}
             </div>
           </div>
+
           <div className="mb-8">
             <p className="text-gray-600 text-sm leading-relaxed">
               Chúng tôi sẽ gửi email xác nhận và liên hệ với bạn trước cuộc hẹn 15 phút.
             </p>
           </div>
+
           <button
             onClick={handleNewBooking}
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-blue-700 transition-colors"
@@ -367,7 +429,6 @@ const ConsultationBooking = ({ onClose }) => {
     );
   };
 
-  // Render các bước booking
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -382,11 +443,10 @@ const ConsultationBooking = ({ onClose }) => {
                 <div
                   key={service.serviceId}
                   onClick={() => handleServiceSelect(service)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selectedService?.serviceId === service.serviceId
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${selectedService?.serviceId === service.serviceId
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
                 >
                   <div className="flex justify-between items-center">
                     <div>
@@ -404,6 +464,7 @@ const ConsultationBooking = ({ onClose }) => {
             </div>
           </div>
         );
+
       case 2:
         return (
           <div>
@@ -423,6 +484,7 @@ const ConsultationBooking = ({ onClose }) => {
             </div>
           </div>
         );
+
       case 3:
         return (
           <div>
@@ -435,11 +497,10 @@ const ConsultationBooking = ({ onClose }) => {
                 <button
                   key={time}
                   onClick={() => handleTimeSelect(time)}
-                  className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 text-sm ${
-                    selectedTime === time
-                      ? 'border-blue-500 bg-blue-500 text-white'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
+                  className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 text-sm ${selectedTime === time
+                    ? 'border-blue-500 bg-blue-500 text-white'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
                 >
                   {time}
                 </button>
@@ -447,6 +508,7 @@ const ConsultationBooking = ({ onClose }) => {
             </div>
           </div>
         );
+
       case 4:
         return (
           <div>
@@ -467,6 +529,7 @@ const ConsultationBooking = ({ onClose }) => {
                   placeholder="Nhập họ và tên của bạn"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <Phone className="w-4 h-4 mr-1" />
@@ -480,6 +543,7 @@ const ConsultationBooking = ({ onClose }) => {
                   placeholder="Nhập số điện thoại"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <Mail className="w-4 h-4 mr-1" />
@@ -493,6 +557,7 @@ const ConsultationBooking = ({ onClose }) => {
                   placeholder="Nhập địa chỉ email"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Ghi chú (không bắt buộc)
@@ -508,6 +573,7 @@ const ConsultationBooking = ({ onClose }) => {
             </div>
           </div>
         );
+
       case 5:
         return (
           <div>
@@ -515,6 +581,7 @@ const ConsultationBooking = ({ onClose }) => {
               <QrCode className="w-6 h-6 mr-2" />
               Thanh toán QR Code
             </h2>
+
             <div className="max-w-md mx-auto">
               <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 text-center">
                 <div className="w-64 h-64 mx-auto bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mb-4">
@@ -523,6 +590,7 @@ const ConsultationBooking = ({ onClose }) => {
                     <p className="text-sm text-gray-500">QR Code thanh toán</p>
                   </div>
                 </div>
+
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">Mã thanh toán:</p>
                   <div className="flex items-center justify-center space-x-2">
@@ -541,12 +609,14 @@ const ConsultationBooking = ({ onClose }) => {
                     <p className="text-xs text-green-600 mt-1">Đã sao chép!</p>
                   )}
                 </div>
+
                 <div className="border-t pt-4">
                   <p className="text-lg font-semibold text-gray-800">
                     Số tiền: <span className="text-blue-600">{formatPrice(selectedService?.price)}</span>
                   </p>
                 </div>
               </div>
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-blue-800 mb-2">Hướng dẫn thanh toán:</h3>
                 <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
@@ -557,6 +627,7 @@ const ConsultationBooking = ({ onClose }) => {
                   <li>Sau khi thanh toán, nhấn "Xác nhận thanh toán"</li>
                 </ol>
               </div>
+
               <button
                 onClick={handlePaymentConfirmation}
                 disabled={loading}
@@ -564,12 +635,14 @@ const ConsultationBooking = ({ onClose }) => {
               >
                 {loading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán'}
               </button>
+
               <p className="text-xs text-gray-500 text-center mt-2">
                 * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
               </p>
             </div>
           </div>
         );
+
       default:
         return null;
     }
@@ -579,13 +652,12 @@ const ConsultationBooking = ({ onClose }) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-8 relative">
             {onClose && (
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
-                aria-label="Đóng"
+                aria-label="Close"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -596,37 +668,39 @@ const ConsultationBooking = ({ onClose }) => {
 
           <div className="p-8">
             {renderProgressBar()}
+
+            {/* Error Display */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}
+
             <div className="min-h-[400px]">
               {renderStepContent()}
             </div>
-            {/* Điều hướng các bước */}
+
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
               <button
                 onClick={handleBack}
                 disabled={currentStep === 1}
-                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  currentStep === 1
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-500 text-white hover:bg-gray-600'
-                }`}
+                className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${currentStep === 1
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-500 text-white hover:bg-gray-600'
+                  }`}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Quay lại
               </button>
+
               {currentStep < 4 ? (
                 <button
                   onClick={handleNext}
                   disabled={!canProceedToNextStep()}
-                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep()
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${canProceedToNextStep()
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   Tiếp theo
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -635,17 +709,17 @@ const ConsultationBooking = ({ onClose }) => {
                 <button
                   onClick={handleConfirmBooking}
                   disabled={!canProceedToNextStep() || loading}
-                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    canProceedToNextStep() && !loading
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`px-8 py-3 rounded-lg font-medium transition-all duration-200 ${canProceedToNextStep() && !loading
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   {loading ? 'Đang tạo...' : 'Tạo đơn đặt lịch'}
                 </button>
               ) : null}
             </div>
-            {/* Tổng kết đặt lịch */}
+
+            {/* Booking Summary */}
             {(selectedService || selectedDate || selectedTime) && currentStep < 5 && (
               <div className="mt-8 p-6 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-800 mb-4">Thông tin đặt lịch:</h3>
@@ -676,7 +750,8 @@ const ConsultationBooking = ({ onClose }) => {
             )}
           </div>
         </div>
-        {/* Danh sách lịch hẹn */}
+
+        {/* Appointments List */}
         {appointments.length > 0 && (
           <div className="mt-8 bg-white rounded-2xl shadow-xl p-8">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Lịch hẹn của bạn</h2>
@@ -686,14 +761,8 @@ const ConsultationBooking = ({ onClose }) => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-semibold text-gray-800">{appointment.service.serviceName}</h3>
-                      <p className="text-sm text-gray-600">Mã thanh toán: <span className="font-mono">{appointment.paymentCode}</span></p>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        appointment.status === 'PENDING_PAYMENT'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {appointment.status === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Đã xác nhận'}
-                      </span>
+                      <p className="text-sm text-gray-600">Mã thanh toán: {appointment.paymentCode}</p>
+                      <p className="text-sm text-gray-600">Trạng thái: {appointment.status}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-blue-600">{formatPrice(appointment.service.price)}</p>
@@ -715,6 +784,7 @@ const ConsultationBooking = ({ onClose }) => {
           </div>
         )}
       </div>
+
       {renderSuccessPanel()}
     </div>
   );

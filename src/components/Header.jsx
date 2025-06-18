@@ -1,30 +1,90 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+
 
 export default function Header() {
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:8080/gender-health-care/signingoogle", {
-        withCredentials: true,
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      const { token, ...userInfo } = parsedUser;
+
+      if (!token) {
+        console.warn("Không có token trong localStorage.");
+        return fallbackToSessionStorage();
+      }
+
+      // Đặt user tạm thời, sau đó xác thực lại nếu muốn
+      setUser(userInfo);
+
+      // ✅ Gọi lại API xác thực nếu bạn muốn kiểm tra token hoặc cập nhật avatar, name mới nhất
+      axios.get("http://localhost:8080/gender-health-care/signingoogle", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
-      .then((res) => setUser(res.data.user))
-      .catch(() => setUser(null));
-  }, []);
+        .then((res) => {
+          const userData = res.data.user;
+          localStorage.setItem("user", JSON.stringify({ ...userData, token }));
+          sessionStorage.setItem("user", JSON.stringify(userData));
+          sessionStorage.setItem("userId", userData.userId.toString());
+          setUser(userData); // Cập nhật user từ backend
+        })
+        .catch((err) => {
+          console.error("Token không hợp lệ hoặc đã hết hạn:", err);
+          localStorage.removeItem("user");
+          fallbackToSessionStorage();
+        });
+
+    } catch (e) {
+      console.error("Không parse được user từ localStorage:", e);
+      fallbackToSessionStorage();
+    }
+  } else {
+    fallbackToSessionStorage();
+  }
+
+  function fallbackToSessionStorage() {
+    const sessionUser = sessionStorage.getItem("user");
+    if (sessionUser) {
+      try {
+        const parsed = JSON.parse(sessionUser);
+        setUser(parsed);
+      } catch (e) {
+        console.error("Lỗi parse user trong sessionStorage:", e);
+        sessionStorage.removeItem("user");
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+  }
+}, []);
+
+
+
+
 
   const handleLogout = () => {
-    axios
-      .post(
-        "http://localhost:8080/gender-health-care/logout",
-        {},
-        {
-          withCredentials: true,
-        }
-      )
-      .then(() => setUser(null))
-      .catch((err) => console.error("Logout failed", err));
-  };
+  const token = localStorage.getItem("token");
+
+  axios.post("http://localhost:8080/gender-health-care/logout", {}, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }).finally(() => {
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("userId");
+    window.location.href = "/";
+  });
+};
+
+
 
   const menuItems = [
     { name: "Trang chủ", path: "/" },
@@ -45,16 +105,10 @@ export default function Header() {
   };
 
   return (
-    <div
-      className="flex items-center self-stretch py-3 px-10"
-      style={{ backgroundColor: "#ffd6e7" }}
-    >
+    <div className="flex items-center self-stretch py-3 px-10 bg-gray-300">
       <div className="w-4 h-4 mr-4"></div>
-      <span
-        style={{ color: "#061178", fontFamily: "'Poppins', sans-serif" }}
-        className="text-lg font-medium tracking-tight mr-1"
-      >
-        DỊCH VỤ CHĂM SÓC SỨC KHỎE GIỚI TÍNH
+      <span className="text-[#1C0C11] text-lg font-bold mr-0.5">
+        Dịch vụ chăm sóc sức khỏe giới tính
       </span>
 
       <div className="flex flex-1 justify-between items-center">
@@ -65,8 +119,7 @@ export default function Header() {
                 key={name}
                 href={path}
                 onClick={(e) => handleScroll(e, path)}
-                style={{ color: "#061178", textDecoration: "none" }}
-                className="text-sm font-bold cursor-pointer transition-transform transition-colors duration-300 ease-in-out hover:text-pink-600 hover:scale-110"
+                className="text-[#1C0C11] text-sm font-bold hover:underline cursor-pointer"
               >
                 {name}
               </a>
@@ -74,8 +127,7 @@ export default function Header() {
               <a
                 key={name}
                 href={path}
-                style={{ color: "#061178", textDecoration: "none" }}
-                className="text-sm font-bold transition-transform transition-colors duration-300 ease-in-out hover:text-pink-600 hover:scale-110"
+                className="text-[#1C0C11] text-sm font-bold hover:underline"
               >
                 {name}
               </a>
@@ -85,35 +137,40 @@ export default function Header() {
 
         <div className="flex shrink-0 items-center gap-2">
           {user ? (
-            <>
-              <span style={{ color: "#061178" }} className="font-bold">
-                {user.name}
-              </span>
-              <img
-                src={user.imageUrl}
-                alt="avatar"
-                className="w-10 h-10 rounded-full"
-              />
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col text-right">
+                <span className="font-bold">{user.name || "Người dùng"}</span>
+                <span className="text-xs text-gray-600">{user.email || ""}</span>
+              </div>
+              {user.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gray-500 text-white flex items-center justify-center rounded-full overflow-hidden">
+                  <img src="/image/messi.png" alt="avt" className="w-full h-full object-cover"/>
+                </div>
+              )}
               <button
                 onClick={handleLogout}
-                className="bg-green-600 text-white py-2 px-5 rounded-full text-sm font-semibold shadow-md transition duration-300 ease-in-out hover:bg-green-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
+                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
               >
                 Đăng xuất
               </button>
-            </>
+            </div>
           ) : (
             <>
               <a
-                href="http://localhost:8080/oauth2/authorization/google"
-                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline shadow-md transition transform hover:bg-[#734ebf] hover:scale-105 hover:shadow-lg"
-                style={{ textDecoration: "none" }}
+                href="/login"
+                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
               >
                 Đăng nhập
               </a>
               <a
                 href="/register"
-                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline shadow-md transition transform hover:bg-[#a28fd9] hover:scale-105 hover:shadow-lg"
-                style={{ textDecoration: "none" }}
+                className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
               >
                 Đăng ký
               </a>

@@ -4,6 +4,7 @@ import Services from "../components/Services";
 import UserGroups from "../components/userGroups";
 import Footer from "../components/Footer";
 
+
 const slides = [
   {
     id: 1,
@@ -29,7 +30,6 @@ const slides = [
     bgImage:
       "url('https://images.unsplash.com/photo-1497493292307-31c376b6e479?auto=format&fit=crop&w=1470&q=80')",
   },
-
 ];
 
 export default function HomePage() {
@@ -79,14 +79,14 @@ export default function HomePage() {
             {slides.map((slide, index) => (
               <button
                 key={slide.id}
-                onClick={() => handleDotClick(index)}
-                aria-label={`Chuyển đến trang ${slide.id}`}
+                onClick={() => handleDotClick(index)}aria-label={`Chuyển đến trang ${slide.id}`}
                 className={`w-12 h-12 rounded-full border-2 border-white flex items-center justify-center p-0 text-lg font-semibold transition
         duration-300 ease-in-out
-        ${currentSlide === index
-                    ? "bg-white text-[#061178]"
-                    : "text-white hover:bg-white hover:text-[#061178] hover:shadow-lg hover:scale-110"
-                  }
+        ${
+          currentSlide === index
+            ? "bg-white text-[#061178]"
+            : "text-white hover:bg-white hover:text-[#061178] hover:shadow-lg hover:scale-110"
+        }
       `}
                 style={{ userSelect: "none" }}
                 type="button"

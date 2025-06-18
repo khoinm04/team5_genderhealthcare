@@ -1,26 +1,90 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../UserContext";
 
-export default function LoginForm({ onLogin }) {
+
+
+export default function LoginForm() {
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const { setUser } = useUser();
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = () => {
+
+  const handleSubmit = async () => {
+    setErrorMessage(""); // reset lỗi cũ
+
     if (!username.trim() || !password) {
-      alert("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+      setErrorMessage("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
       return;
     }
-    onLogin(username, password);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/api/auth/customer/login",
+        {
+          email: username,
+          password: password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      const { token, user } = response.data;
+
+      if (!token || !user) {
+        setErrorMessage("Không nhận được thông tin người dùng hoặc token.");
+        return;
+      }
+
+      const userData = {
+        ...user,
+        token,
+      };
+
+      // ✅ Lưu token riêng ra localStorage
+    localStorage.setItem("token", token);
+
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      sessionStorage.setItem("user", JSON.stringify(user));
+      sessionStorage.setItem("userId", user.userId.toString());
+
+      if (user.roleName === "Quản trị viên") {
+        navigate("/admin");
+      } else if (user.roleName === "Khách hàng") {
+        navigate("/");
+      } else {
+        setErrorMessage("Không xác định được vai trò người dùng.");
+      }
+
+    } catch (error) {
+      const message = error.response?.data?.error || "Đăng nhập thất bại. Vui lòng thử lại.";
+      setErrorMessage(message);
+    }
   };
+
+
 
   return (
     <div className="flex flex-col items-center w-full pt-5 pb-8 max-w-md mx-auto">
       <span className="text-[#1C0C11] text-[32px] font-bold mt-4 mb-6">Xin chào</span>
 
       <div className="flex flex-col w-full py-3 px-4 gap-2">
+
+      </div>
+      <div className="flex flex-col w-full py-3 px-4 gap-2">
         <label htmlFor="username" className="text-[#1C0C11] text-base font-bold">
           Tên đăng nhập hoặc email
         </label>
+
         <input
           id="username"
           type="text"
@@ -89,10 +153,12 @@ export default function LoginForm({ onLogin }) {
           )}
         </button>
       </div>
-
+      {errorMessage && (
+        <p className="text-red-500 text-sm px-4 mt-2">{errorMessage}</p>
+      )}
       <span
         className="text-[#964F66] text-sm my-2 cursor-pointer hover:underline"
-        onClick={() => alert("Chức năng quên mật khẩu chưa được triển khai")}
+        onClick={() => navigate("/forgot-password")}
       >
         Quên mật khẩu?
       </span>
