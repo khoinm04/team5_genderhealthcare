@@ -1,5 +1,7 @@
 package com.ghsms.service;
 
+import com.ghsms.DTO.MenstrualCycleDTO;
+import com.ghsms.config.NotificationWebSocketHandler;
 import com.ghsms.model.MenstrualCycle;
 import com.ghsms.model.Notification;
 import com.ghsms.repository.MenstrualCycleRepository;
@@ -17,22 +19,35 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class MenstrualCycleService {
-    private final MenstrualCycleRepository cycleRepository;
+    private final MenstrualCycleRepository menstrualCycleRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
 
     // Thêm thông tin theo dõi chu kỳ kinh nguyệt
     public MenstrualCycle trackCycle(Long customerId, LocalDate startDate, Integer cycleLength, Integer menstruationDuration, String notes) {
+        LocalDate currentDate = LocalDate.now();
 
         MenstrualCycle cycle = new MenstrualCycle();
         cycle.setCustomer(userRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liêu người dùng với ID")));
 
         // Check if customer already has a cycle
-        cycleRepository.findByCustomerUserId(customerId)
+        menstrualCycleRepository.findByCustomerUserId(customerId)
                 .ifPresent(existingCycle -> {
                     throw new RuntimeException("Người dùng đã có chu kỳ được theo dõi, vui lòng xóa hoặc cập nhật chu kỳ hiện tại.");
                 });
+
+        int validCycleLength = cycleLength != null ? cycleLength : 28;
+
+        LocalDate minDate = currentDate.minusDays(validCycleLength);
+
+        if(startDate.isBefore(minDate)){
+            throw new RuntimeException("Ngày bắt đầu không được cách quá " + validCycleLength + "(độ dài chu kỳ của bạn) so với hiện tại");
+        }
+
+        if (startDate.isAfter(currentDate)) {
+            throw new RuntimeException("Ngày bắt đầu không được sau ngày hiện tại");
+        }
 
         cycle.setStartDate(startDate);
         // kiểm tra độ dài của chu kỳ kinh nguyệt và số ngày hành kinh
@@ -61,7 +76,7 @@ public class MenstrualCycleService {
 
         // Calculate predictions
         calculatePredictions(cycle);
-        return cycleRepository.save(cycle);
+        return menstrualCycleRepository.save(cycle);
     }
 
     private void calculatePredictions(MenstrualCycle cycle) {
@@ -81,25 +96,6 @@ public class MenstrualCycleService {
         cycle.setNextPredictedDate(cycle.getStartDate().plusDays(cycle.getCycleLength()));
     }
 
-    @Scheduled(cron = "0 0 8 * * *") // Run at 8 AM daily
-    public void sendReminders() {
-        LocalDate today = LocalDate.now();
-        List<MenstrualCycle> upcomingCycles = cycleRepository
-                .findByNextPredictedDateEquals(today.plusDays(2));
-
-        for (MenstrualCycle cycle : upcomingCycles) {
-            createNotification(cycle);
-        }
-    }
-
-    private void createNotification(MenstrualCycle cycle) {
-        Notification notification = new Notification();
-        notification.setUser(cycle.getCustomer());
-        notification.setMessage("Chu kỳ kinh nguyệt của bạn dự kiến sẽ bắt đầu trong 2 ngày tới.");
-        notification.setCreatedAt(LocalDateTime.now());
-        notificationRepository.save(notification);
-    }
-
 
     public LocalDate getPredictedNextDate(Long customerId) {
         MenstrualCycle currentCycle = getCurrentCycle(customerId);
@@ -112,12 +108,12 @@ public class MenstrualCycleService {
     }
 
     public MenstrualCycle getCurrentCycle(Long customerId) {
-        return cycleRepository.findByCustomerUserId(customerId).
+        return menstrualCycleRepository.findByCustomerUserId(customerId).
                 orElseThrow(() -> new RuntimeException("Vui lòng nhập chu kỳ kinh nguyệt của bạn trước khi thực hiện chức năng này"));
     }
 
     public void deleteMenstrualCycle(Long customerId, Long cycleId) {
-        MenstrualCycle cycle = cycleRepository.findById(cycleId)
+        MenstrualCycle cycle = menstrualCycleRepository.findById(cycleId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt này"));
 
         // Verify the cycle belongs to the customer
@@ -125,11 +121,11 @@ public class MenstrualCycleService {
             throw new RuntimeException("Không có quyền xóa chu kỳ kinh nguyệt này");
         }
 
-        cycleRepository.delete(cycle);
+        menstrualCycleRepository.delete(cycle);
     }
 
     public MenstrualCycle getAllPredicted(Long customerId) {
-        Optional<MenstrualCycle> cycles = cycleRepository
+        Optional<MenstrualCycle> cycles = menstrualCycleRepository
                 .findByCustomerUserId(customerId);
         if (cycles.isEmpty()) {
             throw new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt của bạn: " + customerId);
@@ -139,8 +135,9 @@ public class MenstrualCycleService {
 
     public MenstrualCycle updateCycle(Long customerId, Long cycleId, LocalDate startDate,
                                       Integer cycleLength, Integer menstruationDuration, String notes) {
+        LocalDate currentDate = LocalDate.now();
 
-        MenstrualCycle cycle = cycleRepository.findById(cycleId)
+        MenstrualCycle cycle = menstrualCycleRepository.findById(cycleId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chu kỳ kinh nguyệt của khách hàng"));
 
         // Verify ownership
@@ -148,6 +145,17 @@ public class MenstrualCycleService {
             throw new RuntimeException("Không có quyền cập nhật chu kỳ kinh nguyệt này");
         }
 
+        int validCycleLength = cycleLength != null ? cycleLength : 28;
+
+        LocalDate minDate = currentDate.minusDays(validCycleLength);
+
+        if(startDate.isBefore(minDate)){
+            throw new RuntimeException("Ngày bắt đầu không được cách quá " + validCycleLength + " ngày so với hiện tại");
+        }
+
+        if (startDate.isAfter(currentDate)) {
+            throw new RuntimeException("Ngày bắt đầu không được sau ngày hiện tại");
+        }
         // Update start date
         cycle.setStartDate(startDate);
 
@@ -178,6 +186,90 @@ public class MenstrualCycleService {
         // Recalculate predictions
         calculatePredictions(cycle);
 
-        return cycleRepository.save(cycle);
+        return menstrualCycleRepository.save(cycle);
+    }
+
+    // Scheduled task to send notifications for upcoming menstrual cycle events
+
+    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Ho_Chi_Minh") // Run at 8 AM daily
+    public void sendReminders() {
+        LocalDate today = LocalDate.now();
+
+        // Nhắc nhở chu kỳ kinh nguyệt
+        sendMenstrualCycleReminders(today);
+    }
+
+    private void sendMenstrualCycleReminders(LocalDate today) {
+        // 1. Nhắc nhở ngày sắp đến chu kỳ kinh nguyệt
+        List<MenstrualCycle> upcomingCyclesBefore2Day = menstrualCycleRepository.findByNextPredictedDateEquals(today.plusDays(2));
+        for (MenstrualCycle cycle : upcomingCyclesBefore2Day) {
+            createNotification(cycle, "Chu kỳ kinh nguyệt của bạn dự kiến sẽ bắt đầu trong 2 ngày tới.");
+        }
+
+        List<MenstrualCycle> upcomingCyclesBefore1Day = menstrualCycleRepository.findByNextPredictedDateEquals(today.plusDays(1));
+        for (MenstrualCycle cycle : upcomingCyclesBefore1Day) {
+            createNotification(cycle, "Chu kỳ kinh nguyệt của bạn dự kiến sẽ bắt đầu vào ngày mai.");
+        }
+
+        // 2. Nhắc nhở ngày rụng trứng
+        List<MenstrualCycle> ovulationCycles = menstrualCycleRepository.findByPredictedOvulationDateEquals(today);
+        for (MenstrualCycle cycle : ovulationCycles) {
+            createNotification(cycle, "Hôm nay là ngày rụng trứng dự kiến. Nếu bạn có kế hoạch mang thai hoặc phòng tránh thai, hãy lưu ý nhé!");
+        }
+
+        // 3. Nhắc nhở bắt đầu cửa sổ thụ thai
+        List<MenstrualCycle> fertileWindowStartCycles = menstrualCycleRepository.findByPredictedFertileWindowStartDateEquals(today);
+        for (MenstrualCycle cycle : fertileWindowStartCycles) {
+            createNotification(cycle, "Hôm nay là ngày bắt đầu bắt đầu chuỗi ngày có khả năng thụ thai cao.");
+        }
+
+        // 4. Nhắc nhở kết thúc cửa sổ thụ thai
+        List<MenstrualCycle> fertileWindowEndCycles = menstrualCycleRepository.findByPredictedFertileWindowEndDateEquals(today);
+        for (MenstrualCycle cycle : fertileWindowEndCycles) {
+            createNotification(cycle, "Hôm nay là ngày kết thúc chuỗi ngày có khả năng thụ thai cao.");
+        }
+    }
+
+
+    public MenstrualCycleDTO toDTO(MenstrualCycle cycle) {
+        if (cycle == null) return null;
+
+        return MenstrualCycleDTO.builder()
+                .cycleId(cycle.getCycleId())
+                .customerId(cycle.getCustomer().getUserId())
+                .startDate(cycle.getStartDate())
+                .endDate(cycle.getEndDate())
+                .cycleLength(cycle.getCycleLength())
+                .menstruationDuration(cycle.getMenstruationDuration())
+                .nextPredictedDate(cycle.getNextPredictedDate())
+                .predictedOvulationDate(cycle.getPredictedOvulationDate())
+                .predictedFertileWindowStartDate(cycle.getPredictedFertileWindowStartDate())
+                .predictedFertileWindowEndDate(cycle.getPredictedFertileWindowEndDate())
+                .notes(cycle.getNotes())
+                .build();
+    }
+
+
+//    public void createNotification(MenstrualCycle cycle, String message) {
+//        Notification notification = new Notification();
+//        notification.setUser(cycle.getCustomer());
+//        notification.setMessage(message);
+//        notification.setCreatedAt(LocalDateTime.now());
+//        notificationRepository.save(notification);
+//    }
+
+    public void createNotification(MenstrualCycle cycle, String message) {
+        // 1. Lưu database
+        Notification notification = new Notification();
+        notification.setUser(cycle.getCustomer());
+        notification.setMessage(message);
+        notification.setCreatedAt(LocalDateTime.now());
+        notificationRepository.save(notification);
+
+        // 2. Gửi WebSocket
+        NotificationWebSocketHandler.sendNotificationToUser(
+                cycle.getCustomer().getUserId(),
+                message
+        );
     }
 }
