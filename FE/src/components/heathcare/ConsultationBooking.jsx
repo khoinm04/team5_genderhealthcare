@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ChevronLeft, ChevronRight, X, CheckCircle, QrCode, Copy, Check } from 'lucide-react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+
 
 const ConsultationBooking = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -199,12 +201,65 @@ const ConsultationBooking = ({ onClose }) => {
       }
     }
   };
+const handlePaymentConfirmation = async () => {
+  try {
+    setLoading(true);
+    const token = localStorage.getItem('token');
 
+    if (!token) {
+      alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    if (!latestBooking || !latestBooking.id) {
+      alert("Không tìm thấy thông tin booking để xác nhận.");
+      return;
+    }
+
+    const response = await axios.patch(
+      `http://localhost:8080/api/bookings/${latestBooking.id}/status`,
+      null,
+      {
+        params: { status: 'PAID' },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    alert("Xác nhận thanh toán thành công!");
+    console.log("Booking updated:", response.data.booking);
+
+    // Nếu muốn cập nhật trạng thái UI hoặc chuyển bước:
+    setCurrentStep(6); // ví dụ: chuyển sang bước hoàn tất
+  } catch (error) {
+    console.error("Lỗi xác nhận thanh toán:", error);
+    alert("Đã xảy ra lỗi khi xác nhận thanh toán.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+// Handle payment confirmation
   const handleConfirmBooking = async () => {
-    const userId = Number(sessionStorage.getItem('userId'));
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError("Không tìm thấy token đăng nhập. Vui lòng đăng nhập lại.");
+      return;
+    }
 
-    if (!userId) {
-      setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+    let decoded; // 👈 Khai báo bên ngoài
+    try {
+      decoded = jwtDecode(token); // 👈 Gán giá trị bên trong
+    } catch (e) {
+      setError("Token không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    const userEmail = decoded.sub;
+    if (!userEmail) {
+      setError("Không tìm thấy thông tin người dùng trong token. Vui lòng đăng nhập lại.");
       return;
     }
 
@@ -212,10 +267,9 @@ const ConsultationBooking = ({ onClose }) => {
 
     setLoading(true);
     setError('');
-
     try {
       const bookingData = {
-        userId: userId,
+        userEmail: userEmail,
         serviceIds: [selectedService.serviceId],
         bookingDate: selectedDate,
         timeSlot: selectedTime,
@@ -228,16 +282,15 @@ const ConsultationBooking = ({ onClose }) => {
         'http://localhost:8080/api/bookings',
         bookingData,
         {
-          withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Gửi token JWT ở đây
           },
         }
       );
 
       const responseData = bookingResponse.data;
 
-      // Xử lý dữ liệu trả về, cập nhật state, chuyển bước UI...
       const newAppointment = {
         id: responseData.booking.bookingId,
         service: selectedService,
@@ -267,59 +320,6 @@ const ConsultationBooking = ({ onClose }) => {
         setError(error.message);
       }
     } finally {
-      setLoading(false);
-    }
-  };
-
-
-
-  const handlePaymentConfirmation = async () => {
-    if (!latestBooking) return;
-
-    setLoading(true);
-    try {
-      // Update booking status to CONFIRMED
-      const response = await fetch(`http://localhost:8080/api/bookings/${latestBooking.id}/status?status=CONFIRMED`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const updatedBookingData = await response.json();
-
-        // Update the booking status in local state
-        setAppointments(prev =>
-          prev.map(appointment =>
-            appointment.id === latestBooking.id
-              ? { ...appointment, status: 'CONFIRMED' }
-              : appointment
-          )
-        );
-
-        setShowSuccess(true);
-
-        // Reset form
-        setCurrentStep(1);
-        setSelectedService(null);
-        setSelectedDate('');
-        setSelectedTime('');
-        setContactInfo({
-          fullName: '',
-          phone: '',
-          email: '',
-          notes: ''
-        });
-        setPaymentCode('');
-      } else {
-        throw new Error('Không thể cập nhật trạng thái thanh toán');
-      }
-    } catch (error) {
-      console.error('Error confirming payment:', error);
-      setError('Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.');
-    }
-    finally {
       setLoading(false);
     }
   };

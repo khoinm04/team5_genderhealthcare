@@ -1,6 +1,6 @@
 import React from 'react';
-import ConsultingScheduleManager from '../components/ConsultingScheduleManager';
-import STITestOrdersInterface from '../components/STITestOrdersInterface';
+import ConsultingScheduleManager from './ConsultingScheduleManager';
+import STITestOrdersInterface from '../STITestOrdersInterface';
 
 const HealthcareDashboard = () => {
   return (

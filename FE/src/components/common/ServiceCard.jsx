@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../UserContext";
+import { useUser } from "../../UserContext";
 
 export default function ServiceCard({ title, description, icon, className, navigateTo }) {
   const [isOpen, setIsOpen] = useState(false);
