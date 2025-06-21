@@ -42,6 +42,13 @@ export default function SignupForm() {
       newErrors.email = 'Vui lòng nhập địa chỉ email hợp lệ';
     }
 
+    if (!formData.phone || !formData.phone.trim()) {
+      newErrors.phone = 'Số điện thoại là bắt buộc';
+    } else if (!/^(0|\+84)[0-9]{9,10}$/.test(formData.phone)) {
+      newErrors.phone = 'Số điện thoại không hợp lệ';
+    }
+
+
 
     if (!formData.password) {
       newErrors.password = 'Mật khẩu là bắt buộc';
@@ -93,11 +100,21 @@ export default function SignupForm() {
       alert('Tạo tài khoản thành công! Chào mừng bạn, ' + response.data.fullName);
       // reset form hoặc chuyển hướng nếu cần
     } catch (error) {
-      if (error.response) {
-alert('Lỗi: ' + JSON.stringify(error.response.data));      } else {
-        alert('Lỗi mạng hoặc server: ' + error.message);
-      }
-    } finally {
+  if (error.response) {
+    const backendMessage = error.response.data;
+
+    // Trường hợp backend trả về chuỗi plain text như "Email đã được đăng ký"
+    if (typeof backendMessage === 'string' && backendMessage.includes('Email')) {
+      setErrors(prev => ({ ...prev, email: backendMessage }));
+    } else {
+      // Nếu cần log lỗi khác
+      console.error('Lỗi khác từ server:', backendMessage);
+    }
+  } else {
+    console.error('Lỗi mạng hoặc server:', error.message);
+  }
+}
+ finally {
       setIsSubmitting(false);
     }
   };
@@ -147,7 +164,7 @@ alert('Lỗi: ' + JSON.stringify(error.response.data));      } else {
             <User className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Tạo Tài Khoản</h1>
-          <p className="text-gray-600">Tham gia cùng hàng nghìn người dùng và bắt đầu ngay hôm nay</p>
+          <p className="text-gray-600">Tạo tài khoản để bắt đầu theo dõi sức khỏe của bạn bắt đầu từ hôm nay</p>
         </div>
 
         {/* Form */}
@@ -218,9 +235,15 @@ alert('Lỗi: ' + JSON.stringify(error.response.data));      } else {
                   value={formData.phone}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="+84 (90) 123-4567"
+                  placeholder="Ví dụ: 0123456789"
                 />
+                {errors.phone && (
+                  <AlertCircle className="absolute right-3 top-3 w-5 h-5 text-red-500" />
+                )}
               </div>
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -326,7 +349,7 @@ alert('Lỗi: ' + JSON.stringify(error.response.data));      } else {
               <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>
             )}
 
-            <div className="flex items-start">
+            {/* <div className="flex items-start">
               <input
                 type="checkbox"
                 name="subscribeNewsletter"
@@ -337,7 +360,7 @@ alert('Lỗi: ' + JSON.stringify(error.response.data));      } else {
               <label className="ml-3 text-sm text-gray-700">
                 Tôi muốn nhận thông tin cập nhật và email tiếp thị
               </label>
-            </div>
+            </div> */}
           </div>
 
           {/* Submit Button */}

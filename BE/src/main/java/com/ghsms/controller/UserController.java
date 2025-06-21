@@ -4,6 +4,9 @@ import com.ghsms.DTO.UserDTO;
 import com.ghsms.model.Root;
 import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
+import com.ghsms.service.CustomUserDetailsService;
+import com.ghsms.service.JwtService;
+import com.ghsms.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,42 +25,36 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/gender-health-care", produces = "application/json;charset=UTF-8")
 @RequiredArgsConstructor
 public class UserController {
+    private final JwtService jwtService;
     private final CustomOAuth2UserService customOAuth2UserService;
 
     @GetMapping("/signingoogle")
-    public ResponseEntity<?> currentuser(Authentication authentication,
-                                         HttpSession session) {
-        if (authentication == null || !(authentication instanceof OAuth2AuthenticationToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thiếu token");
         }
-        OAuth2AuthenticationToken oAuth2AuthenticationToken = (OAuth2AuthenticationToken) authentication;
-        Root userInfo = toPerson(oAuth2AuthenticationToken.getPrincipal().getAttributes());
 
         try {
-            User savedUser = customOAuth2UserService.processOAuthPostLogin(
-                    userInfo.getUserID(),
-                    userInfo.getEmail(),
-                    userInfo.getName(),
-                    userInfo.getPicture()
-            );
+            String token = authHeader.substring(7);
+            String email = jwtService.extractEmail(token);
 
-            // Store user in session
-            UserDTO userDTO = new UserDTO(savedUser);
-            session.setAttribute("currentUser", savedUser);
-            // chuyen sang DTO
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON) // MediaType.APPLICATION_JSON_UTF8 đã deprecated rồi nhé
-                    .body(Map.of(
-                            "message", "Đăng nhập thành công",
-                            "user", userDTO,
-                            "redirectUrl", "http://localhost:5173",
-                            "sessionId", session.getId()
-                    ));
+            if (!jwtService.isTokenValid(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token không hợp lệ");
+            }
 
+            User user = customOAuth2UserService.findUserByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Không tìm thấy người dùng");
+            }
+
+            UserDTO userDTO = new UserDTO(user);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Lấy thông tin người dùng thành công",
+                    "user", userDTO
+            ));
         } catch (Exception e) {
-            e.printStackTrace(); // ← xem lỗi chi tiết
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng nhập thất bại");
-
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi máy chủ");
         }
     }
 
@@ -70,11 +67,11 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No active session");
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        session.invalidate();
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
-    }
+//    @PostMapping("/logout")
+//    public ResponseEntity<?> logout(HttpSession session) {
+//        session.invalidate();
+//        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+//    }
 
 
     public Root toPerson(Map<String, Object> map) {
@@ -88,4 +85,21 @@ public class UserController {
         root.setPicture((String) map.get("picture"));
         return root;
     }
+
+//    @PostMapping("/logout")
+//    public ResponseEntity<?> logout(HttpSession session) {
+//        String loginType = (String) session.getAttribute("loginType");
+//        session.invalidate();
+//
+//        if ("google".equals(loginType)) {
+//            String redirectAfterLogout = "http://localhost:5173"; // về trang chủ
+//            String googleLogout = "https://accounts.google.com/Logout?continue=" +
+//                    "https://appengine.google.com/_ah/logout?continue=" + redirectAfterLogout;
+//
+//            return ResponseEntity.ok(Map.of("logoutUrl", googleLogout));
+//        }
+//
+//        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+//    }
+
 }

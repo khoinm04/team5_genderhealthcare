@@ -37,6 +37,13 @@ public class CustomerDetails {
     @Column(name = "phoneNumber",nullable = false, unique = true, length = 100)
     private String phoneNumber;
 
+    @Column(name = "Age")
+    private Integer age;
+
+    @Column(name = "Gender", length = 20)
+    private String gender; // Có thể là "MALE", "FEMALE", "OTHER"
+
+
     @NotBlank(message = "Email không được để trống")
     @Email(message = "email không hợp lệ")
     @Size(max = 100, message = "email nên ít hơn 100 ký tự")

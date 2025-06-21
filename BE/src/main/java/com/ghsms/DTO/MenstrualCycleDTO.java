@@ -17,8 +17,7 @@ import java.time.LocalDate;
 public class MenstrualCycleDTO implements Serializable {
     private Long cycleId;
 
-    @NotNull(message = "Không tìm thấy customer ID")
-    private Long customerId;
+    private Long userId;
 
 
     @NotNull(message = "Ngày bắt đầu không được để trống")
