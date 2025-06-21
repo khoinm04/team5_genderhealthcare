@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, MessageSquare, Bell, BarChart3, Calendar, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
+import { Users, MessageSquare, Bell, BarChart3, Calendar, Trash, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
+import axios from 'axios';
+
+
 
 const AdminDashboard = () => {
+  const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUser, setSelectedUser] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all');
@@ -11,94 +15,83 @@ const AdminDashboard = () => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
   const [notificationForm, setNotificationForm] = useState({
+
     title: '',
     content: '',
-    status: 'active'
+    status: 'isActive'
   });
+
+  // const [formData, setFormData] = useState({
+  //   name: "",
+  //   email: "",
+  //   roleName: "",
+  //   isActive: false,
+  // });
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // Thêm state này
 
   // Simulate real-time user activity
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate new user login
-      if (Math.random() > 0.7) {
-        const newUsers = [
-          'Michael Johnson', 'Sarah Wilson', 'David Chen', 'Emma Davis',
-          'Alex Rodriguez', 'Lisa Thompson', 'James Miller', 'Maria Garcia'
-        ];
-        const roles = ['Khách hàng', 'Tư vấn viên'];
-        const randomUser = {
-          id: Date.now(),
-          name: newUsers[Math.floor(Math.random() * newUsers.length)],
-          email: `user${Date.now()}@example.com`,
-          role: roles[Math.floor(Math.random() * roles.length)],
-          roleid: Math.floor(Math.random() * 2) + 1,
-          is_active: true,
-          joinDate: new Date().toISOString().split('T')[0],
-          lastLogin: new Date().toLocaleString(),
-          isOnline: true,
-          loginTime: new Date().toLocaleString()
-        };
-
-        setUsers(prev => [randomUser, ...prev]);
-        setOnlineUsers(prev => [randomUser, ...prev]);
-        setRecentActivity(prev => [{
-          id: Date.now(),
-          type: 'login',
-          user: randomUser.name,
-          action: 'Người dùng đã đăng nhập',
-          timestamp: new Date().toLocaleString(),
-          role: randomUser.role
-        }, ...prev.slice(0, 9)]);
-      }
-
-      // Simulate user logout
-      if (Math.random() > 0.8 && onlineUsers.length > 0) {
-        const userToLogout = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
-        setOnlineUsers(prev => prev.filter(u => u.id !== userToLogout.id));
-        setUsers(prev => prev.map(u => u.id === userToLogout.id ? { ...u, isOnline: false } : u));
-        setRecentActivity(prev => [{
-          id: Date.now(),
-          type: 'logout',
-          user: userToLogout.name,
-          action: 'Người dùng đã đăng xuất',
-          timestamp: new Date().toLocaleString(),
-          role: userToLogout.role
-        }, ...prev.slice(0, 9)]);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [onlineUsers]);
 
   // Mock data with online status
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Khách hàng', roleid: 1, is_active: true, joinDate: '2024-01-15', lastLogin: '2024-06-02', isOnline: true },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Tư vấn viên', roleid: 2, is_active: true, joinDate: '2024-02-20', lastLogin: '2024-06-01', isOnline: true },
-    { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'Quản trị viên', roleid: 3, is_active: true, joinDate: '2024-01-10', lastLogin: '2024-06-03', isOnline: false },
-    { id: 4, name: 'Alice Brown', email: 'alice@example.com', role: 'Khách hàng', roleid: 1, is_active: false, joinDate: '2024-03-05', lastLogin: '2024-05-15', isOnline: false },
-  ]);
 
   // Initialize online users
   useEffect(() => {
-    setOnlineUsers(users.filter(user => user.isOnline));
-    setRecentActivity([
-      { id: 1, type: 'login', user: 'John Doe', action: 'Người dùng đã đăng nhập', timestamp: '2024-06-03 10:45', role: 'Khách hàng' },
-      { id: 2, type: 'activity', user: 'Jane Smith', action: 'Bắt đầu tư vấn', timestamp: '2024-06-03 10:30', role: 'Tư vấn viên' },
-      { id: 3, type: 'login', user: 'Mike Johnson', action: 'Người dùng đã đăng nhập', timestamp: '2024-06-03 10:15', role: 'Khách hàng' },
-    ]);
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser) {
+      console.warn("Không có user trong localStorage/sessionStorage");
+      return;
+    }
+
+    let token = null;
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      token = parsedUser.token;
+    } catch (e) {
+      console.error("Lỗi parse user:", e);
+      return;
+    }
+
+    if (!token) {
+      console.warn("Không có token trong user object");
+      return;
+    }
+
+    axios.get("http://localhost:8080/api/admin/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      }
+    })
+      .then((res) => {
+        console.log("Phản hồi từ server:", res.data);
+        const fetchedUsers = res.data;
+        if (Array.isArray(fetchedUsers)) {
+          setUsers(fetchedUsers);
+          setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
+        } else {
+          console.error("API trả về không phải mảng:", fetchedUsers);
+        }
+      })
+      .catch((err) => {
+        console.error("Lỗi khi lấy dữ liệu user:", err);
+      });
+
   }, []);
 
+
+
+
+
   const messages = [
-    { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
-    { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
-    { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
+    // { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
+    // { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
+    // { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
   ];
 
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
-    { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
-    { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
+    // { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
+    // { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
+    // { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
   ]);
 
   const stats = {
@@ -113,7 +106,7 @@ const AdminDashboard = () => {
   };
 
   const filteredUsers = users.filter(user =>
-    userFilter === 'all' || user.role.toLowerCase() === userFilter
+    userFilter === 'all' || user.roleName === userFilter
   );
 
   const filteredMessages = messages.filter(message =>
@@ -204,10 +197,9 @@ const AdminDashboard = () => {
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {recentActivity.map((activity) => (
               <div key={activity.id} className={`flex items-center p-3 border-l-4 border-blue-200 bg-blue-50 rounded`}>
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
-                  activity.type === 'login' ? 'bg-green-100' :
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${activity.type === 'login' ? 'bg-green-100' :
                   activity.type === 'logout' ? 'bg-red-100' : 'bg-blue-100'
-                }`}>
+                  }`}>
                   {activity.type === 'login' ? (
                     <UserCheck className="h-4 w-4 text-green-600" />
                   ) : activity.type === 'logout' ? (
@@ -277,10 +269,13 @@ const AdminDashboard = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Tất cả vai trò</option>
-            <option value="customer">Khách hàng</option>
-            <option value="consultant">Tư vấn viên</option>
-            <option value="admin">Quản trị viên</option>
+            <option value="Khách hàng">Khách hàng</option>
+            <option value="Tư vấn viên">Tư vấn viên</option>
+            <option value="Nhân viên">Nhân viên</option>
+            <option value="Quản trị viên">Quản trị viên</option>
+            <option value="Quản lý">Quản lý</option>
           </select>
+
         </div>
       </div>
 
@@ -312,20 +307,21 @@ const AdminDashboard = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.role === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
-                    user.role === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {user.role}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.roleName === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
+                    user.roleName === 'Nhân viên' ? 'bg-red-100 text-red-800' :
+                      user.roleName === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
+                        user.roleName === 'Khách hàng' ? 'bg-green-100 text-green-800' :
+                          user.roleName === 'Quản lý' ? 'bg-green-100 text-green-800' :
+                            'bg-green-100 text-green-800'
+                    }`}>
+                    {user.roleName}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${
-                      user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.is_active ? 'Hoạt động' : 'Không hoạt động'}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                      {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
                     </span>
                     {user.isOnline && (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
@@ -340,16 +336,23 @@ const AdminDashboard = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => handleEditUser(user)}
                     className="text-blue-600 hover:text-blue-900"
                   >
                     <Edit className="h-4 w-4 inline" />
                   </button>
-                  <button className="text-green-600 hover:text-green-900">
+                  {/* <button className="text-green-600 hover:text-green-900">
                     <Eye className="h-4 w-4 inline" />
+                  </button> */}
+                  <button className={`${user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
+                    {user.isActive ? <Ban className="h-4 w-4 inline" /> : <Check className="h-4 w-4 inline" />}
                   </button>
-                  <button className={`${user.is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
-                    {user.is_active ? <Ban className="h-4 w-4 inline" /> : <Check className="h-4 w-4 inline" />}
+                  <button
+                    onClick={() => handleDeleteUser(user)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Xóa tài khoản"
+                  >
+                    <Trash className="h-4 w-4 inline" />
                   </button>
                 </td>
               </tr>
@@ -363,43 +366,55 @@ const AdminDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-lg font-semibold mb-4">Chỉnh sửa người dùng: {selectedUser.name}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tên</label>
-                <input
-                  type="text"
-                  defaultValue={selectedUser.name}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
+            <form id="editUserForm">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên</label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={selectedUser.name}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={selectedUser.email}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Vai trò</label>
+                  <select
+                    name="roleName"
+                    defaultValue={selectedUser.roleName}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="ROLE_CUSTOMER">Khách hàng</option>
+                    <option value="ROLE_CONSULTANT">Tư vấn viên</option>
+                    <option value="ROLE_ADMIN">Quản trị viên</option>
+                    <option value="ROLE_MANAGER">Quản lý</option>
+                    <option value="ROLE_STAFF">Nhân viên</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={!!selectedUser?.isActive} // ép kiểu boolean
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+
+                  <label className="ml-2 block text-sm text-gray-900">
+                    Tài khoản hoạt động
+                  </label>
+                </div>
+
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  defaultValue={selectedUser.email}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Vai trò</label>
-                <select
-                  defaultValue={selectedUser.role}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="Khách hàng">Khách hàng</option>
-                  <option value="Tư vấn viên">Tư vấn viên</option>
-                  <option value="Quản trị viên">Quản trị viên</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  defaultChecked={selectedUser.is_active}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">Tài khoản hoạt động</label>
-              </div>
-            </div>
+            </form>
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setSelectedUser(null)}
@@ -408,7 +423,7 @@ const AdminDashboard = () => {
                 Hủy
               </button>
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={handleSaveChanges}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
               >
                 Lưu thay đổi
@@ -419,6 +434,22 @@ const AdminDashboard = () => {
       )}
     </div>
   );
+
+  {selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full">
+            <h2 className="text-lg font-bold mb-2">Thông tin người dùng</h2>
+            <p><strong>Email:</strong> {selectedUser.email}</p>
+            <p><strong>Role:</strong> {selectedUser.role}</p>
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
 
   const MessagingPanel = () => (
     <div className="space-y-6">
@@ -449,11 +480,10 @@ const AdminDashboard = () => {
                     <span className="font-medium text-gray-900">{message.sender}</span>
                     <span className="text-gray-500">→</span>
                     <span className="text-gray-700">{message.recipient}</span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      message.type === 'booking' ? 'bg-blue-100 text-blue-800' :
+                    <span className={`px-2 py-1 text-xs rounded-full ${message.type === 'booking' ? 'bg-blue-100 text-blue-800' :
                       message.type === 'consultation' ? 'bg-green-100 text-green-800' :
-                      'bg-purple-100 text-purple-800'
-                    }`}>
+                        'bg-purple-100 text-purple-800'
+                      }`}>
                       {message.type}
                     </span>
                   </div>
@@ -461,9 +491,9 @@ const AdminDashboard = () => {
                   <p className="mt-1 text-sm text-gray-500">{message.timestamp}</p>
                 </div>
                 <div className="flex space-x-2">
-                  <button className="text-blue-600 hover:text-blue-800">
+                  {/* <button className="text-blue-600 hover:text-blue-800">
                     <Eye className="h-4 w-4" />
-                  </button>
+                  </button> */}
                   <button className="text-red-600 hover:text-red-800">
                     <X className="h-4 w-4" />
                   </button>
@@ -504,9 +534,8 @@ const AdminDashboard = () => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3">
                     <h4 className="font-medium text-gray-900">{notification.title}</h4>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      notification.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-2 py-1 text-xs rounded-full ${notification.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {notification.status === 'active' ? 'Hoạt động' : 'Ẩn'}
                     </span>
                   </div>
@@ -518,11 +547,10 @@ const AdminDashboard = () => {
                     <Send className="h-3 w-3 mr-1" />
                     Gửi
                   </button>
-                  <button className={`px-3 py-1 text-sm rounded ${
-                    notification.status === 'active'
-                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                      : 'bg-green-100 text-green-700 hover:bg-green-200'
-                  }`}
+                  <button className={`px-3 py-1 text-sm rounded ${notification.status === 'active'
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
                     onClick={() => { /* Toggle status logic here */ }}
                   >
                     {notification.status === 'active' ? 'Ẩn' : 'Hiển thị'}
@@ -642,6 +670,157 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Hàm logout
+  const handleLogout = () => {
+    // Nếu bạn dùng sessionStorage
+    sessionStorage.clear();  // hoặc sessionStorage.removeItem('userSessionKey')
+    localStorage.clear();
+    // Nếu bạn cần gọi API backend để logout (hủy session server)
+    // fetch('/api/logout', { method: 'POST' }).then(() => {
+    //   window.location.href = '/login';
+    // });
+
+    // Chuyển về trang đăng nhập
+    window.location.href = '/login';
+  };
+
+
+  const handleSaveChanges = async () => {
+    const userId = selectedUser?.userId;
+
+    if (!userId) {
+      alert("Thiếu thông tin người dùng để cập nhật");
+      return;
+    }
+
+    const form = document.getElementById("editUserForm");
+    const formData = new FormData(form);
+
+    const updateData = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      roleName: formData.get("roleName"),
+      isActive: selectedUser.isActive
+    };
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const token = storedUser?.token;
+
+      if (!token) {
+        alert("Token không tồn tại, vui lòng đăng nhập lại.");
+        return;
+      }
+
+      await axios.put(
+        `/api/admin/users/${userId}`,
+        updateData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        }
+      );
+
+      alert("Cập nhật thành công!");
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Cập nhật thất bại";
+      alert("Lỗi khi cập nhật: " + errorMessage);
+    }
+
+  };
+
+
+  const handleEditUser = (user) => {
+    setSelectedUser({
+      ...user,
+      isActive: Boolean(user.isActive) // Ensure it's a boolean
+    });
+  };
+  const handleDeleteUser = async (user) => {
+  const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
+  if (!confirmed) return;
+
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+      const token = storedUser?.token;
+
+    if (!token) {
+      alert("Không tìm thấy token, vui lòng đăng nhập lại.");
+      return;
+    }
+
+    await axios.delete(`/api/admin/users/${user.userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    alert("Xóa thành công!");
+    // cập nhật danh sách nếu cần
+  } catch (error) {
+    console.error("Lỗi khi xóa:", error);
+    const msg = error.response?.data?.message || "Không thể xóa người dùng.";
+    alert(msg);
+  }
+};
+
+
+
+
+
+  // const handleSaveChanges = async () => {
+  //     const userId = selectedUser?.userId;
+
+  //     if (!userId) {
+  //       alert("Thiếu thông tin người dùng để cập nhật");
+  //       return;
+  //     }
+
+  //     try {
+  //       const updateData = {
+  //         name: selectedUser.name,
+  //         email: selectedUser.email,
+  //         roleName: selectedUser.roleName,
+  //         isActive: selectedUser.isActive // Make sure this is a boolean
+  //       };
+
+  //       console.log('Sending update data:', updateData); // Debug log
+
+  //       const response = await axios.put(
+  //         `/api/admin/users/${userId}`,
+  //         updateData,
+  //         {
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           withCredentials: true,
+  //         }
+  //       );
+
+  //       console.log('Response:', response.data); // Debug log
+  //       alert("Cập nhật thành công!");
+  //       // Refresh the user list or update the local state
+  //       setSelectedUser(null);
+  //     } catch (error) {
+  //       console.error("Lỗi khi cập nhật:", error);
+  //       alert("Lỗi khi cập nhật: " + (error.response?.data || error.message));
+  //     }
+  // };
+
+  // Update checkbox handler
+  const handleCheckboxChange = (e) => {
+    setSelectedUser(prev => ({
+      ...prev,
+      isActive: e.target.checked
+    }));
+  };
+
+
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -654,8 +833,15 @@ const AdminDashboard = () => {
               <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">A</span>
               </div>
+              <button
+                onClick={handleLogout}
+                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
+              >
+                Đăng xuất
+              </button>
             </div>
           </div>
+
         </div>
       </header>
 
@@ -665,44 +851,40 @@ const AdminDashboard = () => {
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'dashboard'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'dashboard'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Tổng quan
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'users'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'users'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <Users className="h-4 w-4 mr-2" />
               Người dùng
             </button>
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'messages'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'messages'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Tin nhắn
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'notifications'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
-              }`}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'notifications'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
             >
               <Bell className="h-4 w-4 mr-2" />
               Thông báo

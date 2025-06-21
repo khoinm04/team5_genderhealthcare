@@ -1,6 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const OTPInput = ({ otp, setOtp }) => {
+    const inputRefs = useRef([]);
+
+    useEffect(() => {
+        inputRefs.current[0]?.focus();
+    }, []);
+
+    const handleChange = (e, index) => {
+        const value = e.target.value.replace(/\D/, ''); // Chỉ cho số
+        const newOtp = [...otp];
+        newOtp[index] = value;
+        setOtp(newOtp);
+
+        if (value && index < 5) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleKeyDown = (e, index) => {
+        if (e.key === 'Backspace') {
+            const newOtp = [...otp];
+            if (!otp[index] && index > 0) {
+                newOtp[index - 1] = '';
+                setOtp(newOtp);
+                inputRefs.current[index - 1]?.focus();
+            } else {
+                newOtp[index] = '';
+                setOtp(newOtp);
+            }
+        }
+    };
+
+    return (
+        <div className="flex justify-center gap-2 mb-6">
+            {otp.map((digit, index) => (
+                <input
+                    key={index}
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    maxLength="1"
+                    value={digit}
+                    onChange={(e) => handleChange(e, index)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    className="w-10 h-10 text-center text-lg border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                />
+            ))}
+        </div>
+    );
+};
 
 const OtpPasswordForm = () => {
     const location = useLocation();
@@ -53,6 +103,7 @@ const OtpPasswordForm = () => {
             });
 
             setMessage('Đổi mật khẩu thành công');
+            setError('');
             setTimeout(() => {
                 navigate('/login');
             }, 2000);
@@ -60,29 +111,6 @@ const OtpPasswordForm = () => {
             setError(error.response?.data || 'Có lỗi xảy ra khi đổi mật khẩu');
         }
     };
-
-    const OTPInput = () => (
-        <div className="flex justify-center gap-2 mb-6">
-            {otp.map((digit, index) => (
-                <input
-                    key={index}
-                    id={`otp-${index}`}
-                    type="text"
-                    maxLength="1"
-                    value={digit}
-                    onChange={(e) => {
-                        const newOtp = [...otp];
-                        newOtp[index] = e.target.value;
-                        setOtp(newOtp);
-                        if (e.target.value && index < 5) {
-                            document.getElementById(`otp-${index + 1}`).focus();
-                        }
-                    }}
-                    className="w-10 h-10 text-center text-lg border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                />
-            ))}
-        </div>
-    );
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -92,7 +120,7 @@ const OtpPasswordForm = () => {
                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                 {message && <p className="text-green-500 text-sm mb-4">{message}</p>}
 
-                <OTPInput />
+                <OTPInput otp={otp} setOtp={setOtp} />
 
                 <div className="flex flex-col gap-4 mb-6">
                     <input
