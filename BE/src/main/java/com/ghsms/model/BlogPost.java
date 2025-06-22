@@ -41,7 +41,5 @@ public class BlogPost {
     @Column(name = "CreatedAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "blogPost", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BlogComment> comments;
 }
 

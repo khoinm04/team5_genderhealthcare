@@ -1,63 +1,55 @@
 package com.ghsms.DTO;
 
 import com.ghsms.model.User;
+import com.ghsms.util.RoleNameConverter;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.Serializable;
+import java.time.format.DateTimeFormatter;
+
+@Getter
+@Setter
+@NoArgsConstructor
 
 public class UserDTO implements Serializable {
     private Long userId;
     private String name;
     private String email;
     private String imageUrl;
+    private String phoneNumber;
+    private Boolean isActive;
     private String roleName;
+    private String createdAt;
+    private String lastLogin;
+
+    private Boolean isOnline; // ✅ Thêm dòng này
 
     public UserDTO(User user) {
         this.userId = user.getUserId();
         this.name = user.getName();
         this.email = user.getEmail();
         this.imageUrl = user.getImageUrl();
-        this.roleName = (user.getRole() != null) ? user.getRole().getName().name() : null;
+        this.phoneNumber = user.getPhoneNumber();
+        this.isActive = user.getIsActive();
+        if (user.getRole() != null) {
+            this.roleName = RoleNameConverter.toVietnamese(user.getRole().getName().toString());
+        }
+        this.lastLogin = user.getLastLogin() != null ?
+                user.getLastLogin().format(DateTimeFormatter.ofPattern("M/d/yyyy, h:mm:ss a")) : null;
+
+        this.createdAt = user.getCreatedAt() != null ?
+                user.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy, h:mm:ss a")) : null;
+
     }
 
-    public Long getUserId() {
-        return userId;
+    public UserDTO(User user, Boolean isOnline) {
+        this(user);
+        this.isOnline = isOnline != null ? isOnline : false;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 
-    public String getName() {
-        return name;
-    }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-    // getters và setters (hoặc dùng Lombok @Getter/@Setter)
 }
-

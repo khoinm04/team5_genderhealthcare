@@ -2,6 +2,24 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from 'date-fns';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+<<<<<<< HEAD
+=======
+import HomePage from "./pages/Homepage";
+import BlogPage from "./components/BlogPage";
+import LoginPage from "./components/LoginPage";
+import { UserContext } from "./UserContext";
+import ConsultationBooking from "./components/ConsultationBooking";
+import Register from "./components/register";
+import AdminDashboard from "./components/AdminDashboard";
+import ForgotPassword from "./components/ForgotPassword";
+import OtpPasswordForm from "./components/OtpPasswordForm";
+import GoogleCallback from "./pages/GoogleCallback";
+import STIsTestPage from "./components/STIsTestPage";
+import PaymentPage from "./components/PaymentPage";
+import StaffDashboard from "./components/StaffDashboard";
+import ManagerDashboard from "./components/ManagerDashboard";
+import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
+>>>>>>> origin/An
 
 // Pages
 import HomePage from "./pages/Homepage";
@@ -94,17 +112,32 @@ export default function App() {
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
+<<<<<<< HEAD
           <Route path="/booking/menstrual" element={<MenstrualCycleForm />} />
+=======
+>>>>>>> origin/An
           <Route path="/booking/sti" element={<STIsTestPage />} />
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/staff" element={<StaffDashboard />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
           <Route path="/oauth2-success" element={<GoogleCallback />} />
+<<<<<<< HEAD
           <Route path="/management" element={<ManagerDashboard />} />
+=======
+          <Route path="/manager" element={<ManagerDashboard />} />
+          <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
+
+          {/* Thêm các route khác nếu cần */}
+>>>>>>> origin/An
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/An

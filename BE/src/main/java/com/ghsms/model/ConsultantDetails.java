@@ -1,5 +1,8 @@
+
+
 package com.ghsms.model;
 
+import com.ghsms.file_enum.ConsultantSpecialization;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -8,9 +11,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.util.Set;
 
 @Entity
-@Table(name = "ConsultantDetails")
+@Table(name = "consultant_details")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,19 +23,24 @@ import java.io.Serializable;
 public class ConsultantDetails implements Serializable {
 
     @Id
-    @Column(name = "ConsultantID")
-    private Long consultantId;
+    @Column(name = "consultant_id")
+    private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // Uses the ID of the User entity as the ID for ConsultantDetails
-    @JoinColumn(name = "ConsultantID") // This is the FK column in ConsultantDetails table that references Users.UserID
+    @MapsId
+    @JoinColumn(name = "consultant_id")
     private User consultant;
 
-    @Size(max = 100, message = "Specialization must be less than 100 characters")
-    @Column(name = "Specialization", length = 100)
-    private String specialization;
+    @OneToMany(mappedBy = "consultant", fetch = FetchType.LAZY)
+    private Set<Booking> bookings;
 
-    @Size(max = 255, message = "Certification must be less than 255 characters")
-    @Column(name = "Certification", length = 255)
-    private String certification;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "specialization", length = 100)
+    private ConsultantSpecialization specialization;
+
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
+
+    @Column(name = "years_of_experience")
+    private Integer yearsOfExperience;
 }

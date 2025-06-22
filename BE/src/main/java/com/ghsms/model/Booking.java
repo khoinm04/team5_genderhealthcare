@@ -35,11 +35,15 @@ public class Booking {
             joinColumns = @JoinColumn(name = "BookingID"),
             inverseJoinColumns = @JoinColumn(name = "ServiceID")
     )
-    private Set<Service> services = new HashSet<>();
+    private Set<Services> services = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "StaffID")
+    @JoinColumn(name = "staff_id")
     private StaffDetails staff;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "consultant_id")
+    private ConsultantDetails consultant;
 
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Ngày phải đúng định dạng yyyy-MM-dd")
     @Column(name = "BookingDate")
@@ -55,6 +59,10 @@ public class Booking {
     @Column(name = "TimeSlot")
     private String timeSlot;
 
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TestResult> testResults = new HashSet<>();
+
+
     @Enumerated(EnumType.STRING)
     @Column(name = "Status", length = 50)
     private BookingStatus status;
@@ -64,11 +72,11 @@ public class Booking {
     private LocalDateTime createdAt;
 
     // Helper methods
-    public void addService(Service service) {
+    public void addService(Services service) {
         this.services.add(service);
     }
 
-    public void removeService(Service service) {
+    public void removeService(Services service) {
         this.services.remove(service);
     }
 }

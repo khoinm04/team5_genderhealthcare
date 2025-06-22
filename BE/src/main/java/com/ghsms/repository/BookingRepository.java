@@ -23,4 +23,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     Optional<Booking> findByPaymentCode(String paymentCode);
+
+    @Query("SELECT DISTINCT b FROM Booking b " +
+            "LEFT JOIN FETCH b.customer " +
+            "LEFT JOIN FETCH b.staff " +
+            "LEFT JOIN FETCH b.services s")
+    List<Booking> findAllWithDetails();
+
+    List<Booking> findByBookingDateGreaterThanEqual(String bookingDate);
+
+
+
+
 }

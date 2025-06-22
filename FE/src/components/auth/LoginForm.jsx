@@ -50,18 +50,35 @@ export default function LoginForm() {
       };
 
       // ✅ Lưu token riêng ra localStorage
+<<<<<<< HEAD:FE/src/components/auth/LoginForm.jsx
     localStorage.setItem("token", token);
+=======
+      localStorage.setItem("token", token);
+>>>>>>> origin/An:FE/src/components/LoginForm.jsx
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       sessionStorage.setItem("user", JSON.stringify(user));
       sessionStorage.setItem("userId", user.userId.toString());
 
+<<<<<<< HEAD:FE/src/components/auth/LoginForm.jsx
       if (user.roleName === "Quản trị viên") {
         navigate("/admin");
       } else if (user.roleName === "Khách hàng") {
         navigate("/");
       } else {
+=======
+      if (user.roleName === "Quản trị viên" || user.roleName === "ROLE_ADMIN") {
+        navigate("/admin");
+      } else if (user.roleName === "Nhân viên" || user.roleName === "ROLE_STAFF") {
+        navigate("/staff");
+      } else if (user.roleName === "Khách hàng" || user.roleName === "ROLE_CUSTOMER") {
+        navigate("/");
+      } else if( user.roleName === "Quản lý" || user.roleName === "ROLE_MANAGER") {
+        navigate("/manager");
+      }
+      else {
+>>>>>>> origin/An:FE/src/components/LoginForm.jsx
         setErrorMessage("Không xác định được vai trò người dùng.");
       }
 

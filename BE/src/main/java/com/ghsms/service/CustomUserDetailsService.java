@@ -2,6 +2,7 @@ package com.ghsms.service;
 
 import com.ghsms.model.User;
 import com.ghsms.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -15,6 +16,7 @@ import java.util.Collections;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;

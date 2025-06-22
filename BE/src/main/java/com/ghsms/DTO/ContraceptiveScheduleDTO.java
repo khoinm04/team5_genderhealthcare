@@ -14,15 +14,15 @@ import java.time.LocalTime;
 public class ContraceptiveScheduleDTO {
     private Long id;               // ID của lịch uống thuốc (nếu thêm mới thì để null)
 
-    @NotNull(message = "User ID cannot be null")
     private Long userId;           // ID của user đăng ký lịch uống thuốc
 
     @NotNull(message = "Type cannot be null")
     @Pattern(regexp = "^(21|28)$", message = "Type must be either '21' or '28'")
     private String type;           // "21" hoặc "28"
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @NotNull(message = "Start date cannot be null")
-    private LocalDate startDate;   // Ngày bắt đầu uống thuốc
+    private LocalDate startDate;
 
     @JsonFormat(pattern = "HH:mm:ss")
     @NotNull(message = "Pill time cannot be null")

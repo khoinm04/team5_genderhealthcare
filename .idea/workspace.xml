@@ -5,7 +5,135 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9d3848d6-7fd1-4800-8d85-3bc289243546" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/AssignStaffRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/BlogPostDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ConsultantResponseDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ConsultantUpdateRequestDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ServiceResponseDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ServiceUpdateDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/SignupRequestDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/StaffResponseDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/StaffUpdateRequestDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/TestResultDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/UserUpdateDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/JwtAuthenticationFilter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/UserPrincipal.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/AdminController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/BlogPostController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/ManagerController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/exceptions/ResourceNotFoundException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/AuthProvider.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/ConsultantSpecialization.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/Is_Active.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/StaffSpecialization.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/listener/LoginSuccessListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/mapper/BookingMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/mapper/UserMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Services.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/TestResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/BlogPostRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/ConsultantDetailsRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/StaffDetailsRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/TestResultRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/BlogPostService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/ConsultantDetailsService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/JwtService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/MailService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/OtpService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/RoleService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/ServiceService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/StaffDetailsService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/util/ReportGenerator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/util/RoleNameConverter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/websocket/CustomHandshakeHandler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/websocket/JwtHandshakeInterceptor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/websocket/OnlineUserBroadcaster.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/websocket/OnlineUserTracker.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/websocket/WebSocketEventListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/ConsultantManagement.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/CycleCalendar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/CycleForm.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/Dashboard.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/ManagerDashboard.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/PaymentPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/PillCalendar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/PillScheduleForm.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/PillStatsPanel.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/PillStatusPanel.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/STIsTestPage.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/ScheduleManagement.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/ServiceManagement.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/Sidebar.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/StaffDashboard.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/components/StaffManagement.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/hooks/useOnlineUsersSocket.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/mocks/handlers.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/mocks/mockData.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/src/pages/ReproductiveHealthApp.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/MiniCapstone.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/BE/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/BE/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/BookingDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/BookingDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ContraceptiveScheduleDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/ContraceptiveScheduleDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/MenstrualCycleDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/MenstrualCycleDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/UserDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/DTO/UserDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/GhsmsApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/GhsmsApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/CorsConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/CorsConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/DataLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/DataLoader.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/NotificationWebSocketHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/SwaggerConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/config/WebSocketConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/AuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/BookingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/BookingController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/ContraceptiveScheduleController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/ContraceptiveScheduleController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/MenstrualCycleController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/MenstrualCycleController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/UserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/controller/UserController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/exceptions/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/exceptions/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/file_enum/ServiceBookingCategory.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/BlogPost.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/BlogPost.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Booking.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/ConsultantDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/ConsultantDetails.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Consultation.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Consultation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/CustomerDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/CustomerDetails.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/Service.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/StaffDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/StaffDetails.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/model/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/BookingRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/BookingRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/MenstrualCycleRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/MenstrualCycleRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/ServiceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/ServiceRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/repository/UserRepositoryImpl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/BookingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/BookingService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/ContraceptiveScheduleService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/ContraceptiveScheduleService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/CustomOAuth2UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/CustomOAuth2UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/CustomUserDetailsService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/CustomUserDetailsService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/MenstrualCycleService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/MenstrualCycleService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/ghsms/service/UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/BE/Readme.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/resources/application.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/AdminDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/AdminDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/ConsultationBooking.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/ConsultationBooking.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/auth/LoginForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/auth/LoginForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualBookingPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualBookingPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleActions.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleActions.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleInfo.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/components/mentrual/MenstrualCycleInfo.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/src/pages/GoogleCallback.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/src/pages/GoogleCallback.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/tailwind.config.cjs" beforeDir="false" afterPath="$PROJECT_DIR$/FE/tailwind.config.cjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/FE/vite.config.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,12 +158,12 @@
     &quot;assignee&quot;: &quot;annguyen112233&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/khoinm04/team5_genderhealthcare.git",
-    "accountId": "1308663f-454e-4f0c-9afc-6aebe2ce23e3"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/khoinm04/team5_genderhealthcare.git&quot;,
+    &quot;accountId&quot;: &quot;1308663f-454e-4f0c-9afc-6aebe2ce23e3&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/data/spring-data-commons/3.5.0/spring-data-commons-3.5.0.jar!/org/springframework/data/repository/CrudRepository.class" root0="SKIP_INSPECTION" />
     <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/spring-context/6.2.7/spring-context-6.2.7.jar!/org/springframework/stereotype/Service.class" root0="SKIP_INSPECTION" />
@@ -55,32 +183,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "Spring Boot.GhsmsApplication (1).executor": "Run",
-    "Spring Boot.GhsmsApplication.executor": "Run",
-    "git-widget-placeholder": "beta",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/github",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Spring Boot.GhsmsApplication (1).executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.GhsmsApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Merging beta&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/github&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
       <recent name="com.ghsms.config" />
@@ -179,11 +307,24 @@
       <workItem from="1749800659647" duration="9184000" />
       <workItem from="1749824881834" duration="2513000" />
       <workItem from="1749911080391" duration="332000" />
-      <workItem from="1750579206273" duration="2832000" />
+      <workItem from="1750579206273" duration="4085000" />
+      <workItem from="1750594064538" duration="2716000" />
+      <workItem from="1750600933500" duration="16000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

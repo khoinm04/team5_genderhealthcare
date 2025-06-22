@@ -33,7 +33,6 @@ public class Consultation {
     @Column(name = "Topic", length = 255)
     private String topic;
 
-    @Lob // For TEXT type
     @Column(name = "Description")
     private String description;
 

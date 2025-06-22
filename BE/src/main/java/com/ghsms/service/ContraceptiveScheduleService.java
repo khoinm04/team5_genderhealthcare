@@ -1,7 +1,6 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.ContraceptiveScheduleDTO;
-import com.ghsms.config.NotificationWebSocketHandler;
 import com.ghsms.model.ContraceptiveSchedule;
 import com.ghsms.model.MenstrualCycle;
 import com.ghsms.model.Notification;
@@ -17,7 +16,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -196,7 +197,7 @@ public class ContraceptiveScheduleService {
     }
 
      // Chuyển từ entity ContraceptiveSchedule sang DTO cho FE
-    private ContraceptiveScheduleDTO toDTO(ContraceptiveSchedule schedule) {
+     public ContraceptiveScheduleDTO toDTO(ContraceptiveSchedule schedule) {
         ContraceptiveScheduleDTO dto = new ContraceptiveScheduleDTO();
         dto.setId(schedule.getId());
         dto.setUserId(schedule.getUser().getUserId());
@@ -220,13 +221,39 @@ public class ContraceptiveScheduleService {
 //        notification.setRead(false);
         notificationRepository.save(notification);
 
-        // 2. Gửi real-time qua WebSocket
-        NotificationWebSocketHandler.sendNotificationToUser(
-                schedule.getUser().getUserId(),
-                message
-        );
+//        // 2. Gửi real-time qua WebSocket
+//        NotificationWebSocketHandler.sendNotificationToUser(
+//                schedule.getUser().getUserId(),
+//                message
+//        );
 
         System.out.println(" Đã gửi thông báo thuốc (DB + WebSocket) cho user: " +
                 schedule.getUser().getUserId());
     }
+
+    public ContraceptiveSchedule getActiveScheduleByUserId(Long userId) {
+        return contraceptiveScheduleRepository
+                .findByUserUserIdAndIsActiveTrue(userId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch thuốc đang hoạt động"));
+    }
+
+    public Map<String, Boolean> generatePillHistory(ContraceptiveSchedule schedule) {
+        Map<String, Boolean> history = new LinkedHashMap<>();
+        LocalDate start = schedule.getStartDate();
+        int currentIndex = schedule.getCurrentIndex();
+        int total = schedule.getType().equals("21") ? 21 : 28;
+
+        for (int i = 0; i < total; i++) {
+            LocalDate date = start.plusDays(i);
+            history.put(date.toString(), i < currentIndex); // true nếu đã uống
+        }
+
+        return history;
+    }
+
+
+
+
 }

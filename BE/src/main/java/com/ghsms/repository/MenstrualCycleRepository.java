@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface MenstrualCycleRepository extends JpaRepository<MenstrualCycle, Long> {
-    Optional<MenstrualCycle> findByCustomerUserId(Long customerId);
+    Optional<MenstrualCycle> findByCustomer_userId(Long customerId);
 
     List<MenstrualCycle> findByNextPredictedDateEquals(LocalDate date);
 

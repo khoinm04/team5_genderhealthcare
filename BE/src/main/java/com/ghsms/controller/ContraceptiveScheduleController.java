@@ -1,16 +1,19 @@
 package com.ghsms.controller;
 
 import com.ghsms.DTO.ContraceptiveScheduleDTO;
+import com.ghsms.config.UserPrincipal;
 import com.ghsms.model.ContraceptiveSchedule;
 import com.ghsms.service.ContraceptiveScheduleService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/contraceptive-schedules")
@@ -22,10 +25,18 @@ public class ContraceptiveScheduleController {
     // 1. Đăng ký lịch uống thuốc tránh thai
     @PostMapping
     public ResponseEntity<ContraceptiveScheduleDTO> registerSchedule(
-            @RequestBody @Valid ContraceptiveScheduleDTO dto) {
-        // FE gửi dữ liệu DTO (userId, type, startDate, pillTime, ...)
-        return ResponseEntity.ok(contraceptiveScheduleService.registerSchedule(dto));
+            @RequestBody @Valid ContraceptiveScheduleDTO dto,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            dto.setUserId(principal.getId());
+            return ResponseEntity.ok(contraceptiveScheduleService.registerSchedule(dto));
+        } catch (Exception e) {
+            e.printStackTrace(); // 💥 IN LỖI RA CONSOLE
+            throw e;
+        }
     }
+
+
 
     // 2. Lấy danh sách lịch uống thuốc active của một user
     @GetMapping("/user/{userId}")
@@ -59,6 +70,21 @@ public class ContraceptiveScheduleController {
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<?> getCurrentScheduleWithHistory(@AuthenticationPrincipal UserPrincipal principal) {
+        Long userId = principal.getId();
+
+        ContraceptiveSchedule schedule = contraceptiveScheduleService.getActiveScheduleByUserId(userId);
+        Map<String, Boolean> history = contraceptiveScheduleService.generatePillHistory(schedule);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "schedule", contraceptiveScheduleService.toDTO(schedule),
+                        "history", history
+                )
+        );
     }
 
 }
