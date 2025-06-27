@@ -1,20 +1,24 @@
 import React from 'react';
-import { 
-  Users, 
-  UserCheck, 
-  Wrench, 
-  BarChart3, 
+import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
+
+
+
+import {
+  Users,
+  UserCheck,
+  Wrench,
+  BarChart3,
   Calendar,
   Settings,
   LogOut,
   Menu
 } from 'lucide-react';
 
-const Sidebar = ({ 
-  activeTab, 
-  onTabChange, 
-  isCollapsed, 
-  onToggleCollapse 
+const Sidebar = ({
+  activeTab,
+  onTabChange,
+  isCollapsed,
+  onToggleCollapse
 }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Tổng quan', icon: BarChart3 },
@@ -24,6 +28,15 @@ const Sidebar = ({
     { id: 'schedules', label: 'Lịch làm việc', icon: Calendar },
     { id: 'settings', label: 'Cài đặt', icon: Settings },
   ];
+    const { deactivateClient } = useOnlineUsersSocket(() => {});
+  
+  const handleLogout = async () => {
+  await deactivateClient(); // 👈 Đảm bảo gửi tín hiệu offline và đóng kết nối
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = '/login';
+};
+
 
   return (
     <div className={`
@@ -49,15 +62,15 @@ const Sidebar = ({
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            
+
             return (
               <li key={item.id}>
                 <button
                   onClick={() => onTabChange(item.id)}
                   className={`
                     w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200
-                    ${isActive 
-                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700' 
+                    ${isActive
+                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }
                     ${isCollapsed ? 'justify-center' : 'justify-start'}
@@ -76,11 +89,14 @@ const Sidebar = ({
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
-        <button className={`
-          w-full flex items-center px-3 py-3 rounded-lg transition-colors
-          text-red-600 hover:bg-red-50
-          ${isCollapsed ? 'justify-center' : 'justify-start'}
-        `}>
+        <button
+          onClick={handleLogout}
+          className={`
+            w-full flex items-center px-3 py-3 rounded-lg transition-colors
+            text-red-600 hover:bg-red-50
+            ${isCollapsed ? 'justify-center' : 'justify-start'}
+          `}
+        >
           <LogOut size={20} className={isCollapsed ? '' : 'mr-3'} />
           {!isCollapsed && <span className="font-medium">Đăng xuất</span>}
         </button>

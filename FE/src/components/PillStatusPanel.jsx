@@ -10,12 +10,20 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
   startDate.setHours(0, 0, 0, 0);
   const isBeforeStart = today < startDate;
 
-  // Hiển thị giờ 24h (dự phòng)
-  let pillTime24 = "00:00"; // giá trị mặc định nếu không có dữ liệu
-  if (typeof pillSchedule?.time === "string" && pillSchedule.time.includes(":")) {
-    const [h, m] = pillSchedule.time.split(':');
-    pillTime24 = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  // Hiển thị giờ uống thuốc dạng HH:mm
+  let pillTime24 = "00:00";
+  if (typeof pillSchedule?.pillTime === "string" && pillSchedule.pillTime.includes(":")) {
+    pillTime24 = pillSchedule.pillTime.slice(0, 5);
   }
+
+  // Tổng số viên của vỉ (21 hoặc 28)
+  const totalPills = parseInt(pillSchedule.type) || 21;
+
+  // Tính số viên đã uống (ngày nào tick "Đã uống" thì count true)
+  const takenCount = Object.values(pillHistory || {}).filter(x => x === true).length;
+  // Số viên chưa uống (ngày chưa tick, trong phạm vi từ ngày bắt đầu)
+  const missedCount = Object.values(pillHistory || {}).filter(x => x === false).length;
+  // Số viên chưa uống nhưng chưa tới ngày (future pills): chỉ hiển thị nếu muốn
 
   // Trễ giờ uống thuốc hôm nay chưa?
   const [pillHour, pillMinute] = pillTime24.split(':').map(Number);
@@ -28,7 +36,7 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
       (now.getHours() === pillHour && now.getMinutes() > pillMinute)
     );
 
-  // Nếu có missedWarning thì disable nút xác nhận uống thuốc hôm nay luôn
+  // Disable nút nếu chưa đến ngày, đã uống rồi hoặc có cảnh báo
   const isButtonDisabled = isBeforeStart || pillHistory[todayStr] === true || !!missedWarning;
 
   return (
@@ -42,7 +50,7 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
             Loại vỉ: <span className="font-semibold">{pillSchedule.type} viên</span>
           </p>
           <p className="text-sm text-gray-600">
-            Viên đang uống: <span className="font-semibold">{pillSchedule.currentPill} / {pillSchedule.type}</span>
+            Đã uống: <span className="font-semibold">{takenCount} / {totalPills}</span>
           </p>
         </div>
         <div>
@@ -69,7 +77,7 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
         </div>
       )}
 
-      {/* Cảnh báo quên uống thuốc (missed warning) */}
+      {/* Cảnh báo quên uống thuốc */}
       {missedWarning && (
         <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-600 text-red-800 font-bold text-base rounded flex items-center gap-2">
           <AlertTriangle className="text-red-600" size={20} />
@@ -81,8 +89,8 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
         onClick={handleTakePill}
         disabled={isButtonDisabled}
         className={`px-6 py-2 rounded-lg transition-all flex items-center gap-2 ${isButtonDisabled
-            ? 'bg-gray-400 text-white cursor-not-allowed'
-            : 'bg-gradient-to-r from-green-400 to-blue-400 text-white hover:from-green-500 hover:to-blue-500'
+          ? 'bg-gray-400 text-white cursor-not-allowed px-3 py-1 rounded-lg text-sm'
+          : 'bg-gradient-to-r from-green-400 to-blue-400 text-white hover:from-green-500 hover:to-blue-500 px-3 py-1 rounded-lg text-sm'
           }`}
       >
         <Check size={18} />

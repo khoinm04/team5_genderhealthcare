@@ -25,9 +25,14 @@ public class Consultation {
     @JoinColumn(name = "CustomerID", nullable = false)
     private User customer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ConsultantID", nullable = false)
-    private User consultant;
+    @ManyToOne
+    @JoinColumn(name = "consultant_id")
+    private ConsultantDetails consultant;
+
+    @OneToOne
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
+
 
     @Size(max = 255, message = "Topic must be less than 255 characters")
     @Column(name = "Topic", length = 255)
@@ -42,5 +47,7 @@ public class Consultation {
     @Size(max = 50, message = "Status must be less than 50 characters")
     @Column(name = "Status", length = 50)
     private String status;
+
+
 }
 

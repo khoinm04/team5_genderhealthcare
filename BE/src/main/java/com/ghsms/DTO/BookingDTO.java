@@ -64,4 +64,7 @@ public class BookingDTO implements Serializable {
     private String startTime;   // từ timeSlot
     private String endTime;     // từ timeSlot
 
+    private List<TestResultDTO> testResults;
+
+
 }

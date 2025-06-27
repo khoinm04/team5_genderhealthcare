@@ -36,8 +36,6 @@ public class MenstrualCycleController {
         return ResponseEntity.ok(menstrualCycleService.toDTO(result));
     }
 
-
-
     @GetMapping("/customer/{customerId}/next-period")
     public ResponseEntity<LocalDate> getNextPeriod(@PathVariable Long customerId) {
         return ResponseEntity.ok(menstrualCycleService.getPredictedNextDate(customerId));

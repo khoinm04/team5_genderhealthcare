@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
+
 
 
 export default function Header() {
   const [user, setUser] = useState(null);
+  const { deactivateClient } = useOnlineUsersSocket(); // 👈 Hook để quản lý WebSocke 
 
 useEffect(() => {
   const storedUser = localStorage.getItem("user");
@@ -69,20 +72,30 @@ useEffect(() => {
 
 
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
   const token = localStorage.getItem("token");
 
+  // 1. Đóng kết nối WebSocket
+  if (typeof deactivateClient === "function") {
+    await deactivateClient(); // 👈 Đóng WebSocket trước
+  }
+
+  // 2. Gọi API logout
   axios.post("http://localhost:8080/gender-health-care/logout", {}, {
     headers: {
       Authorization: `Bearer ${token}`
     }
   }).finally(() => {
+    // 3. Xóa localStorage / sessionStorage
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("userId");
+
+    // 4. Chuyển hướng về login/home
     window.location.href = "/";
   });
 };
+
 
 
 

@@ -36,6 +36,16 @@ const ScheduleManagement = () => {
   }, []);
 
 
+  // dung de gan mau cho tung loại
+  const getServiceColor = (name) => {
+    if (name.includes("Tư vấn")) {
+      return "bg-orange-100 text-orange-800"; // Cam cho dịch vụ ưu tiên
+    }
+    return "bg-green-100 text-green-800"; // Xanh lá mặc định
+  };
+
+
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       PENDING_PAYMENT: {
@@ -176,7 +186,6 @@ const ScheduleManagement = () => {
   };
 
 
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -277,18 +286,18 @@ const ScheduleManagement = () => {
                   <div>
                     <h4 className="font-medium text-gray-900">
                       {schedule.staffName
-                        ? `BS. ${schedule.staffName}`
+                        ? `NV. ${schedule.staffName}`
                         : schedule.consultantName
                           ? `TV. ${schedule.consultantName}`
                           : 'Chưa có nhân viên / tư vấn viên'}
                     </h4>
 
-                    <div className="flex items-center mt-1 space-x-4 text-sm text-gray-600">
-                      <div className="flex items-center">
+                    <div className="flex items-center mt-1 space-x-4 text-sm">
+                      <div className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-md font-medium">
                         <User size={16} className="mr-1" />
                         Khách hàng: {schedule.client}
                       </div>
-                      <div className="flex items-center">
+                      <div className="flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-md font-medium">
                         <Clock size={16} className="mr-1" />
                         {schedule.startTime} - {schedule.endTime}
                       </div>
@@ -301,7 +310,10 @@ const ScheduleManagement = () => {
                     <div className="mb-2">{getStatusBadge(schedule.status)}</div>
                     <p className="text-sm text-gray-600">{formatDate(schedule.date)}</p>
                     {schedule.serviceName && (
-                      <p className="text-sm text-gray-500 mt-1">{schedule.serviceName}</p>
+                      <p className={`text-sm mt-1 inline-block px-2 py-1 rounded-full font-medium ${getServiceColor(schedule.serviceName)}`}>
+                        {schedule.serviceName}
+                      </p>
+
                     )}
                   </div>
 
@@ -661,6 +673,18 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
       onCancel();
     }
   };
+  const specializationToVietnamese = {
+    GENERAL_CONSULTATION: "Tư vấn tổng quát",
+    SPECIALIST_CONSULTATION: "Tư vấn chuyên khoa",
+    RE_EXAMINATION: "Tư vấn tái khám",
+    EMERGENCY_CONSULTATION: "Tư vấn khẩn cấp",
+    STI_HIV: "Xét nghiệm HIV",
+    STI_Syphilis: "Xét nghiệm giang mai (Syphilis)",
+    STI_Gonorrhea: "Xét nghiệm lậu (Gonorrhea)",
+    STI_Chlamydia: "Xét nghiệm Chlamydia",
+    // thêm các mục khác nếu có
+  };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -682,7 +706,7 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
               .filter(staff => staff.active === true)
               .map(staff => (
                 <option key={staff.id} value={String(staff.id)}>
-                  {staff.fullName} - {staff.specialization || ''}
+                  {staff.fullName} - {specializationToVietnamese[staff.specialization] || ''}
                 </option>
               ))}
           </select>
@@ -702,7 +726,7 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
               .filter(consultant => consultant.active === true)
               .map(consultant => (
                 <option key={consultant.id} value={String(consultant.id)}>
-                  {consultant.fullName} - {consultant.specialization || ''}
+                  {consultant.fullName} - {specializationToVietnamese[consultant.specialization] || ''}
                 </option>
               ))}
           </select>

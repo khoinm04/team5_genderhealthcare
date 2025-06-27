@@ -35,7 +35,7 @@ public class ContraceptiveSchedule {
     private int currentIndex; // Đánh dấu đã uống tới viên số mấy (0-20 hoặc 0-27)
 
     @Column(name = "IsActive", nullable = false)
-    private boolean isActive = true; // Để dừng nhắc nhở khi người dùng không còn dùng nữa
+    private boolean active = true; // Để dừng nhắc nhở khi người dùng không còn dùng nữa
 
     @Column(name = "BreakUntil")
     private LocalDate breakUntil; // null nếu không nghỉ, hoặc ngày kết thúc kỳ nghỉ nếu vỉ 21

@@ -61,4 +61,10 @@ public class TestResult {
 
     @Column(name = "FileContent")
     private byte[] fileContent; // Store generated file content
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ServiceID") // Bạn có thể đặt tên khác nếu cần
+    private Services service;
+
+
 }

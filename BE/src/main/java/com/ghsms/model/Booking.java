@@ -25,9 +25,10 @@ public class Booking {
     @Column(name = "BookingID")
     private Long bookingId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "CustomerID", nullable = false)
     private CustomerDetails customer;
+
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -70,6 +71,9 @@ public class Booking {
     @CreationTimestamp
     @Column(name = "CreatedAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+
+
 
     // Helper methods
     public void addService(Services service) {

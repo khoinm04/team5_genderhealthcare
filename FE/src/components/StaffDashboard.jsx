@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
+
+
 import {
   Calendar, Clock, User, Plus, Edit3, Trash2, Eye, Search, Filter,
   CheckCircle, XCircle, Loader2, AlertCircle, Phone, Mail, FileText,
   Users, Activity, TestTube, Stethoscope, ChevronRight, Bell,
-  BarChart3, TrendingUp, Settings, Save, X
+  BarChart3, TrendingUp, Settings, Save, X, FlaskConical
 } from 'lucide-react';
 
 
@@ -13,93 +16,29 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const { deactivateClient } = useOnlineUsersSocket(() => { });
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
-  // Schedules State
-  const [schedules, setSchedules] = useState([
-    {
-      id: 1,
-      customerName: 'Nguyễn Văn An',
-      email: 'nguyenvanan@email.com',
-      consultantName: 'BS. Trần Thị Hoa',
-      date: '2025-01-15',
-      startTime: '10:00',
-      endTime: '11:00',
-      status: 'scheduled',
-      service: 'Tái khám',
-      duration: '60 phút'
-    },
-    {
-      id: 2,
-      customerName: 'Lê Thị Bình',
-      email: 'lethibinh@email.com',
-      consultantName: 'ThS. Phạm Văn Cường',
-      date: '2025-01-16',
-      startTime: '14:00',
-      endTime: '14:45',
-      status: 'confirmed',
-      service: 'Tư vấn chuyên khoa',
-      duration: '45 phút'
-    },
-    {
-      id: 3,
-      customerName: 'Hoàng Minh Đức',
-      email: 'hoangminhduc@email.com',
-      consultantName: 'BS. Trần Thị Hoa',
-      date: '2025-01-14',
-      startTime: '15:30',
-      endTime: '17:00',
-      status: 'completed',
-      service: 'Tư vấn tổng quát',
-      duration: '90 phút'
-    }
-  ]);
 
-  // STI Tests State
-  const [testOrders, setTestOrders] = useState([
-    {
-      id: 1,
-      customerId: 'KH001',
-      customerName: 'Vũ Thị Lan',
-      email: 'vuthilan@email.com',
-      phone: '0123-456-789',
-      bookingDate: '2025-01-15',
-      status: 'Đang Chờ',
-      services: ['Xét Nghiệm HIV', 'Xét Nghiệm Chlamydia'],
-      paymentCode: 'TT001',
-      staffId: 'NV001'
-    },
-    {
-      id: 2,
-      customerId: 'KH002',
-      customerName: 'Đặng Văn Nam',
-      email: 'dangvannam@email.com',
-      phone: '0987-654-321',
-      bookingDate: '2025-01-16',
-      status: 'Đang Thực Hiện',
-      services: ['Xét Nghiệm Giang Mai'],
-      paymentCode: 'TT002',
-      staffId: 'NV001'
-    }
-  ]);
 
+
+  const [testOrders, setTestOrders] = useState([]);
+  const [schedules, setSchedules] = useState([])
+
+
+  const [user, setUser] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditResultModal, setShowEditResultModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState('schedule'); // 'schedule' or 'test'
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [selectedResult, setSelectedResult] = useState("");
 
-  const [newSchedule, setNewSchedule] = useState({
-    customerName: '',
-    email: '',
-    consultantName: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    service: '',
-    duration: '60'
-  });
+
 
 
 
@@ -112,82 +51,238 @@ const StaffDashboard = () => {
     paymentCode: ''
   });
 
-  const consultants = ['BS. Trần Thị Hoa', 'ThS. Phạm Văn Cường', 'BS. Nguyễn Thị Mai', 'ThS. Lê Văn Tùng'];
-  const services = ['Tư vấn tổng quát', 'Tư vấn chuyên khoa', 'Tái khám', 'Tư vấn khẩn cấp'];
-  const availableTests = ['Xét Nghiệm HIV', 'Xét Nghiệm Lậu', 'Xét Nghiệm Chlamydia', 'Xét Nghiệm Giang Mai'];
+  const [newSchedule, setNewSchedule] = useState({
+    customerName: '',
+    email: '',
+    phone: '',
+    consultantName: '',
+    consultantId: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    serviceId: '',
+    age: '',             // 👈 thêm
+    gender: ''
+  });
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'scheduled':
-      case 'đang chờ':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'confirmed':
-      case 'đang thực hiện':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'completed':
-      case 'đã hoàn thành':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'cancelled':
-      case 'đã hủy':
-        return 'bg-red-100 text-red-800 border-red-200';
+
+
+  const [consultants, setConsultants] = useState([]);
+  const [availableTests, setAvailableTests] = useState([]);
+  const [availableServices, setAvailableServices] = useState([])
+
+
+
+
+  const getStatusColor = (status, type) => {
+    console.log("🎯 getStatusColor() called → status:", status, "| type:", type);
+
+    if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
+
+    const normalized = status.toUpperCase();
+
+    if (type === 'schedule') {
+      switch (normalized) {
+        case 'SCHEDULED':
+        case 'PENDING_PAYMENT':
+          return 'bg-amber-100 text-amber-800 border-amber-200';
+        case 'CONFIRMED':
+          return 'bg-blue-100 text-blue-800 border-blue-200';
+        case 'COMPLETED':
+          return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        case 'CANCELED':
+          return 'bg-red-100 text-red-800 border-red-200';
+        default:
+          return 'bg-gray-100 text-gray-800 border-gray-200';
+      }
+    }
+
+    if (type === 'testOrder') {
+      switch (normalized) {
+        case 'PENDING':
+          return 'bg-amber-100 text-amber-800 border-amber-200';
+        case 'IN_PROGRESS':
+          return 'bg-blue-100 text-blue-800 border-blue-200';
+        case 'COMPLETED':
+          return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        case 'CANCELED':
+          return 'bg-red-100 text-red-800 border-red-200';
+        default:
+          return 'bg-gray-100 text-gray-800 border-gray-200';
+      }
+    }
+
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const translateSpecialization = (code) => {
+    switch (code) {
+      case "GENERAL_CONSULTATION":
+        return "Tư vấn tổng quát";
+      case "SPECIALIST_CONSULTATION":
+        return "Tư vấn chuyên khoa";
+      case "RE_EXAMINATION":
+        return "Tư vấn tái khám";
+      case "EMERGENCY_CONSULTATION":
+        return "Tư vấn khẩn cấp";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "Không rõ";
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'completed':
-      case 'đã hoàn thành':
-        return React.createElement(CheckCircle, { className: "w-3 h-3" });
-      case 'cancelled':
-      case 'đã hủy':
-        return React.createElement(XCircle, { className: "w-3 h-3" });
-      default:
-        return React.createElement(Clock, { className: "w-3 h-3" });
+
+  const getStatusIcon = (status, type) => {
+    if (!status) return React.createElement(Clock, { className: "w-3 h-3" });
+
+    const normalized = status.toUpperCase();
+
+    const successStatuses = ['COMPLETED', 'CONFIRMED'];
+    const canceledStatuses = ['CANCELED'];
+
+    if (successStatuses.includes(normalized)) {
+      return React.createElement(CheckCircle, { className: "w-3 h-3" });
     }
+
+    if (canceledStatuses.includes(normalized)) {
+      return React.createElement(XCircle, { className: "w-3 h-3" });
+    }
+
+    return React.createElement(Clock, { className: "w-3 h-3" });
   };
+
 
   // CRUD Functions for Schedules
-  const handleCreateSchedule = () => {
-    if (newSchedule.customerName && newSchedule.email && newSchedule.date) {
-      const schedule = {
-        id: schedules.length + 1,
-        ...newSchedule,
-        status: 'scheduled',
-        duration: newSchedule.duration + ' phút'
-      };
-      setSchedules(prev => [...prev, schedule]);
+  const handleCreateSchedule = async () => {
+    const {
+      customerName,
+      email,
+      phoneNumber,
+      date,
+      startTime,
+      endTime,
+      serviceId,
+      consultantId,
+      age,
+      gender
+    } = newSchedule;
+
+
+
+    if (!customerName || !email || !phoneNumber || !date || !startTime || !endTime || !serviceId || !age || !gender) {
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const timeSlot = `${startTime}-${endTime}`;
+
+    try {
+      const res = await fetch('http://localhost:8080/api/staff/create/bookings/consultant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customerName,
+          customerEmail: email,
+          customerPhone: phoneNumber,
+          bookingDate: date,
+          timeSlot,
+          serviceId: parseInt(serviceId),
+          consultantId: consultantId || null,
+          status: 'PENDING_PAYMENT',
+          age,
+          gender
+        }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.text(); // 👈 lấy nội dung lỗi từ backend
+        console.error("❌ API error response:", errorBody); // log chi tiết
+        throw new Error('Tạo lịch hẹn thất bại');
+      }
+
+      const created = await res.json();
+
+      setSchedules(prev => [...prev, created]);
+
       setNewSchedule({
         customerName: '',
         email: '',
+        phoneNumber: '',
         consultantName: '',
+        consultantId: '',
+        serviceId: '',
         date: '',
         startTime: '',
         endTime: '',
-        service: '',
-        duration: '60'
+        duration: '60',
+        age: '',
+        gender: ''
       });
       setShowCreateModal(false);
-      alert('Lịch hẹn đã được tạo thành công!');
-    } else {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+      alert('✅ Lịch hẹn đã được tạo thành công!');
+    } catch (err) {
+      console.error('❌ Lỗi khi tạo lịch hẹn:', err);
+      alert('❌ Tạo lịch hẹn thất bại. Vui lòng thử lại.');
     }
   };
 
-  const handleEditSchedule = () => {
-    if (selectedItem.customerName && selectedItem.email && selectedItem.date) {
-      setSchedules(prev => prev.map(item =>
-        item.id === selectedItem.id ? selectedItem : item
-      ));
+
+
+
+  //api này để chỉnh sửa lịch hẹn của consultant do thằng staff làm
+  const handleEditSchedule = async () => {
+    const {
+      id,
+      customerPhone,
+      customerName,
+      date,
+      startTime,
+      endTime,
+      serviceId,
+      consultantId,
+    } = selectedItem;
+
+
+    const timeSlot = `${startTime}-${endTime}`; // 👈 Gộp lại
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/staff/bookings/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customerName,
+          customerPhone,            // 👈 thêm dòng này nếu bạn có cho chỉnh
+          bookingDate: date,   // 👈 sửa lại chỗ này
+          timeSlot,
+          serviceId,
+          consultantId: consultantId || null,
+          status: selectedItem.status, // 👈 thêm dòng này
+        }),
+      });
+
+      if (!res.ok) throw new Error("Cập nhật thất bại");
+
+      setSchedules((prev) =>
+        prev.map((item) => (item.id === id ? selectedItem : item))
+      );
       setShowEditModal(false);
       setSelectedItem(null);
-      alert('Lịch hẹn đã được cập nhật thành công!');
-    } else {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+      alert("✅ Lịch hẹn đã được cập nhật thành công!");
+    } catch (error) {
+      console.error("Lỗi cập nhật lịch:", error);
+      alert("❌ Lỗi khi cập nhật lịch. Vui lòng thử lại.");
     }
   };
+
+
 
   const handleDeleteSchedule = (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa lịch hẹn này?')) {
@@ -197,43 +292,116 @@ const StaffDashboard = () => {
   };
 
   // CRUD Functions for Test Orders
-  const handleCreateTestOrder = () => {
-    if (newTestOrder.customerName && newTestOrder.email && newTestOrder.bookingDate && newTestOrder.services.length > 0) {
-      const testOrder = {
-        id: testOrders.length + 1,
-        customerId: `KH${String(testOrders.length + 1).padStart(3, '0')}`,
-        ...newTestOrder,
-        status: 'Đang Chờ',
-        staffId: 'NV001'
+  const handleCreateTestOrder = async () => {
+    const {
+      customerName,
+      email,
+      phone: customerPhone,
+      bookingDate,
+      age: customerAge,
+      gender: customerGender
+    } = newTestOrder;
+
+    if (customerName && email && bookingDate && selectedServiceId) {
+      const payload = {
+        customerName,
+        customerEmail: email,
+        customerPhone,
+        customerAge,
+        customerGender,
+        bookingDate,
+        timeSlot: `${newSchedule.startTime}-${newSchedule.endTime}`,
+        serviceIds: [selectedServiceId], // ✅ wrap thành mảng
       };
-      setTestOrders(prev => [...prev, testOrder]);
-      setNewTestOrder({
-        customerName: '',
-        email: '',
-        phone: '',
-        bookingDate: '',
-        services: [],
-        paymentCode: ''
-      });
-      setShowCreateModal(false);
-      alert('Đơn xét nghiệm đã được tạo thành công!');
+
+      try {
+        const res = await fetch("http://localhost:8080/api/staff/create/sti", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(error || "Lỗi khi tạo đơn");
+        }
+
+        const data = await res.json();
+        alert(`Tạo đơn xét nghiệm thành công! ID: ${data.booking?.bookingId ?? "?"}`);
+
+        // Reset form
+        setNewTestOrder({
+          customerName: '',
+          email: '',
+          phone: '',
+          age: '',
+          gender: '',
+          bookingDate: '',
+          services: [],
+          paymentCode: ''
+        });
+        setNewSchedule({ startTime: '', endTime: '' });
+        setSelectedServiceId(null); // ✅ reset lại dịch vụ được chọn
+        setShowCreateModal(false);
+      } catch (error) {
+        console.error("Lỗi khi tạo đơn:", error);
+        alert("Tạo đơn xét nghiệm thất bại: " + error.message);
+      }
     } else {
-      alert('Vui lòng điền đầy đủ thông tin và chọn ít nhất một dịch vụ!');
+      alert("Vui lòng điền đầy đủ thông tin và chọn ít nhất một dịch vụ!");
     }
   };
 
-  const handleEditTestOrder = () => {
-    if (selectedItem.customerName && selectedItem.email && selectedItem.bookingDate) {
-      setTestOrders(prev => prev.map(item =>
-        item.id === selectedItem.id ? selectedItem : item
-      ));
-      setShowEditModal(false);
-      setSelectedItem(null);
-      alert('Đơn xét nghiệm đã được cập nhật thành công!');
-    } else {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+
+
+
+  const handleEditTestOrder = async () => {
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      bookingId: selectedItem.id,
+      customerName: selectedItem.customerName,
+      customerPhone: selectedItem.customerPhone,
+      testResultUpdates: [] // ✅ chuyển từ Map sang List
+    };
+
+    selectedItem.testResults?.forEach(tr => {
+      payload.testResultUpdates.push({
+        testResultId: tr.testResultId,
+        status: tr.status,
+      });
+    });
+
+    console.log("📦 Payload gửi:", payload);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/staff/bookings/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Lỗi response từ server:", errorText);
+        throw new Error("Cập nhật thất bại");
+      }
+
+      const result = await response.json();
+      console.log("✅ Cập nhật thành công:", result);
+      alert("Cập nhật thành công!");
+    } catch (error) {
+      console.error("❌ Lỗi khi cập nhật:", error);
+      alert("Đã xảy ra lỗi khi cập nhật.");
     }
   };
+
 
   const handleDeleteTestOrder = (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa đơn xét nghiệm này?')) {
@@ -242,79 +410,392 @@ const StaffDashboard = () => {
     }
   };
 
-  const handleServiceToggle = (service) => {
-    if (modalType === 'test' && showCreateModal) {
-      setNewTestOrder(prev => ({
-        ...prev,
-        services: prev.services.includes(service)
-          ? prev.services.filter(s => s !== service)
-          : [...prev.services, service]
-      }));
-    } else if (modalType === 'test' && showEditModal && selectedItem) {
-      setSelectedItem(prev => ({
-        ...prev,
-        services: prev.services.includes(service)
-          ? prev.services.filter(s => s !== service)
-          : [...prev.services, service]
-      }));
+  const handleServiceToggle = (serviceId) => {
+    setSelectedServiceId(prev =>
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
+
+
+
+  const updateStatus = async (id, newStatus, type) => {
+    // ✅ 1. Cập nhật React state (UI)
+    if (type === 'schedule') {
+      setSchedules(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, status: newStatus } : item
+        )
+      );
+    } else {
+      setTestOrders(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, status: newStatus } : item
+        )
+      );
+    }
+
+    // ✅ 2. Lấy lại item tương ứng
+    const item = (type === "schedule"
+      ? schedules.find(s => s.id === id)
+      : testOrders.find(t => t.id === id)
+    );
+
+    if (!item) {
+      alert("Không tìm thấy dữ liệu cần cập nhật.");
+      return;
+    }
+
+    // ✅ 3. Chuẩn bị payload gửi lên server
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      bookingId: item.id,
+      customerName: item.customerName,
+      customerPhone: item.customerPhone,
+      testResultUpdates: item.testResults?.map(tr => ({
+        testResultId: tr.testResultId,
+        status: tr.testResultId === id ? newStatus : tr.status,
+      })) || []
+    };
+
+    console.log("📤 Payload gửi lên:", payload);
+
+    // ✅ 4. Gọi API cập nhật
+    try {
+      const response = await fetch("http://localhost:8080/api/staff/bookings/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error("❌ Lỗi từ server:", err);
+        throw new Error("Cập nhật thất bại");
+      }
+
+      const data = await response.json();
+      console.log("✅ Đã cập nhật:", data);
+      alert("Cập nhật trạng thái thành công!");
+    } catch (error) {
+      console.error("❌ Lỗi khi cập nhật:", error);
+      alert("Lỗi khi cập nhật trạng thái xuống hệ thống.");
     }
   };
 
-  const updateStatus = (id, newStatus, type) => {
-    if (type === 'schedule') {
-      setSchedules(prev => prev.map(item =>
-        item.id === id ? { ...item, status: newStatus } : item
-      ));
-    } else {
-      setTestOrders(prev => prev.map(item =>
-        item.id === id ? { ...item, status: newStatus } : item
-      ));
-    }
-    alert('Trạng thái đã được cập nhật!');
-  };
 
   const filteredSchedules = schedules.filter(schedule => {
-    const matchesSearch = schedule.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.consultantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.service.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      schedule.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.consultantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.service?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = statusFilter === 'all' || schedule.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
+
+
 
   const filteredTestOrders = testOrders.filter(order => {
     const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.services.some(service => service.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || order.status.toLowerCase().replace(' ', '') === statusFilter;
+
+    const matchesStatus = statusFilter === 'all' || order.statusCode === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
+
   const todayAppointments = schedules.filter(s => s.date === '2025-01-15').length;
-  const activePatients = [...new Set([...schedules.map(s => s.customerName), ...testOrders.map(t => t.customerName)])].length;
+  const [activePatients, setActivePatients] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch("http://localhost:8080/api/staff/count-in-progress", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
+      .then(data => setActivePatients(data))
+      .catch(err => {
+        console.error("Lỗi khi lấy số bệnh nhân:", err);
+        setActivePatients(0); // fallback nếu lỗi
+      });
+  }, []);
   const pendingTests = testOrders.filter(t => t.status === 'Đang Chờ').length;
 
-  const [user, setUser] = useState({ name: "", roleName: "" });
+
+
+  // Hàm logout
+  const handleLogout = async () => {
+    await deactivateClient(); // 👈 Đảm bảo gửi tín hiệu offline và đóng kết nối
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
+  };
+
+  // để chưa userEffect để lấy thông tin user từ localStorage
+  useEffect(() => {
+    if (selectedItem?.serviceIds) {
+      setSelectedServiceIds(selectedItem.serviceIds); // ✅ CHUẨN
+    }
+  }, [selectedItem]);
+
+  //api để lấy danh sách consultant ứng với service Lưu ý cho chỉnh sửa
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!selectedItem || !selectedItem.serviceId) return;
+
+    fetch(`http://localhost:8080/api/staff/consultants/by-service/${selectedItem.serviceId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Không thể lấy danh sách tư vấn viên");
+        return res.json();
+      })
+      .then(data => {
+        console.log("✅ Consultants fetched:", data); // ← Thêm dòng này
+        setConsultants(data);
+      })
+      .catch(err => console.error("❌ Lỗi lấy consultant:", err));
+  }, [selectedItem?.serviceId]);
+
+
+  //api để lấy danh sách consultant ứng với service Lưu ý cho tạo mới
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!newSchedule.serviceId) return; // ⛔ tránh gọi API khi chưa chọn dịch vụ
+
+    fetch(`http://localhost:8080/api/staff/consultants/by-service/${newSchedule.serviceId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Không thể lấy danh sách tư vấn viên");
+        return res.json();
+      })
+      .then(data => {
+        console.log("📥 Consultants loaded:", data);
+        setConsultants(data);
+      })
+      .catch(err => console.error("Lỗi lấy consultant:", err));
+  }, [newSchedule?.serviceId]); // 👈 gọi lại khi chọn dịch vụ khác
+
+
+
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
+    const token = localStorage.getItem("token");
+
     if (storedUser) {
-      setUser(storedUser);
+      setUser(storedUser); // lưu vào state
     }
+
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/staff/bookings", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Không thể lấy dữ liệu booking");
+        return res.json();
+      })
+      .then(data => {
+        const mappedTestOrders = data.map((booking) => {
+          const rawStatus = booking.testResults?.[0]?.status ?? booking.status;
+          const [startTime, endTime] = booking.timeSlot?.split('-') || [];
+
+
+          return {
+            id: booking.bookingId,
+            customerId: `KH${booking.userId}`,
+            customerName: booking.customerName,
+            email: booking.customerEmail,
+            phone: booking.customerPhone,
+            bookingDate: booking.bookingDate,
+            timeSlot: booking.timeSlot, // ✅ THÊM DÒNG NÀY!
+            startTime,
+            endTime,
+            status: rawStatus?.toUpperCase() || 'PENDING',
+            statusCode: rawStatus?.toUpperCase() || 'PENDING',// ✅ bạn có thể gộp lại nếu muốn
+            services: booking.testResults?.map(tr => tr.testName)
+              ?? (booking.serviceName ? [booking.serviceName] : []),
+            paymentCode: booking.paymentCode,
+            staffId: booking.staffId,
+            staffName: storedUser?.name || "Ẩn danh",
+            testResults: booking.testResults || [],
+            consultantName: booking.consultantName || null
+          };
+        });
+
+        setTestOrders(mappedTestOrders);
+        console.log("✅ Test orders:", mappedTestOrders);
+      })
+      .catch(error => {
+        console.error("Lỗi khi gọi API booking:", error);
+      });
+  }, []);
+  //api để lấy danh sách tư vấn
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch("http://localhost:8080/api/staff/services", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch services");
+        return res.json();
+      })
+      .then(data => setAvailableServices(data))
+      .catch(error => {
+        console.error("Lỗi khi load dịch vụ:", error);
+      });
   }, []);
 
-  // Hàm logout
-  const handleLogout = () => {
-    // Nếu bạn dùng sessionStorage
-    sessionStorage.clear();  // hoặc sessionStorage.removeItem('userSessionKey')
-    localStorage.clear();
-    // Nếu bạn cần gọi API backend để logout (hủy session server)
-    // fetch('/api/logout', { method: 'POST' }).then(() => {
-    //   window.location.href = '/login';
-    // });
 
-    // Chuyển về trang đăng nhập
-    window.location.href = '/login';
+  //api để lấy danh sách Test
+  useEffect(() => {
+    const token = localStorage.getItem("token"); // nếu API cần xác thực
+
+    fetch("http://localhost:8080/api/staff/services", {
+      headers: {
+        Authorization: `Bearer ${token}`, // nếu backend có bảo vệ
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch services");
+        return res.json();
+      })
+      .then(data => setAvailableTests(data))
+      .catch(error => {
+        console.error("Lỗi khi load dịch vụ:", error);
+      });
+  }, []);
+
+  const handleSubmitResult = async () => {
+    try {
+      const res = await fetch(`/api/staff/${selectedItem.testResultId}/update-result`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ result: selectedResult }),
+      });
+
+      if (!res.ok) throw new Error("Lỗi cập nhật");
+
+      alert("Cập nhật thành công");
+      setShowEditResultModal(false);
+      // reload lại danh sách nếu cần
+    } catch (err) {
+      alert("Cập nhật thất bại: " + err.message);
+    }
   };
+
+
+  //lấy danh sách tư vấn viên
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/staff/bookings/consulting", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Lỗi khi tải lịch tư vấn");
+        return res.json();
+      })
+      .then(data => {
+        const mappedSchedules = data.map((booking) => {
+          const [startTime, endTime] = booking.timeSlot?.split("-") || [];
+
+          return {
+            id: booking.bookingId,
+            customerName: booking.customerName,
+            email: booking.customerEmail,
+            consultantName: booking.consultantName || "Chưa gán",
+            date: booking.date || booking.bookingDate,
+            startTime,
+            endTime,
+            serviceName: booking.serviceName,
+            duration: booking.duration || "",
+            status: booking.status?.toUpperCase() || "PENDING_PAYMENT",
+            services: booking.serviceName ? [booking.serviceName] : [],
+            serviceIds: booking.serviceIds || [],
+            testResults: booking.testResults || [],
+          };
+        });
+
+        setSchedules(mappedSchedules);
+      })
+      .catch(err => {
+        console.error("Không thể tải lịch tư vấn:", err);
+        setSchedules([]);
+      });
+  }, []);
+
+  const translateStatusLabel = (status, type) => {
+    if (!status) return "Không rõ";
+
+    const normalizedStatus = status.toUpperCase();
+
+    if (type === "testOrder") {
+      switch (normalizedStatus) {
+        case "PENDING":
+          return "Chờ xử lý";
+        case "IN_PROGRESS":
+          return "Đang thực hiện";
+        case "COMPLETED":
+          return "Đã hoàn thành";
+        case "CANCELED":
+          return "Đã hủy";
+        default:
+          return status;
+      }
+    }
+
+    if (type === "schedule") {
+      switch (normalizedStatus) {
+        case "PENDING_PAYMENT":
+          return "Chờ thanh toán";
+        case "CONFIRMED":
+          return "Đã xác nhận";
+        case "COMPLETED":
+          return "Đã hoàn thành";
+        case "CANCELED":
+          return "Đã hủy";
+        default:
+          return status;
+      }
+    }
+
+    return status;
+  };
+
+
 
 
   return (
@@ -341,7 +822,7 @@ const StaffDashboard = () => {
               </button> */}
               <div className="flex items-center space-x-3">
                 <div className="text-right leading-tight">
-                  <p className="h-2 text-sm font-medium text-gray-900">BS. {user.name}</p>
+                  <p className="h-2 text-sm font-medium text-gray-900">NV. {user.name}</p>
                   <p className="text-xs text-gray-500">Nhân Viên Y Tế</p>
                 </div>
 
@@ -473,10 +954,11 @@ const StaffDashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">{schedule.date}</p>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status)}`}>
-                          {getStatusIcon(schedule.status)}
-                          <span className="ml-1 capitalize">{schedule.status}</span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status, 'schedule')}`}>
+                          {getStatusIcon(schedule.status, 'schedule')}
+                          <span className="ml-1 capitalize">{translateStatusLabel(schedule.status, 'schedule')}</span>
                         </span>
+
                       </div>
                     </div>
                   ))}
@@ -505,15 +987,16 @@ const StaffDashboard = () => {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{order.customerName}</p>
-                          <p className="text-sm text-gray-500">{order.customerId}</p>
+                          <p className="text-sm text-gray-500">{order.services}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">{order.bookingDate}</p>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          <span className="ml-1">{order.status}</span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status, 'testOrder')}`}>
+                          {getStatusIcon(order.status, 'testOrder')}
+                          <span className="ml-1 capitalize">{translateStatusLabel(order.status, 'testOrder')}</span>
                         </span>
+
                       </div>
                     </div>
                   ))}
@@ -563,14 +1046,15 @@ const StaffDashboard = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
                   >
                     <option value="all">Tất Cả Trạng Thái</option>
-                    <option value="scheduled">Đã Lên Lịch</option>
-                    <option value="confirmed">Đã Xác Nhận</option>
-                    <option value="completed">Đã Hoàn Thành</option>
-                    <option value="cancelled">Đã Hủy</option>
+                    <option value="PENDING_PAYMENT">Chờ thanh toán</option>
+                    <option value="CONFIRMED">Đã xác nhận</option>
+                    <option value="COMPLETED">Đã hoàn thành</option>
+                    <option value="CANCELED">Đã hủy</option>
                   </select>
+
                 </div>
               </div>
             </div>
@@ -605,21 +1089,38 @@ const StaffDashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.consultantName}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{schedule.service}</div>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                              {schedule.serviceName}
+                            </span>
+                          </div>
                           <div className="text-sm text-gray-500">{schedule.duration}</div>
                         </td>
+
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{schedule.date}</div>
                           <div className="text-sm text-gray-500">{schedule.startTime} - {schedule.endTime}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status)}`}>
-                            {getStatusIcon(schedule.status)}
-                            <span className="ml-1 capitalize">{schedule.status}</span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status, 'schedule')}`}>
+                            {getStatusIcon(schedule.status, 'schedule')}
+                            <span className="ml-1 capitalize">{translateStatusLabel(schedule.status, 'schedule')}</span>
                           </span>
+
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-3">
+                            {/* <button
+                              onClick={() => {
+                                setSelectedItem(schedule);
+                                setModalType('result');
+                                setShowEditResultModal(true); // bạn tạo một modal mới để nhập kết quả
+                              }}
+                              className="text-purple-600 hover:text-purple-900 transition-colors"
+                              title="Nhập kết quả"
+                            >
+                              <FlaskConical className="w-4 h-4" />
+                            </button> */}
                             <button
                               onClick={() => {
                                 setSelectedItem(schedule);
@@ -703,9 +1204,10 @@ const StaffDashboard = () => {
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
                   >
                     <option value="all">Tất Cả Trạng Thái</option>
-                    <option value="đang chờ">Đang Chờ</option>
-                    <option value="đang thực hiện">Đang Thực Hiện</option>
-                    <option value="đã hoàn thành">Đã Hoàn Thành</option>
+                    <option value="PENDING">Chờ xử lý</option>
+                    <option value="IN_PROGRESS">Đang thực hiện</option>
+                    <option value="COMPLETED">Đã hoàn thành</option>
+                    <option value="CANCELED">Đã hủy</option>
                   </select>
                 </div>
               </div>
@@ -734,37 +1236,57 @@ const StaffDashboard = () => {
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
-                              <div className="text-sm text-gray-500">{order.customerId}</div>
+                              {/* <div className="text-sm text-gray-500">{order.customerId}</div> */}
                               <div className="text-xs text-gray-400">{order.email}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center text-sm text-gray-900">
-                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                            {order.bookingDate}
+                          <div className="text-sm text-gray-900">
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                              <span>{order.bookingDate}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 pl-6">
+                              {order.timeSlot || "Không có"}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
-                            {order.services.map((service, idx) => (
+                            {order.services.map((serviceName, idx) => (
                               <span
                                 key={idx}
                                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200"
                               >
-                                {service}
+                                {serviceName}
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                            {getStatusIcon(order.status)}
-                            <span className="ml-1">{order.status}</span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.statusCode, 'testOrder')}`}>
+                            {getStatusIcon(order.statusCode, 'testOrder')}
+                            <span className="ml-1 capitalize">{translateStatusLabel(order.statusCode, 'testOrder')}</span>
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => {
+                                const testResult = order.testResults?.[0]; // chỉ dùng cái đầu tiên
+                                if (testResult) {
+                                  setSelectedItem(testResult); // Lưu hẳn TestResult
+                                  setSelectedResult(testResult.result || "");
+                                  setModalType('result');
+                                  setShowEditResultModal(true);
+                                }
+                              }}
+                              className="text-purple-600 hover:text-purple-900 transition-colors"
+                              title="Nhập kết quả"
+                            >
+                              <FlaskConical className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedItem(order);
@@ -833,34 +1355,100 @@ const StaffDashboard = () => {
                       type="email"
                       value={newSchedule.email}
                       onChange={(e) => setNewSchedule({ ...newSchedule, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="khachhang@email.com"
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số Điện Thoại</label>
+                    <input
+                      type="tel"
+                      value={newSchedule.phoneNumber}
+                      onChange={(e) => setNewSchedule({ ...newSchedule, phoneNumber: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="0123-456-789"
+                    />
+                  </div>
+                  {/* --- Ô TUỔI --- */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tuổi *
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={newSchedule.age || ''}              // bảo đảm undefined → ''
+                      onChange={(e) =>
+                        setNewSchedule({ ...newSchedule, age: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Nhập tuổi"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Giới tính *
+                    </label>
+                    <select
+                      value={newSchedule.gender || ''}
+                      onChange={(e) =>
+                        setNewSchedule({ ...newSchedule, gender: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Chọn giới tính</option>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tư Vấn Viên</label>
                     <select
-                      value={newSchedule.consultantName}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, consultantName: e.target.value })}
+                      value={newSchedule.consultantId || ""}
+                      onChange={(e) => {
+                        const selectedId = parseInt(e.target.value, 10);
+                        const selectedConsultant = consultants.find(c => c.id === selectedId);
+                        setNewSchedule(prev => ({
+                          ...prev,
+                          consultantId: selectedId,
+                          consultantName: selectedConsultant?.fullName || "",
+                        }));
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Chọn Tư Vấn Viên</option>
                       {consultants.map(consultant => (
-                        <option key={consultant} value={consultant}>{consultant}</option>
+                        <option key={consultant.id} value={consultant.id}>
+                          {consultant.fullName} ({translateSpecialization(consultant.specialization)})
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Dịch Vụ</label>
                     <select
-                      value={newSchedule.service}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, service: e.target.value })}
+                      value={newSchedule.serviceId || ""}
+                      onChange={(e) => {
+                        const selectedServiceId = parseInt(e.target.value, 10);
+                        setNewSchedule(prev => ({
+                          ...prev,
+                          serviceId: selectedServiceId,
+                          consultantId: "", // reset tư vấn viên nếu đổi dịch vụ
+                          consultantName: "",
+                        }));
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="">Chọn Dịch Vụ</option>
-                      {services.map(service => (
-                        <option key={service} value={service}>{service}</option>
-                      ))}
+                      <option value="">Chọn Dịch Vụ Tư Vấn</option>
+                      {availableTests
+                        .filter(service => service.categoryType === "CONSULTATION")
+                        .map(service => (
+                          <option key={service.serviceId} value={service.serviceId}>
+                            {service.serviceName}
+                          </option>
+                        ))}
                     </select>
                   </div>
                   <div>
@@ -881,8 +1469,7 @@ const StaffDashboard = () => {
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-                </div>
-                <div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Kết Thúc</label>
                   <input
                     type="time"
@@ -891,6 +1478,8 @@ const StaffDashboard = () => {
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                </div>
+                
               </div>
             ) : (
               <div className="space-y-4">
@@ -926,6 +1515,30 @@ const StaffDashboard = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giới Tính *</label>
+                    <select
+                      value={newTestOrder.gender}
+                      onChange={(e) => setNewTestOrder({ ...newTestOrder, gender: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">-- Chọn giới tính --</option>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tuổi *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTestOrder.age}
+                      onChange={(e) => setNewTestOrder({ ...newTestOrder, age: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="VD: 30"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ngày Xét Nghiệm *</label>
                     <input
                       type="date"
@@ -938,27 +1551,42 @@ const StaffDashboard = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Chọn Xét Nghiệm *</label>
                   <div className="grid grid-cols-2 gap-3">
-                    {availableTests.map((test) => (
-                      <label key={test} className="flex items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newTestOrder.services.includes(test)}
-                          onChange={() => handleServiceToggle(test)}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        />
-                        <span className="ml-3 text-sm text-gray-700">{test}</span>
-                      </label>
-                    ))}
+                    {availableTests
+                      .filter(test => test.categoryType === "TEST")
+                      .map((test) => (
+                        <label
+                          key={test.serviceId}
+                          className="flex items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="testService"
+                            value={test.serviceId}
+                            checked={selectedServiceId === test.serviceId}
+                            onChange={() => setSelectedServiceId(test.serviceId)}
+                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          />
+                          <span className="ml-3 text-sm text-gray-700">{test.serviceName}</span>
+                        </label>
+                      ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Mã Thanh Toán</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Bắt Đầu</label>
                   <input
-                    type="text"
-                    value={newTestOrder.paymentCode}
-                    onChange={(e) => setNewTestOrder({ ...newTestOrder, paymentCode: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="TT001"
+                    type="time"
+                    value={newSchedule.startTime}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Kết Thúc</label>
+                  <input
+                    type="time"
+                    value={newSchedule.endTime}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -985,6 +1613,47 @@ const StaffDashboard = () => {
         </div>
       )}
 
+      {showEditResultModal && selectedItem && modalType === 'result' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Nhập Kết Quả Xét Nghiệm</h3>
+              <button
+                onClick={() => {
+                  setShowEditResultModal(false);
+                  setSelectedItem(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">Kết quả</label>
+              <select
+                value={selectedResult}
+                onChange={(e) => setSelectedResult(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              >
+                <option value="">-- Chọn kết quả --</option>
+                <option value="Âm tính">Âm tính</option>
+                <option value="Dương tính">Dương tính</option>
+              </select>
+
+              <button
+                onClick={handleSubmitResult}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
+              >
+                Cập nhật kết quả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
       {/* Edit Modal */}
       {showEditModal && selectedItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -1006,39 +1675,59 @@ const StaffDashboard = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số Điện Thoại</label>
                     <input
-                      type="email"
-                      value={selectedItem.email}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      type="tel"
+                      value={selectedItem.customerPhone}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, customerPhone: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tư Vấn Viên</label>
                     <select
-                      value={selectedItem.consultantName}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, consultantName: e.target.value })}
+                      value={selectedItem.consultantId || ""}
+                      onChange={(e) => {
+                        const selectedId = parseInt(e.target.value, 10);
+                        setSelectedItem(prev => {
+                          const selectedConsultant = consultants.find(c => c.id === selectedId);
+                          return {
+                            ...prev,
+                            consultantId: selectedId,
+                            consultantName: selectedConsultant?.fullName || "",
+                          };
+                        });
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Chọn Tư Vấn Viên</option>
                       {consultants.map(consultant => (
-                        <option key={consultant} value={consultant}>{consultant}</option>
+                        <option key={consultant.id} value={consultant.id}>
+                          {consultant.fullName} ({translateSpecialization(consultant.specialization)})
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Dịch Vụ</label>
                     <select
-                      value={selectedItem.service}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, service: e.target.value })}
+                      value={selectedItem.serviceId || ""}
+                      onChange={(e) => {
+                        const selectedServiceId = parseInt(e.target.value, 10);
+                        setSelectedItem({ ...selectedItem, serviceId: selectedServiceId });
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Chọn Dịch Vụ</option>
-                      {services.map(service => (
-                        <option key={service} value={service}>{service}</option>
-                      ))}
+                      {availableServices
+                        .filter(service => service.categoryType === "CONSULTATION") // nếu chỉ muốn tư vấn
+                        .map(service => (
+                          <option key={service.serviceId} value={service.serviceId}>
+                            {service.serviceName}
+                          </option>
+                        ))}
                     </select>
+
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ngày *</label>
@@ -1056,10 +1745,9 @@ const StaffDashboard = () => {
                       onChange={(e) => setSelectedItem({ ...selectedItem, status: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="scheduled">Đã Lên Lịch</option>
-                      <option value="confirmed">Đã Xác Nhận</option>
-                      <option value="completed">Đã Hoàn Thành</option>
-                      <option value="cancelled">Đã Hủy</option>
+                      <option value="PENDING_PAYMENT">Chờ Thanh Toán</option>
+                      <option value="CONFIRMED">Đã Xác Nhận</option>
+                      <option value="CANCELED">Đã Hủy</option>
                     </select>
                   </div>
                 </div>
@@ -1101,6 +1789,7 @@ const StaffDashboard = () => {
                     <input
                       type="email"
                       value={selectedItem.email}
+                      disabled
                       onChange={(e) => setSelectedItem({ ...selectedItem, email: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -1109,8 +1798,8 @@ const StaffDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Số Điện Thoại</label>
                     <input
                       type="tel"
-                      value={selectedItem.phone}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, phone: e.target.value })}
+                      value={selectedItem.customerPhone}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, customerPhone: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
@@ -1119,6 +1808,7 @@ const StaffDashboard = () => {
                     <input
                       type="date"
                       value={selectedItem.bookingDate}
+                      disabled
                       onChange={(e) => setSelectedItem({ ...selectedItem, bookingDate: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -1126,16 +1816,29 @@ const StaffDashboard = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Trạng Thái</label>
                     <select
-                      value={selectedItem.status}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, status: e.target.value })}
+                      value={selectedItem.testResults?.[0]?.status || ""}
+                      onChange={(e) => {
+                        const updatedTestResults = [...(selectedItem.testResults || [])];
+                        if (updatedTestResults[0]) {
+                          updatedTestResults[0] = {
+                            ...updatedTestResults[0],
+                            status: e.target.value
+                          };
+                        }
+                        setSelectedItem((prev) => ({
+                          ...prev,
+                          testResults: updatedTestResults
+                        }));
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <option value="Đang Chờ">Đang Chờ</option>
-                      <option value="Đang Thực Hiện">Đang Thực Hiện</option>
-                      <option value="Đã Hoàn Thành">Đã Hoàn Thành</option>
+                      <option value="PENDING">Đang Chờ</option>
+                      <option value="IN_PROGRESS">Đang Thực Hiện</option>
+                      <option value="COMPLETED">Đã Hoàn Thành</option>
+                      <option value="CANCELED">Đã Hủy</option>
                     </select>
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Mã Thanh Toán</label>
                     <input
                       type="text"
@@ -1143,24 +1846,24 @@ const StaffDashboard = () => {
                       onChange={(e) => setSelectedItem({ ...selectedItem, paymentCode: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
-                  </div>
+                  </div> */}
                 </div>
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Chọn Xét Nghiệm</label>
                   <div className="grid grid-cols-2 gap-3">
                     {availableTests.map((test) => (
-                      <label key={test} className="flex items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+                      <label key={test.serviceId} className="flex items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={selectedItem.services.includes(test)}
-                          onChange={() => handleServiceToggle(test)}
+                          checked={selectedServiceIds.includes(test.serviceId)} // ✅ dùng serviceId
+                          onChange={() => handleServiceToggle(test.serviceId)}  // ✅ toggle theo serviceId
                           className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                         />
-                        <span className="ml-3 text-sm text-gray-700">{test}</span>
+                        <span className="ml-3 text-sm text-gray-700">{test.serviceName}</span>
                       </label>
                     ))}
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
 
@@ -1188,6 +1891,7 @@ const StaffDashboard = () => {
           </div>
         </div>
       )}
+
 
       {/* Detail Modal */}
       {showDetailModal && selectedItem && (
@@ -1234,30 +1938,34 @@ const StaffDashboard = () => {
                     <p className="text-sm text-gray-900">{selectedItem.consultantName}</p>
                   </div>
                 )}
-                {selectedItem.service && (
+                {/* {selectedItem.serviceName && (
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Dịch Vụ</p>
-                    <p className="text-sm text-gray-900">{selectedItem.service}</p>
+                    <p className="text-sm text-gray-900">{selectedItem.serviceName}</p>
                   </div>
-                )}
-                {selectedItem.customerId && (
+                )} */}
+                {/* {selectedItem.customerId && (
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Mã Khách Hàng</p>
                     <p className="text-sm text-gray-900">{selectedItem.customerId}</p>
                   </div>
-                )}
+                )} */}
                 {selectedItem.paymentCode && (
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Mã Thanh Toán</p>
                     <p className="text-sm text-gray-900">{selectedItem.paymentCode}</p>
                   </div>
                 )}
+
                 <div>
                   <p className="text-sm font-medium text-gray-500 mb-1">Trạng Thái</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedItem.status)}`}>
-                    {getStatusIcon(selectedItem.status)}
-                    <span className="ml-1">{selectedItem.status}</span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedItem.status, modalType === 'test' ? 'testOrder' : 'schedule')}`}>
+                    {getStatusIcon(selectedItem.status, modalType)}
+                    <span className="ml-1"><span className="ml-1">{translateStatusLabel(selectedItem.status, modalType === 'test' ? 'testOrder' : 'schedule')}</span>
+                    </span>
                   </span>
+
+
                 </div>
               </div>
 
@@ -1311,19 +2019,19 @@ const StaffDashboard = () => {
                   ) : (
                     <>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'Đang Chờ', 'test')}
+                        onClick={() => updateStatus(selectedItem.id, 'PENDING', 'testOrder')}
                         className="px-3 py-1 text-xs bg-amber-100 text-amber-800 rounded-full hover:bg-amber-200 transition-colors border border-amber-200"
                       >
                         Đang Chờ
                       </button>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'Đang Thực Hiện', 'test')}
+                        onClick={() => updateStatus(selectedItem.id, 'IN_PROGRESS', 'testOrder')}
                         className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors border border-blue-200"
                       >
                         Đang Thực Hiện
                       </button>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'Đã Hoàn Thành', 'test')}
+                        onClick={() => updateStatus(selectedItem.id, 'COMPLETED', 'testOrder')}
                         className="px-3 py-1 text-xs bg-emerald-100 text-emerald-800 rounded-full hover:bg-emerald-200 transition-colors border border-emerald-200"
                       >
                         Đã Hoàn Thành

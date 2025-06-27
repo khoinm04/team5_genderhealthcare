@@ -16,6 +16,7 @@ import STIsTestPage from "./components/STIsTestPage";
 import PaymentPage from "./components/PaymentPage";
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
+import ScheduleManagement from './components/ScheduleManagement';
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
 
 
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
           <Route path="/oauth2-success" element={<GoogleCallback />} />
           <Route path="/manager" element={<ManagerDashboard />} />
+          <Route path="/manager/schedules" element={<ScheduleManagement />} />
           <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
 
           {/* Thêm các route khác nếu cần */}

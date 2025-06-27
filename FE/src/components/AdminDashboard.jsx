@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Users, MessageSquare, Bell, BarChart3, Calendar, Trash, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
 import axios from 'axios';
 import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
+import ReactECharts from 'echarts-for-react';
+import { useStatsSocket } from "../hooks/useStatsSocket";
+
+
+
 
 
 
@@ -12,15 +17,18 @@ const AdminDashboard = () => {
   const [messageFilter, setMessageFilter] = useState('all');
   const [userFilter, setUserFilter] = useState('all');
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [totalBookings, setTotalBookings] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
   const [notificationForm, setNotificationForm] = useState({
-
     title: '',
     content: '',
     status: 'isActive'
   });
+
+  const { deactivateClient } = useOnlineUsersSocket(() => { });
+
 
   // const [formData, setFormData] = useState({
   //   name: "",
@@ -57,44 +65,140 @@ const AdminDashboard = () => {
     return;
   }
 
-  axios.get("http://localhost:8080/api/admin/users", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    }
-  })
-    .then((res) => {
-      console.log("Phản hồi từ server:", res.data);
-      const fetchedUsers = res.data;
+  // 🔄 Gọi đồng thời cả hai API: /users và /bookings/count
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+
+  const fetchUsers = axios.get("http://localhost:8080/api/admin/users", { headers });
+  const fetchTotalBookings = axios.get("http://localhost:8080/api/admin/users/stats/bookings/count", { headers });
+
+  Promise.all([fetchUsers, fetchTotalBookings])
+    .then(([usersRes, bookingsRes]) => {
+      // ✅ Gán danh sách người dùng
+      const fetchedUsers = usersRes.data;
       if (Array.isArray(fetchedUsers)) {
-        setUsers(fetchedUsers); // ✅ Giữ nguyên
-        // ❌ BỎ DÒNG NÀY:
-        // setOnlineUsers(fetchedUsers.filter(user => user.online));
+        setUsers(fetchedUsers);
       } else {
-        console.error("API trả về không phải mảng:", fetchedUsers);
+        console.error("API /users trả về không phải mảng:", fetchedUsers);
       }
+
+      // ✅ Gán tổng số lượt đặt lịch
+      setTotalBookings(bookingsRes.data);
     })
     .catch((err) => {
-      console.error("Lỗi khi lấy dữ liệu user:", err);
+      console.error("Lỗi khi gọi API thống kê:", err);
     });
+
 }, []);
 
+//userEffect này để làm bảng thống kê
+// nhớ tải  npm install echarts echarts-for-react
+const [chartData, setChartData] = useState([]);
 
-useOnlineUsersSocket((realtimeOnlineUsers) => {
-  console.log("🟢 Danh sách online từ socket:", realtimeOnlineUsers);
-  setOnlineUsers(realtimeOnlineUsers);
+const chartOption = {
+  title: {
+    text: 'Thống kê tạo tài khoản & đặt lịch',
+    left: 'center',
+    textStyle: {
+      fontSize: 18,
+      fontWeight: 'bold'
+    }
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'shadow'
+    }
+  },
+  legend: {
+    top: 30,
+    data: ['Tài khoản mới', 'Lượt đặt lịch']
+  },
+  grid: {
+    left: '5%',
+    right: '5%',
+    bottom: '10%',
+    containLabel: true
+  },
+  xAxis: {
+    type: 'category',
+    data: chartData.map(d => d.date)
+  },
+  yAxis: {
+    type: 'value',
+    name: 'Số lượng'
+  },
+  series: [
+    {
+      name: 'Tài khoản mới',
+      type: 'bar',
+      stack: 'total',
+      data: chartData.map(d => d.totalUsers),
+      itemStyle: { color: '#5C6BC0' }
+    },
+    {
+      name: 'Lượt đặt lịch',
+      type: 'bar',
+      stack: 'total',
+      data: chartData.map(d => d.totalBookings),
+      itemStyle: { color: '#26A69A' }
+    }
+  ]
+};
 
-  // Cập nhật lại trạng thái online cho mỗi user trong danh sách
-  setUsers((prevUsers) => {
-  const updated = prevUsers.map((u) => ({
-    ...u,
-    isOnline: realtimeOnlineUsers.some((ou) => ou.userId === u.userId),
-  }));
-  console.log("📌 User sau khi cập nhật online:", updated);
-  return updated;
-});
 
-});
+
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  if (!storedUser) return;
+
+  let token;
+  try {
+    token = JSON.parse(storedUser).token;
+  } catch (e) {
+    console.error("❌ Lỗi khi parse user:", e);
+    return;
+  }
+
+  axios.get("http://localhost:8080/api/admin/users/daily", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+  .then(res => {
+    const data = res.data;
+    console.log("📊 Dữ liệu biểu đồ:", data);
+    console.log("🔢 Số ngày:", data.length);
+
+    data.forEach(item => {
+      console.log(`📅 ${item.date} → 🧑 ${item.totalUsers} user | 📆 ${item.totalBookings} booking`);
+    });
+
+    setChartData(data);
+  })
+  .catch(err => {
+    console.error("❌ Lỗi khi lấy dữ liệu thống kê:", err);
+  });
+}, []);
+// lay thong ke websoket
+// lay danh sach user online
+  useOnlineUsersSocket((realtimeOnlineUsers) => {
+    console.log("🟢 Danh sách online từ socket:", realtimeOnlineUsers);
+    setOnlineUsers(realtimeOnlineUsers);
+
+    // Cập nhật lại trạng thái online cho mỗi user trong danh sách
+    setUsers((prevUsers) => {
+      const updated = prevUsers.map((u) => ({
+        ...u,
+        isOnline: realtimeOnlineUsers.some((ou) => ou.userId === u.userId),
+      }));
+      console.log("📌 User sau khi cập nhật online:", updated);
+      return updated;
+    });
+
+  });
 
 
 
@@ -115,7 +219,7 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
     onlineUsers: onlineUsers.length,
     ongoingConsultations: 23,
     completedConsultations: 156,
-    totalBookings: 342,
+    totalBookings: totalBookings,
     activeServices: 8,
     messagesSent: 1834,
     messagesReceived: 1756
@@ -176,7 +280,7 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
         </div>
       </div>
 
-      
+
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -197,23 +301,13 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Báo cáo & Hoạt động gần đây</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <span className="text-sm text-gray-600">Số lượng đăng ký người dùng mới trong tuần này: 24</span>
-            <span className="text-xs text-gray-500">Cập nhật 2 giờ trước</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <span className="text-sm text-gray-600">Tỷ lệ hoàn thành tư vấn: 94.2%</span>
-            <span className="text-xs text-gray-500">Cập nhật 4 giờ trước</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <span className="text-sm text-gray-600">Thời gian phản hồi trung bình: 12 phút</span>
-            <span className="text-xs text-gray-500">Cập nhật 1 giờ trước</span>
-          </div>
-        </div>
-      </div>
+      <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+  <h3 className="text-lg font-semibold text-gray-800 mb-4">Biểu đồ thống kê dành cho quản trị</h3>
+  <ReactECharts option={chartOption} style={{ height: '400px', width: '100%' }} />
+</div>
+
+
+
     </div>
   );
 
@@ -266,16 +360,17 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.roleName === 'Quản trị viên' ? 'bg-red-100 text-red-800' :
-                    user.roleName === 'Nhân viên' ? 'bg-red-100 text-red-800' :
-                      user.roleName === 'Tư vấn viên' ? 'bg-blue-100 text-blue-800' :
-                        user.roleName === 'Khách hàng' ? 'bg-green-100 text-green-800' :
-                          user.roleName === 'Quản lý' ? 'bg-green-100 text-green-800' :
-                            'bg-green-100 text-green-800'
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.roleName === 'Quản trị viên' ? 'bg-red-200 text-red-900' :
+                      user.roleName === 'Nhân viên' ? 'bg-orange-200 text-orange-900' :
+                        user.roleName === 'Tư vấn viên' ? 'bg-blue-200 text-blue-900' :
+                          user.roleName === 'Khách hàng' ? 'bg-emerald-200 text-emerald-900' :
+                            user.roleName === 'Quản lý' ? 'bg-purple-200 text-purple-900' :
+                              'bg-gray-200 text-gray-800'
                     }`}>
                     {user.roleName}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -283,17 +378,16 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
                       {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
                     </span>
                     {user.isOnline ? (
-  <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
-    <div className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></div>
-    Trực tuyến
-  </span>
-) : (
-  <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full mt-1 w-fit">
-    <div className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1"></div>
-    Ngoại tuyến
-  </span>
-)}
-
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
+                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></div>
+                        Trực tuyến
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full mt-1 w-fit">
+                        <div className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1"></div>
+                        Ngoại tuyến
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -400,21 +494,23 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
     </div>
   );
 
-  {selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full">
-            <h2 className="text-lg font-bold mb-2">Thông tin người dùng</h2>
-            <p><strong>Email:</strong> {selectedUser.email}</p>
-            <p><strong>Role:</strong> {selectedUser.role}</p>
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              Đóng
-            </button>
-          </div>
+  {
+    selectedUser && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full">
+          <h2 className="text-lg font-bold mb-2">Thông tin người dùng</h2>
+          <p><strong>Email:</strong> {selectedUser.email}</p>
+          <p><strong>Role:</strong> {selectedUser.role}</p>
+          <button
+            onClick={() => setSelectedUser(null)}
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Đóng
+          </button>
         </div>
-      )}
+      </div>
+    )
+  }
 
   const MessagingPanel = () => (
     <div className="space-y-6">
@@ -636,17 +732,11 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
   );
 
   // Hàm logout
-  const handleLogout = () => {
-    // Nếu bạn dùng sessionStorage
-    sessionStorage.clear();  // hoặc sessionStorage.removeItem('userSessionKey')
+  const handleLogout = async () => {
+    await deactivateClient(); // 👈 Đảm bảo báo offline và đóng WS
     localStorage.clear();
-    // Nếu bạn cần gọi API backend để logout (hủy session server)
-    // fetch('/api/logout', { method: 'POST' }).then(() => {
-    //   window.location.href = '/login';
-    // });
-
-    // Chuyển về trang đăng nhập
-    window.location.href = '/login';
+    sessionStorage.clear();
+    window.location.href = "/login";
   };
 
 
@@ -689,20 +779,20 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
 
       alert("Cập nhật thành công!");
       setSelectedUser(null);
-    }  catch (error) {
-  console.error("Lỗi khi cập nhật:", error);
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
 
-  const status = error.response?.status;
-  const message = error.response?.data;
+      const status = error.response?.status;
+      const message = error.response?.data;
 
-  if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
-    alert("Bạn không thể chỉnh sửa chính mình.");
-  } else {
-    const fallbackMessage =
-      message?.message || error.message || "Cập nhật thất bại";
-    alert("Lỗi khi cập nhật: " + fallbackMessage);
-  }
-}
+      if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
+        alert("Bạn không thể chỉnh sửa chính mình.");
+      } else {
+        const fallbackMessage =
+          message?.message || error.message || "Cập nhật thất bại";
+        alert("Lỗi khi cập nhật: " + fallbackMessage);
+      }
+    }
 
   };
 
@@ -714,32 +804,32 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
     });
   };
   const handleDeleteUser = async (user) => {
-  const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
-  if (!confirmed) return;
+    const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
+    if (!confirmed) return;
 
-  try {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
       const token = storedUser?.token;
 
-    if (!token) {
-      alert("Không tìm thấy token, vui lòng đăng nhập lại.");
-      return;
+      if (!token) {
+        alert("Không tìm thấy token, vui lòng đăng nhập lại.");
+        return;
+      }
+
+      await axios.delete(`/api/admin/users/${user.userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      alert("Xóa thành công!");
+      // cập nhật danh sách nếu cần
+    } catch (error) {
+      console.error("Lỗi khi xóa:", error);
+      const msg = error.response?.data?.message || "Không thể xóa người dùng.";
+      alert(msg);
     }
-
-    await axios.delete(`/api/admin/users/${user.userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    alert("Xóa thành công!");
-    // cập nhật danh sách nếu cần
-  } catch (error) {
-    console.error("Lỗi khi xóa:", error);
-    const msg = error.response?.data?.message || "Không thể xóa người dùng.";
-    alert(msg);
-  }
-};
+  };
 
   // Update checkbox handler
   const handleCheckboxChange = (e) => {

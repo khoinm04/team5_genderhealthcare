@@ -106,6 +106,7 @@ const STIsTestPage = () => {
         return "text-gray-600 bg-gray-100";
     }
   };
+
   const translateGender = (gender) => {
     switch (gender) {
       case "MALE":
@@ -144,26 +145,37 @@ const STIsTestPage = () => {
     setSelectedResult(null);
   };
 
-  const handleDownload = (downloadUrl) => {
-    axios
-      .get(downloadUrl, {
-        withCredentials: true,
-        responseType: "blob",
-      })
-      .then((response) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `test_result.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      })
-      .catch((err) => {
-        console.error("Lỗi tải file:", err);
-        alert("Không thể tải file kết quả. Vui lòng thử lại.");
-      });
-  };
+  const handleDownload = async (bookingId) => {
+  try {
+    const res = await fetch(`http://localhost:8080/api/bookings/sti/test-result/${bookingId}/report?format=PDF`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) {
+  const errorText = await res.text();
+  console.error("📛 Server Error:", res.status, errorText);
+  alert(`Tải kết quả thất bại: ${res.status} - ${errorText}`);
+  return;
+}
+
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ket-qua-xet-nghiem-${bookingId}.pdf`;
+    link.click();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Lỗi tải PDF:", error);
+    alert("Tải kết quả thất bại");
+  }
+};
+
 
   const STIsTestBooking = () => {
     const [selectedTest, setSelectedTest] = useState(null);
@@ -796,9 +808,9 @@ const STIsTestPage = () => {
                       <Eye className="h-4 w-4" />
                       <span>Xem chi tiết</span>
                     </button>
-                    {result.downloadUrl && result.status === "completed" && (
+                    {result.bookingId && result.status === "completed" && (
                       <button
-                        onClick={() => handleDownload(result.downloadUrl)}
+                        onClick={() => handleDownload(result.bookingId)}
                         className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                       >
                         <Download className="h-5 w-5" />
@@ -816,6 +828,7 @@ const STIsTestPage = () => {
 
   const DetailsModal = () => {
     if (!showDetailsModal || !selectedResult) return null;
+console.log("🧪 selectedResult", selectedResult);
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -935,6 +948,7 @@ const STIsTestPage = () => {
                       style={{ width: `${selectedResult.progressPercentage}%` }}
                     ></div>
                   </div>
+
                   {selectedResult.estimatedMinutesRemaining > 0 && (
                     <p className="text-sm text-gray-600 mt-1">
                       Thời gian hoàn thành dự kiến: {selectedResult.estimatedMinutesRemaining} phút
@@ -1002,6 +1016,7 @@ const STIsTestPage = () => {
                               </span>
                             </div>
                           </div>
+                          
                         </div>
                       )
                     )}
@@ -1040,7 +1055,7 @@ const STIsTestPage = () => {
             <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
               {selectedResult.downloadUrl && selectedResult.status === "completed" && (
                 <button
-                  onClick={() => handleDownload(selectedResult.downloadUrl)}
+                  onClick={() => handleDownload(selectedResult.bookingId)}
                   className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Download className="h-4 w-4" />

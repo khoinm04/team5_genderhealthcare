@@ -6,10 +6,7 @@ import com.ghsms.file_enum.BookingStatus;
 import com.ghsms.file_enum.ReportFormat;
 import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.file_enum.TestStatus;
-import com.ghsms.model.Booking;
-import com.ghsms.model.CustomerDetails;
-import com.ghsms.model.Services;
-import com.ghsms.model.TestResult;
+import com.ghsms.model.*;
 import com.ghsms.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -347,6 +344,21 @@ public class BookingController {
             dto.setCustomerPhone(customer.getPhoneNumber());
             dto.setCustomerEmail(customer.getEmail());
         }
+
+        // Staff info mapping
+        // ✅ Thêm thông tin nhân viên xét nghiệm (Staff)
+        StaffDetails staffDetails = testResult.getBooking().getStaff();
+        if (staffDetails != null) {
+            User staffUser = staffDetails.getStaff(); // chính là User
+            if (staffUser != null) {
+                dto.setStaffName(staffUser.getName()); // hoặc getName() tùy theo entity User
+            }
+
+            if (staffDetails.getSpecialization() != null) {
+                dto.setStaffSpecialty(staffDetails.getSpecialization().name()); // nếu là enum
+            }
+        }
+
 
         // ✅ Thêm thông tin dịch vụ
         if (!testResult.getBooking().getServices().isEmpty()) {

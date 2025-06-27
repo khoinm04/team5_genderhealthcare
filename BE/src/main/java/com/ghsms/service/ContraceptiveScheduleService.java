@@ -43,7 +43,7 @@ public class ContraceptiveScheduleService {
         User user = optionalUser.get();
 
         //kiểm tra xem user đã có lịch uống thuốc nào chưa
-        List<ContraceptiveSchedule> existingSchedules = contraceptiveScheduleRepository.findByUserUserIdAndIsActiveTrue(user.getUserId());
+        List<ContraceptiveSchedule> existingSchedules = contraceptiveScheduleRepository.findByUserUserIdAndActiveTrue(user.getUserId());
         if (!existingSchedules.isEmpty()) {
             throw new RuntimeException("Bạn đã có lịch uống thuốc tránh thai, không nên đăng ký lịch mới!");
         }
@@ -68,7 +68,7 @@ public class ContraceptiveScheduleService {
      * Lấy toàn bộ lịch uống thuốc còn active của một user
      */
     public List<ContraceptiveScheduleDTO> getSchedulesByUser(Long userId) {
-        List<ContraceptiveSchedule> schedules = contraceptiveScheduleRepository.findByUserUserIdAndIsActiveTrue(userId);
+        List<ContraceptiveSchedule> schedules = contraceptiveScheduleRepository.findByUserUserIdAndActiveTrue(userId);
         return schedules.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -158,7 +158,7 @@ public class ContraceptiveScheduleService {
         // Thêm log để debug
         System.out.println("Đang chạy kiểm tra thuốc lúc: " + now);
         // Lấy tất cả lịch uống thuốc đang active
-        List<ContraceptiveSchedule> activeSchedules = contraceptiveScheduleRepository.findByIsActiveTrue();
+        List<ContraceptiveSchedule> activeSchedules = contraceptiveScheduleRepository.findByActiveTrue();
 
         for (ContraceptiveSchedule schedule : activeSchedules) {
             // Kiểm tra xem có nên gửi nhắc nhở không
@@ -233,7 +233,7 @@ public class ContraceptiveScheduleService {
 
     public ContraceptiveSchedule getActiveScheduleByUserId(Long userId) {
         return contraceptiveScheduleRepository
-                .findByUserUserIdAndIsActiveTrue(userId)
+                .findByUserUserIdAndActiveTrue(userId)
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch thuốc đang hoạt động"));

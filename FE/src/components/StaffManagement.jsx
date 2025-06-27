@@ -124,19 +124,19 @@ const StaffManagement = () => {
   }, []);
 
   const translateSpecialty = (specialization) => {
-  switch (specialization) {
-    case 'STI_HIV':
-      return 'Xét nghiệm HIV';
-    case 'STI_SYPHILIS':
-      return 'Xét nghiệm giang mai (Syphilis)';
-    case 'STI_GONORRHEA':
-      return 'Xét nghiệm lậu (Gonorrhea)';
-    case 'STI_Chlamydia':
-      return 'Xét nghiệm Chlamydia';
-    default:
-      return specialization;
-  }
-};
+    switch (specialization) {
+      case 'STI_HIV':
+        return 'Xét nghiệm HIV';
+      case 'STI_SYPHILIS':
+        return 'Xét nghiệm giang mai (Syphilis)';
+      case 'STI_GONORRHEA':
+        return 'Xét nghiệm lậu (Gonorrhea)';
+      case 'STI_Chlamydia':
+        return 'Xét nghiệm Chlamydia';
+      default:
+        return specialization;
+    }
+  };
 
 
   return (
@@ -215,7 +215,12 @@ const StaffManagement = () => {
                     </div>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{member.roleDisplay}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900">{translateSpecialty(member.specialization) || 'Chưa xác định'}</td>
+                  <td className="py-4 px-4 text-sm">
+  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
+    {translateSpecialty(member.specialization) || 'Chưa xác định'}
+  </span>
+</td>
+
                   <td className="py-4 px-4">{getStatusBadge(member.active)}</td>
                   <td className="py-4 px-4 text-sm text-gray-900">
                     {new Date(member.hireDate).toLocaleDateString('vi-VN')}

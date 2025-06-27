@@ -6,12 +6,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class TestResultDTO {
+public class TestResultDTO implements Serializable {
     private Long testResultId;
     private Long bookingId;
     private String testName;
@@ -35,6 +36,11 @@ public class TestResultDTO {
     private String serviceCategory;
     private LocalDateTime estimatedCollectionTime;
     private LocalDateTime estimatedProcessingTime;
+
+    //staff information
+    private String staffName;
+    private String staffSpecialty;
+
 
     // Optional: For showing time remaining
     public Long getEstimatedMinutesRemaining() {

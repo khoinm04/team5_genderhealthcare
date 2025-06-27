@@ -1,15 +1,20 @@
 package com.ghsms.controller;
 
+import com.ghsms.DTO.DailyStatsDTO;
 import com.ghsms.DTO.UserDTO;
 import com.ghsms.DTO.UserUpdateDTO;
 import com.ghsms.config.UserPrincipal;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.Role;
 import com.ghsms.model.User;
+import com.ghsms.service.AdminStatsService;
+import com.ghsms.service.BookingService;
 import com.ghsms.service.RoleService;
 import com.ghsms.service.UserService;
+import com.ghsms.websocket.OnlineUserBroadcaster;
 import com.ghsms.websocket.OnlineUserTracker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -29,13 +34,15 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@Slf4j
 public class AdminController {
 
     private final UserService userService;
     private final RoleService roleService;
     private final OnlineUserTracker onlineUserTracker;
-    private final SimpMessagingTemplate messagingTemplate;
-
+    private final OnlineUserBroadcaster onlineUserBroadcaster; // 👈 Thêm broadcaster để phát trực tuyến
+    private final BookingService bookingService;
+    private final AdminStatsService adminStatsService;
 
     // Lấy danh sách tất cả user
     @GetMapping
@@ -57,7 +64,6 @@ public class AdminController {
 
         return ResponseEntity.ok(users);
     }
-
 
     // Cập nhật user (không cập nhật password)
     @PutMapping("/{id}")
@@ -105,7 +111,6 @@ public class AdminController {
         }
     }
 
-
     // Xóa user theo id
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
@@ -117,32 +122,41 @@ public class AdminController {
         }
     }
 
-    @GetMapping("/online/count")
-    public ResponseEntity<Integer> getOnlineUserCount() {
-        return ResponseEntity.ok(onlineUserTracker.countOnlineUsers());
-    }
+//    @GetMapping("/online/count")
+//    public ResponseEntity<Integer> getOnlineUserCount() {
+//        return ResponseEntity.ok(onlineUserTracker.countOnlineUsers());
+//    }
 
     @MessageMapping("/online")
     public void handle(Principal principal) {
         if (principal instanceof UserPrincipal userPrincipal) {
             Long userId = userPrincipal.getUser().getUserId();
             onlineUserTracker.addUser(userId);
-
-            Set<Long> onlineIds = onlineUserTracker.getOnlineUserIds();
-            List<UserDTO> onlineUsers = userService.getUsersByIds(onlineIds).stream()
-                    .map(user -> {
-                        UserDTO dto = new UserDTO(user);
-                        dto.setIsOnline(true);
-                        return dto;
-                    })
-                    .toList();
-
-            messagingTemplate.convertAndSend("/topic/online-users", onlineUsers);
+            onlineUserBroadcaster.broadcastOnlineUsers(); // 👈 dùng lại logic chung
         }
     }
 
+    @MessageMapping("/offline")
+    public void handleOffline(Principal principal) {
+        if (principal instanceof UserPrincipal userPrincipal) {
+            Long userId = userPrincipal.getUser().getUserId();
+            onlineUserTracker.removeUser(userId);
+            onlineUserBroadcaster.broadcastOnlineUsers();
+            log.info("📴 [Manual] User marked offline: {}", userId);
+        }
+    }
 
+    //lay tong so dat lich cho admin thay
+    @GetMapping("/stats/bookings/count")
+    public ResponseEntity<Long> getTotalBookings() {
+        long total = bookingService.getTotalBookings();
+        return ResponseEntity.ok(total);
+    }
 
-
+    //lam bang thong ke cho admin theo ngay
+    @GetMapping("/daily")
+    public List<DailyStatsDTO> getDailyStats() {
+        return adminStatsService.getDailyStats();
+    }
 }
 

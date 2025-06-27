@@ -1,14 +1,13 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.BookingDTO;
+import com.ghsms.DTO.BookingUpdateRequestDTO;
 import com.ghsms.file_enum.*;
 import com.ghsms.mapper.BookingMapper;
 import com.ghsms.model.*;
 import com.ghsms.repository.*;
 import com.ghsms.util.PaymentCodeGenerator;
 import com.ghsms.util.ReportGenerator;
-import com.itextpdf.text.log.Logger;
-import com.itextpdf.text.log.LoggerFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
@@ -16,6 +15,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,9 +42,13 @@ public class BookingService {
     private final ReportGenerator reportGenerator;
     private final StaffDetailsRepository staffDetailsRepository;
     private final ConsultantDetailsRepository consultantDetailsRepository;
-    private final UserService userService;
     private final BookingMapper bookingMapper;
+    private final ConsultationRepository consultationRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
+
+    //danh cho websocket bang thong ke cua admin
 
 
     @PersistenceContext
@@ -98,7 +101,9 @@ public class BookingService {
             booking.addService(services);
         }
 
+
         return bookingRepository.save(booking);
+
     }
 
     public Booking findByPaymentCode(String paymentCode) {
@@ -109,12 +114,14 @@ public class BookingService {
     }
 
     public Booking createStiBooking(BookingDTO bookingDTO) {
-        CustomerDetails customerDetails = null;
-        User user = null;
+        CustomerDetails customerDetails;
+        User user;
 
         if (bookingDTO.getUserId() != null) {
+            // 🔹 Trường hợp khách đã đăng nhập
             user = userRepository.findById(bookingDTO.getUserId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
             customerDetails = user.getCustomerDetails();
             if (customerDetails == null) {
                 customerDetails = new CustomerDetails();
@@ -124,18 +131,42 @@ public class BookingService {
                 customerDetails.setAge(bookingDTO.getCustomerAge());
                 customerDetails.setGender(bookingDTO.getCustomerGender());
                 customerDetails.setCustomer(user);
+
                 customerDetails = customerDetailsRepository.save(customerDetails);
             }
+
         } else {
+            // 🔹 Trường hợp staff tạo giúp —> Tạo luôn User mới
+            user = new User();
+            user.setName(bookingDTO.getCustomerName());
+            user.setEmail(bookingDTO.getCustomerEmail());
+            user.setPhoneNumber(bookingDTO.getCustomerPhone());
+            user.setIsActive(true);
+            user.setAuthProvider(AuthProvider.LOCAL); // hoặc GOOGLE nếu có OAuth2
+
+            Role customerRole = roleRepository.findByName(RoleName.ROLE_CUSTOMER)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy role CUSTOMER"));
+            user.setRole(customerRole);
+
+            // Mật khẩu mặc định (random hoặc cấu hình riêng)
+            String defaultPassword = "123@Abcd"; // hoặc UUID.randomUUID().toString()
+            user.setPasswordHash(passwordEncoder.encode(defaultPassword));
+
+            user = userRepository.save(user);
+
+            // ➕ Tạo CustomerDetails gắn với User vừa tạo
             customerDetails = new CustomerDetails();
             customerDetails.setFullName(bookingDTO.getCustomerName());
             customerDetails.setEmail(bookingDTO.getCustomerEmail());
             customerDetails.setPhoneNumber(bookingDTO.getCustomerPhone());
             customerDetails.setAge(bookingDTO.getCustomerAge());
             customerDetails.setGender(bookingDTO.getCustomerGender());
+            customerDetails.setCustomer(user);
+
             customerDetails = customerDetailsRepository.save(customerDetails);
         }
 
+        // Booking STI
         Booking booking = new Booking();
         booking.setCustomer(customerDetails);
         booking.setBookingDate(bookingDTO.getBookingDate());
@@ -146,20 +177,23 @@ public class BookingService {
         for (Long serviceId : bookingDTO.getServiceIds()) {
             Services service = serviceRepository.findById(serviceId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found with ID: " + serviceId));
-            if (service.getCategory() != ServiceBookingCategory.STI_HIV &&
-                    service.getCategory() != ServiceBookingCategory.STI_Syphilis &&
-                    service.getCategory() != ServiceBookingCategory.STI_Gonorrhea &&
-                    service.getCategory() != ServiceBookingCategory.STI_Chlamydia) {
+
+            if (!Set.of(
+                    ServiceBookingCategory.STI_HIV,
+                    ServiceBookingCategory.STI_Syphilis,
+                    ServiceBookingCategory.STI_Gonorrhea,
+                    ServiceBookingCategory.STI_Chlamydia
+            ).contains(service.getCategory())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only STI test services are allowed");
             }
+
             booking.addService(service);
         }
 
         booking = bookingRepository.save(booking);
 
-        // Create test results with detailed tracking
+        // ➕ Tạo TestResult
         LocalDateTime appointmentTime = LocalDateTime.parse(booking.getBookingDate() + "T" + booking.getTimeSlot().split("-")[0]);
-
         for (Services service : booking.getServices()) {
             TestResult testResult = new TestResult();
             testResult.setBooking(booking);
@@ -167,7 +201,7 @@ public class BookingService {
             testResult.setStatus(TestStatus.PENDING);
             testResult.setGeneratedAt(LocalDateTime.now());
             testResult.setScheduledTime(appointmentTime);
-            testResult.setEstimatedCompletionTime(appointmentTime.plusHours(3)); // Estimate 3 hours for completion
+            testResult.setEstimatedCompletionTime(appointmentTime.plusHours(3));
             testResult.setCurrentPhase("Scheduled");
             testResult.setProgressPercentage(0);
             testResult.setLastUpdated(LocalDateTime.now());
@@ -176,8 +210,11 @@ public class BookingService {
             testResultRepository.save(testResult);
         }
 
+
+
         return booking;
     }
+
 
     public Booking confirmStiPayment(String paymentCode) {
         Booking booking = findByPaymentCode(paymentCode);
@@ -188,24 +225,17 @@ public class BookingService {
     public byte[] generateTestResultReport(Long bookingId, ReportFormat format) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
         List<TestResult> results = findByBookingIdAndStatusCustom(bookingId, TestStatus.COMPLETED.name());
 
         if (results.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No completed test results available");
         }
 
-        TestResult testResult = new TestResult();
-        testResult.setBooking(booking);
-        testResult.setTestName(booking.getServices().iterator().next().getServiceName());
-        testResult.setResult(results.get(0).getResult());
-        testResult.setStatus(TestStatus.COMPLETED);
-        testResult.setGeneratedAt(LocalDateTime.now());
-        testResult.setFormat(format);
-        testResult.setFileContent(reportGenerator.generateReport(results, format));
-
-        testResultRepository.save(testResult);
-        return testResult.getFileContent();
+        // ✅ Chỉ generate báo cáo từ danh sách kết quả
+        return reportGenerator.generateReport(results, format);
     }
+
 
     // In BookingService.java
     public Booking findBookingById(Long bookingId) {
@@ -388,10 +418,10 @@ public class BookingService {
             boolean allAreTestServices = booking.getServices().stream()
                     .allMatch(service -> TEST_CATEGORIES.contains(service.getCategory()));
 
-            log.debug("✅ Tất cả dịch vụ thuộc nhóm xét nghiệm? {}", allAreTestServices);
+            log.debug("Tất cả dịch vụ thuộc nhóm xét nghiệm? {}", allAreTestServices);
 
             if (!allAreTestServices) {
-                log.warn("⚠️ Booking {} chứa dịch vụ không thuộc nhóm xét nghiệm. Không thể gán staff.", bookingId);
+                log.warn("Booking {} chứa dịch vụ không thuộc nhóm xét nghiệm. Không thể gán staff.", bookingId);
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Chỉ được gán staff cho các dịch vụ thuộc nhóm xét nghiệm"
@@ -432,14 +462,14 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy lịch hẹn"));
 
-        // ✅ Gán nhân viên nếu có
+        // Gán nhân viên nếu có
         if (dto.getStaffId() != null) {
             User staff = userRepository.findById(dto.getStaffId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy nhân viên"));
             booking.setStaff(staff.getStaffDetails());
         }
 
-        // ✅ Gán tư vấn viên nếu có
+        // Gán tư vấn viên nếu có
         if (dto.getConsultantId() != null) {
             User consultant = userRepository.findById(dto.getConsultantId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tư vấn viên"));
@@ -447,17 +477,17 @@ public class BookingService {
         }
 
 
-        // ✅ Gán ngày nếu có (String "yyyy-MM-dd")
+        // Gán ngày nếu có (String "yyyy-MM-dd")
         if (dto.getBookingDate() != null) {
             booking.setBookingDate(dto.getBookingDate());
         }
 
-        // ✅ Gán timeSlot nếu có (String "HH:mm-HH:mm")
+        // Gán timeSlot nếu có (String "HH:mm-HH:mm")
         if (dto.getTimeSlot() != null) {
             booking.setTimeSlot(dto.getTimeSlot());
         }
 
-        // ✅ Gán thông tin khách hàng nếu cho phép chỉnh
+        // Gán thông tin khách hàng nếu cho phép chỉnh
         if (dto.getCustomerName() != null) {
             booking.getCustomer().setFullName(dto.getCustomerName());
         }
@@ -484,37 +514,93 @@ public class BookingService {
     @Transactional
     public void assignConsultantToBooking(Long bookingId, Long consultantUserId) {
         try {
-
             Booking booking = bookingRepository.findById(bookingId)
-                    .orElseThrow(() -> {
-                        return new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn");
-                    });
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn"));
 
             boolean anyConsultationService = booking.getServices().stream()
                     .anyMatch(service -> CONSULTANT_CATEGORIES.contains(service.getCategory()));
 
             if (!anyConsultationService) {
-                log.warn("⚠️ Booking {} không chứa dịch vụ tư vấn. Không thể gán tư vấn viên.", bookingId);
+                log.warn("Booking {} không chứa dịch vụ tư vấn. Không thể gán tư vấn viên.", bookingId);
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Chỉ được gán tư vấn viên cho các dịch vụ thuộc nhóm tư vấn"
                 );
             }
 
-            ConsultantDetails consultant  = consultantDetailsRepository.findByConsultantUserIdAndActive(consultantUserId, true)
-                    .orElseThrow(() -> {
-                        return new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Không tìm thấy tư vấn viên hoặc đã ngưng hoạt động"
-                        );
-                    });
+            ConsultantDetails consultant = consultantDetailsRepository
+                    .findByConsultantUserIdAndActive(consultantUserId, true)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Không tìm thấy tư vấn viên hoặc đã ngưng hoạt động"
+                    ));
 
+            // Gán vào booking
             booking.setConsultant(consultant);
             bookingRepository.save(booking);
+
+            // Gán vào consultation nếu tồn tại
+            consultationRepository.findByBooking_BookingId(bookingId)
+                    .ifPresent(consultation -> {
+                        consultation.setConsultant(consultant);
+                        consultationRepository.save(consultation);
+                    });
 
         } catch (Exception ex) {
             throw ex;
         }
     }
+
+
+    // Lấy danh sách lịch hẹn sắp tới của nhân viên
+    public List<BookingDTO> getBookingsByStaffUserId(Long staffUserId) {
+        List<Booking> bookings = bookingRepository.findAllByStaffUserId(staffUserId);
+        return bookings.stream()
+                .map(bookingMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public void updateByStaff(BookingUpdateRequestDTO req) {
+        Booking booking = bookingRepository.findById(req.getBookingId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // Cập nhật thông tin khách hàng
+        if (req.getCustomerName() != null) {
+            booking.getCustomer().setFullName(req.getCustomerName());
+        }
+        if (req.getCustomerPhone() != null) {
+            booking.getCustomer().setPhoneNumber(req.getCustomerPhone());
+        }
+
+        if (req.getTestResultUpdates() != null) {
+            for (var update : req.getTestResultUpdates()) {
+                System.out.println("🔄 Updating TestResult ID: " + update.getTestResultId() + " to status: " + update.getStatus());
+
+                TestResult result = testResultRepository.findById(update.getTestResultId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+                if (update.getStatus() != null) {
+                    result.setStatus(update.getStatus());
+                }
+
+                if (update.getTestName() != null && !update.getTestName().isBlank()) {
+                    result.setTestName(update.getTestName());
+                }
+
+                testResultRepository.save(result); // ❗ Lưu riêng từng bản ghi TestResult
+            }
+        }
+
+        // Lưu booking (nếu cascade sẽ lưu cả customer)
+        bookingRepository.save(booking);
+    }
+
+    //de dem tong so dat lịch tren trang admin
+    public long getTotalBookings() {
+        return bookingRepository.count(); // dùng method mặc định
+    }
+
 
 }

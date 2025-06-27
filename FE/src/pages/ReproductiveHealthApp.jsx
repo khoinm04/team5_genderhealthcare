@@ -51,10 +51,15 @@ const ReproductiveHealthApp = () => {
     });
 
     // ==================== LẤY DỮ LIỆU THẬT TỪ BE ====================
+
     useEffect(() => {
-        if (!USE_MOCK_DATA && userId) {
-            // Lấy chu kỳ từ backend
-            axios.get(`/api/menstrual-cycles/user/${userId}`)
+        if (!USE_MOCK_DATA && userId) { // nhớ check userId luôn nhé!
+            const token = localStorage.getItem('token');
+            axios.get(`/api/menstrual-cycles/customer/${userId}/current`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            })
                 .then(res => {
                     if (res.data) {
                         setCycleData(res.data);
@@ -67,6 +72,9 @@ const ReproductiveHealthApp = () => {
                 });
         }
     }, [USE_MOCK_DATA, userId]);
+
+
+
 
     useEffect(() => {
         if (!USE_MOCK_DATA && userId) {
@@ -145,7 +153,9 @@ const ReproductiveHealthApp = () => {
         const currentDate = new Date(year, month, day);
         const daysDiff = Math.floor((currentDate - cycleStart) / (1000 * 60 * 60 * 24));
         const cycleDay = daysDiff + 1;
-        if (cycleDay <= cycleData.periodDays) return 'period';
+        // Lấy đúng số ngày hành kinh từ BE
+        const periodDays = cycleData.periodDays || cycleData.menstruationDuration || 5;
+        if (cycleDay <= periodDays) return 'period';
         const ovulationDay = cycleData.cycleLength - 14 + 1;
         if (cycleDay === ovulationDay) return 'ovulation';
         if (Math.abs(cycleDay - ovulationDay) <= 2) return 'high-fertility';
@@ -153,7 +163,43 @@ const ReproductiveHealthApp = () => {
         return 'low-fertility';
     };
 
-    // Lịch thuốc: xác định trạng thái ngày
+    // Xóa chu kì
+    const handleDeleteCycle = () => {
+        const cycleId = cycleData.cycleId;
+        if (!cycleId || !userId) {
+            alert("Không tìm thấy ID chu kỳ hoặc userId!");
+            return;
+        }
+
+        if (!window.confirm("Bạn chắc chắn muốn xóa chu kỳ kinh nguyệt này?")) return;
+
+        const token = localStorage.getItem('token');
+        axios.delete(`/api/menstrual-cycles/customer/${userId}/cycles/${cycleId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        })
+            .then(res => {
+                alert(res.data || "Đã xóa thành công chu kỳ kinh nguyệt!");
+                setCycleData({
+                    startDate: '',
+                    cycleLength: 28,
+                    periodDays: 5,
+                    cycleId: null,
+                });
+                setHasCycleData(false);
+            })
+            .catch(err => {
+                console.error("Xóa chu kỳ thất bại:", err?.response);
+                const msg = err?.response?.data || "Xóa chu kỳ thất bại!";
+                alert(msg);
+            });
+    };
+
+
+
+
+    // LỊCH THUỐC: xác định trạng thái ngày
     const getPillDayStatus = (year, month, day) => {
         if (!day || !pillSchedule) return '';
         const pillStart = new Date(pillSchedule.startDate);
@@ -166,15 +212,24 @@ const ReproductiveHealthApp = () => {
         if (daysDiff < 0 || daysDiff >= maxDays) return '';
 
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-        if (pillHistory[dateStr] === false) return 'missed';
-        if (pillHistory[dateStr] === true) return 'taken';
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        if (targetDate.getTime() === today.getTime()) return 'today';
 
-        return 'scheduled';
+        if (targetDate < today) {
+            // Ngày trong quá khứ
+            if (pillHistory[dateStr] === true) return 'taken';
+            else return 'missed'; // chưa tick là missed
+        } else if (targetDate.getTime() === today.getTime()) {
+            // Hôm nay
+            if (pillHistory[dateStr] === true) return 'taken';
+            return 'today';
+        } else {
+            // Ngày tương lai: không màu
+            return '';
+        }
     };
+
 
     // Sự kiện lưu chu kỳ: user nhập xong nhấn Lưu
     const handleSaveCycle = () => {
@@ -183,15 +238,26 @@ const ReproductiveHealthApp = () => {
             return;
         }
 
-        console.log('Gửi dữ liệu:', {
-            startDate: cycleData.startDate,
-            cycleLength: cycleData.cycleLength,
-            menstruationDuration: cycleData.periodDays
-        });
+        // Kiểm tra ngày hợp lệ trên FE trước khi gửi lên BE
+        const today = new Date();
+        const startDateObj = new Date(cycleData.startDate);
+        today.setHours(0, 0, 0, 0);
+        startDateObj.setHours(0, 0, 0, 0);
 
-        setHasCycleData(true);
-        const startDate = new Date(cycleData.startDate);
-        setCycleCalendarMonth({ year: startDate.getFullYear(), month: startDate.getMonth() });
+        if (startDateObj > today) {
+            alert("Ngày bắt đầu không được sau ngày hiện tại!");
+            return;
+        }
+        const validCycleLength = cycleData.cycleLength ?? 28;
+        const minDate = new Date(today);
+        minDate.setDate(today.getDate() - validCycleLength);
+        if (startDateObj < minDate) {
+            alert(`Ngày bắt đầu không được cách quá xa ngày so với hiện tại!`);
+            return;
+        }
+
+        // Chỉ set lịch tháng khi hợp lệ
+        setCycleCalendarMonth({ year: startDateObj.getFullYear(), month: startDateObj.getMonth() });
 
         const token = localStorage.getItem('token');
         axios.post('/api/menstrual-cycles/track', {
@@ -204,7 +270,11 @@ const ReproductiveHealthApp = () => {
             }
         })
             .then(res => {
-                setCycleData(res.data);
+                setCycleData(prev => ({
+                    ...prev,
+                    startDate: res.data.startDate,
+                    cycleId: res.data.cycleId || prev.cycleId,
+                }));
                 setHasCycleData(true);
             })
             .catch(err => {
@@ -216,82 +286,112 @@ const ReproductiveHealthApp = () => {
 
 
 
+
     // Sự kiện xác nhận đã uống thuốc hôm nay
     const handleTakePill = () => {
-  if (!pillSchedule?.id) return;
+        if (!pillSchedule?.id) return;
 
-  const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token');
 
-  axios.patch(`/api/contraceptive-schedules/${pillSchedule.id}/confirm`, null, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    }
-  })
-  .then(res => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        axios.patch(`/api/contraceptive-schedules/${pillSchedule.id}/confirm`, null, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        })
+            .then(res => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
 
-    // ✅ Cập nhật local pillHistory để disable nút ngay lập tức
-    setPillHistory(prev => ({
-      ...prev,
-      [todayStr]: true,
-    }));
+                // ✅ Cập nhật local pillHistory để disable nút ngay lập tức
+                setPillHistory(prev => ({
+                    ...prev,
+                    [todayStr]: true,
+                }));
 
-    // ✅ Cập nhật local currentPill nếu muốn hiệu ứng UI
-    setPillSchedule(prev => ({
-      ...prev,
-      currentPill: prev.currentPill < parseInt(prev.type) ? prev.currentPill + 1 : 1,
-    }));
+                // ✅ Cập nhật local currentPill nếu muốn hiệu ứng UI
+                setPillSchedule(prev => ({
+                    ...prev,
+                    currentPill: prev.currentPill < parseInt(prev.type) ? prev.currentPill + 1 : 1,
+                }));
 
-    alert(res.data); // "Đã xác nhận bạn đã uống thuốc hôm nay!"
-  })
-  .catch(err => {
-    const msg = err?.response?.data || "Xác nhận thất bại!";
-    alert(msg);
-  });
-};
+                alert(res.data); // "Đã xác nhận bạn đã uống thuốc hôm nay!"
+            })
+            .catch(err => {
+                const msg = err?.response?.data || "Xác nhận thất bại!";
+                alert(msg);
+            });
+    };
 
 
 
     // Xóa lịch thuốc
     const handleDeletePillSchedule = () => {
-        setPillSchedule(null);
-        setPillHistory({});
-        // Nếu dùng BE, nên gọi API DELETE ở đây
+        if (!pillSchedule?.id || !userId) {
+            alert("Không tìm thấy ID lịch thuốc hoặc userId!");
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+
+        // Gọi API BE để xóa
+        axios.delete(`/api/contraceptive-schedules/${pillSchedule.id}`, {
+            params: { userId: userId },
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        })
+            .then(res => {
+                alert(res.data || "Đã xóa thành công lịch uống thuốc!");
+                setPillSchedule(null);
+                setPillHistory({});
+            })
+            .catch(err => {
+                const msg = err?.response?.data || "Xóa lịch thuốc thất bại!";
+                alert(msg);
+            });
     };
+
 
     // Tạo mới lịch thuốc (khi user nhập từ form)
     const createPillSchedule = (formData) => {
   const newSchedule = {
     type: formData.type,
-    startDate: formData.startDate,
-pillTime: typeof formData.time === "string" ? formData.time.padEnd(8, ":00") : "00:00:00",
+    startDate: formData.startDate,    // "yyyy-MM-dd"
+    pillTime: formData.pillTime,      // "HH:mm:ss"
     currentIndex: 0,
     isActive: true,
     breakUntil: null
   };
 
+  console.log("🎯 Dữ liệu gửi:", newSchedule);
+
+
   const token = localStorage.getItem('token');
 
   axios.post('/api/contraceptive-schedules', newSchedule, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
   })
-  .then(() => {
-    return axios.get('/api/contraceptive-schedules/current', {
-      headers: { Authorization: `Bearer ${token}` }
+    .then(() => {
+      return axios.get('/api/contraceptive-schedules/current', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    })
+    .then(res => {
+      setPillSchedule(res.data.schedule);
+      setPillHistory(res.data.history || {});
+      alert("Đăng ký lịch uống thuốc thành công!");
+    })
+    .catch(err => {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || "Lỗi không xác định";
+      alert(msg);
+      console.error("❌ Lỗi chi tiết:", err.response?.data || err);
     });
-  })
-  .then(res => {
-    setPillSchedule(res.data.schedule);          // ✅ chuyển sang giao diện PillStatusPanel
-    setPillHistory(res.data.history || {});
-    alert("Đăng ký lịch uống thuốc thành công!");
-  })
-  .catch(err => {
-    const msg = err?.response?.data?.message || err?.response?.data?.error || "Lỗi không xác định";
-    alert(msg);
-    console.error("❌ Lỗi chi tiết:", err);
-  });
 };
 
 
@@ -328,43 +428,60 @@ pillTime: typeof formData.time === "string" ? formData.time.padEnd(8, ":00") : "
     // Hàm thống kê thuốc từng tháng
     function getPillStats(pillSchedule, pillHistory, calendarMonth) {
         if (!pillSchedule) return { taken: 0, missed: 0, scheduled: 0 };
+
         const { year, month } = calendarMonth;
         const pillStart = new Date(pillSchedule.startDate);
         pillStart.setHours(0, 0, 0, 0);
-        const maxDays = pillSchedule.type === '21' ? 21 : 28;
 
-        let taken = 0, missed = 0, total = 0;
+        // Tìm số ngày trong tháng
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let taken = 0, missed = 0, scheduled = 0;
 
-        for (let i = 0; i < maxDays; i++) {
-            const d = new Date(pillStart);
-            d.setDate(pillStart.getDate() + i);
-            if (d.getMonth() !== month || d.getFullYear() !== year) continue;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const d = new Date(year, month, day);
+            d.setHours(0, 0, 0, 0);
+
+            // Chỉ tính các ngày nằm trong khoảng vỉ thuốc đang uống
+            if (d < pillStart) continue;
+            const maxDays = pillSchedule.type === '21' ? 21 : 28;
+            const index = Math.floor((d - pillStart) / (1000 * 60 * 60 * 24));
+            if (index < 0 || index >= maxDays) continue;
+
             const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-            if (pillHistory[dateStr] === true) taken++;
-            else if (pillHistory[dateStr] === false) missed++;
-            total++;
+            const historyValue = pillHistory[dateStr];
+
+            if (historyValue === true) {
+                taken++;
+            } else if (historyValue === false && d < today) {
+                missed++;
+            } else if (d >= today) {
+                scheduled++;
+            }
         }
 
-        const scheduled = total - taken - missed;
         return { taken, missed, scheduled };
     }
 
+
     useEffect(() => {
-  if (activeTab === 'pills') {
-    const token = localStorage.getItem("token");
-    axios.get('/api/contraceptive-schedules/current', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      setPillSchedule(res.data.schedule);
-      setPillHistory(res.data.history || {});
-    })
-    .catch(err => {
-      // Không có lịch thì giữ nguyên pillSchedule = null
-      console.warn("🟡 Chưa có lịch thuốc:", err?.response?.data?.message);
-    });
-  }
-}, [activeTab]);
+        if (activeTab === 'pills') {
+            const token = localStorage.getItem("token");
+            axios.get('/api/contraceptive-schedules/current', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => {
+                    setPillSchedule(res.data.schedule);
+                    setPillHistory(res.data.history || {});
+                })
+                .catch(err => {
+                    // Không có lịch thì giữ nguyên pillSchedule = null
+                    console.warn("🟡 Chưa có lịch thuốc:", err?.response?.data?.message);
+                });
+        }
+    }, [activeTab]);
 
     // ==================== GIAO DIỆN CHÍNH ====================
     return (
@@ -395,6 +512,7 @@ pillTime: typeof formData.time === "string" ? formData.time.padEnd(8, ":00") : "
                                 cycleData={cycleData}
                                 setCycleData={setCycleData}
                                 handleSaveCycle={handleSaveCycle}
+                                disabled={hasCycleData}
                             />
                             <CycleCalendar
                                 cycleCalendarMonth={cycleCalendarMonth}
@@ -403,6 +521,13 @@ pillTime: typeof formData.time === "string" ? formData.time.padEnd(8, ":00") : "
                                 getCycleDayType={getCycleDayType}
                                 hasCycleData={hasCycleData}
                             />
+                            <button
+                                onClick={handleDeleteCycle}
+                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
+                            >
+                                Xóa lịch chu kì
+                            </button>
+
                         </div>
                     )}
 
@@ -442,7 +567,7 @@ pillTime: typeof formData.time === "string" ? formData.time.padEnd(8, ":00") : "
                                     />
                                     <button
                                         onClick={handleDeletePillSchedule}
-                                        className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-all"
+                                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
                                     >
                                         Xóa lịch uống thuốc
                                     </button>

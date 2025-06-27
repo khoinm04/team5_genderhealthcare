@@ -1,10 +1,14 @@
 import React from 'react';
 import { Users, UserCheck, Wrench, TrendingUp, Calendar, Clock, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from "react-router-dom";
+
 
 
 const Dashboard = () => {
   const [statsData, setStatsData] = useState([]);
+  const navigate = useNavigate();
+
 
   // const statsData = [
   //   {
@@ -65,39 +69,51 @@ const Dashboard = () => {
   const token = localStorage.getItem("token");
 
   const fetchStats = async () => {
-    try {
-      const [staffRes, consultantRes] = await Promise.all([
-        fetch("http://localhost:8080/api/manager/total-staff", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch("http://localhost:8080/api/manager/total-consultants", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
+  try {
+    const [staffRes, consultantRes, serviceRes] = await Promise.all([
+      fetch("http://localhost:8080/api/manager/total-staff", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("http://localhost:8080/api/manager/total-consultants", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("http://localhost:8080/api/manager/total-services", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
 
-      const staffData = await staffRes.json();
-      const consultantData = await consultantRes.json();
+    const staffData = await staffRes.json();
+    const consultantData = await consultantRes.json();
+    const serviceData = await serviceRes.json();
 
-      setStatsData([
-        {
-          title: "Tổng nhân viên",
-          value: staffData.totalStaff,
-          change: staffData.staffChange,
-          icon: Users,
-          color: "bg-blue-500"
-        },
-        {
-          title: "Tổng tư vấn viên",
-          value: consultantData.totalConsultant,
-          change: consultantData.consultantChange,
-          icon: Users,
-          color: "bg-green-500"
-        }
-      ]);
-    } catch (err) {
-      console.error("❌ Lỗi khi tải thống kê:", err);
-    }
-  };
+    setStatsData([
+      {
+        title: "Tổng nhân viên",
+        value: staffData.totalStaff,
+        change: staffData.staffChange,
+        icon: Users,
+        color: "bg-blue-500"
+      },
+      {
+        title: "Tổng tư vấn viên",
+        value: consultantData.totalConsultant,
+        change: consultantData.consultantChange,
+        icon: UserCheck,
+        color: "bg-green-500"
+      },
+      {
+        title: "Dịch vụ đang cung cấp",
+        value: serviceData.totalServices,
+        change: serviceData.serviceChange,
+        icon: Wrench,
+        color: "bg-purple-500"
+      }
+    ]);
+  } catch (err) {
+    console.error("❌ Lỗi khi tải thống kê:", err);
+  }
+};
+
 
   const fetchSchedules = async () => {
     try {
@@ -211,7 +227,9 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Lịch sắp tới</h2>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+            <button 
+            onClick={() => navigate("/manager/schedules")}
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium">
               Xem lịch đầy đủ
             </button>
           </div>

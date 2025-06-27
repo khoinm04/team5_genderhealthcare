@@ -1,20 +1,18 @@
 package com.ghsms.service;
 
-import com.ghsms.DTO.UserDTO;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.User;
 import com.ghsms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.ghsms.mapper.UserMapper;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +23,9 @@ public class UserService {
     private final UserMapper userMapper;
 
 
+
+
     public User createUser(User user) {
-        // Encode password before saving
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
         return userRepository.save(user);
     }
@@ -86,7 +85,7 @@ public class UserService {
 
     //Các chức năng dành cho admin
     public List<User> getAllActiveUsers(){
-        return userRepository.findByIsActiveTrue();
+        return userRepository.findAll();
     }
 
 

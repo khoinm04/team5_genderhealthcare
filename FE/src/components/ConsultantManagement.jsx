@@ -28,49 +28,49 @@ const ConsultantManagement = () => {
   };
 
   const handleSaveConsultant = async (formData) => {
-  console.log("🔍 Kiểm tra formData:", formData);
+    console.log("🔍 Kiểm tra formData:", formData);
 
-  if (modalType === 'add') {
-    const newConsultant = {
-      id: Date.now().toString(),
-      ...formData,
-      status: 'active',
-    };
-    setConsultants([...consultants, newConsultant]);
-  } else if (modalType === 'edit') {
-    try {
-      console.log("🚀 specialization gửi lên:", formData.specialization);
+    if (modalType === 'add') {
+      const newConsultant = {
+        id: Date.now().toString(),
+        ...formData,
+        status: 'active',
+      };
+      setConsultants([...consultants, newConsultant]);
+    } else if (modalType === 'edit') {
+      try {
+        console.log("🚀 specialization gửi lên:", formData.specialization);
 
-      const response = await fetch('/api/manager/consultants/full', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          consultantId: selectedConsultant.id,
-          name: formData.name,
-          email: formData.email,
-          phoneNumber: formData.phoneNumber,
-          specialization: formData.specialization,
-          hireDate: formData.hireDate,
-          yearsOfExperience: formData.yearsOfExperience, // 🆕 Thêm năm kinh nghiệm
-        }),
-      });
+        const response = await fetch('/api/manager/consultants/full', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            consultantId: selectedConsultant.id,
+            name: formData.name,
+            email: formData.email,
+            phoneNumber: formData.phoneNumber,
+            specialization: formData.specialization,
+            hireDate: formData.hireDate,
+            yearsOfExperience: formData.yearsOfExperience, // 🆕 Thêm năm kinh nghiệm
+          }),
+        });
 
-      const result = await response.text();
-      if (!response.ok) {
-        console.error("❌ Cập nhật thất bại:", response.status, result);
-        throw new Error('Cập nhật thất bại');
-      }
+        const result = await response.text();
+        if (!response.ok) {
+          console.error("❌ Cập nhật thất bại:", response.status, result);
+          throw new Error('Cập nhật thất bại');
+        }
 
-      alert('Cập nhật thành công');
+        alert('Cập nhật thành công');
 
-      // ✅ Cập nhật local state
-      setConsultants(prev =>
-        prev.map((member) =>
-          member.id === selectedConsultant.id
-            ? {
+        // ✅ Cập nhật local state
+        setConsultants(prev =>
+          prev.map((member) =>
+            member.id === selectedConsultant.id
+              ? {
                 ...member,
                 name: formData.name,
                 email: formData.email,
@@ -79,15 +79,15 @@ const ConsultantManagement = () => {
                 hireDate: formData.hireDate,
                 yearsOfExperience: formData.yearsOfExperience,
               }
-            : member
-        )
-      );
-    } catch (error) {
-      console.error("❌ Lỗi khi gọi API:", error);
-      alert('Cập nhật thông tin thất bại');
+              : member
+          )
+        );
+      } catch (error) {
+        console.error("❌ Lỗi khi gọi API:", error);
+        alert('Cập nhật thông tin thất bại');
+      }
     }
-  }
-};
+  };
 
 
   const getStatusBadge = (active) => {
@@ -138,19 +138,19 @@ const ConsultantManagement = () => {
   }, []);
 
   const translateSpecialty = (specialization) => {
-  switch (specialization) {
-    case 'GENERAL_CONSULTATION':
-      return 'Tư vấn tổng quát';
-    case 'SPECIALIST_CONSULTATION':
-      return 'Tư vấn chuyên khoa';
-    case 'RE_EXAMINATION':
-      return 'Tư vấn tái khám';
-    case 'EMERGENCY_CONSULTATION':
-      return 'Tư vấn y tế khẩn cấp';
-    default:
-      return specialization;
-  }
-};
+    switch (specialization) {
+      case 'GENERAL_CONSULTATION':
+        return 'Tư vấn tổng quát';
+      case 'SPECIALIST_CONSULTATION':
+        return 'Tư vấn chuyên khoa';
+      case 'RE_EXAMINATION':
+        return 'Tư vấn tái khám';
+      case 'EMERGENCY_CONSULTATION':
+        return 'Tư vấn y tế khẩn cấp';
+      default:
+        return specialization;
+    }
+  };
 
   return (
     <div className="p-6">
@@ -224,13 +224,17 @@ const ConsultantManagement = () => {
                         </span>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{consultant.fullName}</p>
+                        <p className="text-sm font-medium text-gray-900 h-1">{consultant.fullName}</p>
                         <p className="text-sm text-gray-500">{consultant.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.roleDisplay}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900">{translateSpecialty(consultant.specialization) || 'Chưa xác định'}</td>
+                  <td className="py-4 px-4 text-sm">
+                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
+                      {translateSpecialty(consultant.specialization) || 'Chưa xác định'}
+                    </span>
+                  </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.yearsOfExperience} năm</td>
                   <td className="py-4 px-4">{getStatusBadge(consultant.active)}</td>
                   <td className="py-4 px-4 text-sm text-gray-900">
@@ -318,7 +322,7 @@ const ConsultantManagement = () => {
                       {new Date(selectedConsultant.hireDate).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
-                
+
                 </div>
               )}
               {(modalType === 'edit' || modalType === 'add') && (

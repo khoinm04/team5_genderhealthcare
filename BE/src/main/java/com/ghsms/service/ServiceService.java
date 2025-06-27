@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -52,4 +53,8 @@ public class ServiceService {
         serviceRepository.save(service);
     }
 
+    // dem tong so dich vu cho manager
+    public long countServiceActiveTrue(){
+        return serviceRepository.countByActiveTrue();
+    }
 }
