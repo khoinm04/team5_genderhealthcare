@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // For navigation to payment page
+import { useNavigate } from "react-router-dom";
 
 const STIsTestPage = () => {
   const [activeTab, setActiveTab] = useState("results");
@@ -20,6 +20,13 @@ const STIsTestPage = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [testResults, setTestResults] = useState([]);
 
+  // Placeholder for handleHomeExit function
+  const handleHomeExit = () => {
+    if (window.confirm('Bạn có chắc chắn muốn thoát khỏi hệ thống?')) {
+      // In a real application, this would redirect to home page or close the application
+      window.location.href = '/';
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -90,7 +97,6 @@ const STIsTestPage = () => {
       });
   }, []);
 
-
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case "completed":
@@ -106,6 +112,7 @@ const STIsTestPage = () => {
         return "text-gray-600 bg-gray-100";
     }
   };
+
   const translateGender = (gender) => {
     switch (gender) {
       case "MALE":
@@ -116,7 +123,6 @@ const STIsTestPage = () => {
         return "Khác";
     }
   };
-
 
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
@@ -132,7 +138,6 @@ const STIsTestPage = () => {
         return <AlertCircle className="h-4 w-4" />;
     }
   };
-
 
   const handleViewDetails = (result) => {
     setSelectedResult(result);
@@ -326,7 +331,6 @@ const STIsTestPage = () => {
       }
     };
 
-
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Test Selection */}
@@ -414,7 +418,6 @@ const STIsTestPage = () => {
                 </select>
               </div>
 
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số điện thoại *
@@ -435,7 +438,7 @@ const STIsTestPage = () => {
                   type="email"
                   value={bookingData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full pxBra3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Nhập địa chỉ email"
                 />
               </div>
@@ -820,7 +823,7 @@ const STIsTestPage = () => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          {/* Header */}
+          {/* Modal Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 className="text-2xl font-bold text-gray-900">
               Chi tiết kết quả xét nghiệm
@@ -862,9 +865,7 @@ const STIsTestPage = () => {
                     Giới tính:
                   </span>
                   <p className="text-gray-900">
-                    <p className="text-gray-900">
-                      {translateGender(selectedResult.details.patientInfo.gender)}
-                    </p>
+                    {translateGender(selectedResult.details.patientInfo.gender)}
                   </p>
                 </div>
                 <div>
@@ -912,11 +913,10 @@ const STIsTestPage = () => {
                     {getStatusIcon(selectedResult.status)}
                     <span>
                       {selectedResult.status === "completed" && "Hoàn thành"}
-                      {selectedResult.status === "pending" && "Đang chờ"}
+                      {selectedResult.status === "pending" && "Đang chờ"}
                       {selectedResult.status === "in_progress" && "Đang xử lý"}
                       {selectedResult.status === "canceled" && "Đã hủy"}
                     </span>
-
                   </span>
                 </div>
                 <div className="md:col-span-2">
@@ -1065,9 +1065,14 @@ const STIsTestPage = () => {
       {/* Header */}
       <div className="bg-purple-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <TestTube className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <TestTube className="h-8 w-8" />
+              <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
+            </div>
+            <button className="home-exit-button" onClick={handleHomeExit}>
+              🏠 Trang chủ / Thoát
+            </button>
           </div>
           <p className="text-purple-100 text-lg">
             Dịch vụ xét nghiệm các bệnh lây truyền qua đường tình dục an toàn và

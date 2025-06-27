@@ -140,9 +140,12 @@ const PaymentPage = () => {
 
         <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 text-center">
           <div className="flex flex-col items-center mb-4">
-            <QRCodeDisplay
-              value={`https://img.vietqr.io/image/MB-0396057100-qr_only.png?amount=${amount}&addInfo=${paymentCode}`}
-              size={240}
+            <img
+              src="https://img.vietqr.io/image/MB-0396057100-qr_only.png?amount=500000&addInfo=PAY123456789"
+              alt="QR Code VietQR"
+              width={240}
+              height={240}
+              className="border-2 border-gray-300 rounded-lg shadow-sm"
             />
             <p className="text-sm text-gray-500 mt-3">Quét bằng app ngân hàng để thanh toán</p>
           </div>
@@ -177,7 +180,7 @@ const PaymentPage = () => {
             <p className="text-lg font-semibold text-gray-800">
               Số tiền: <span className="text-blue-600">{formatPrice(amount)}</span>
             </p>
-          </div>
+          </div>a
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
