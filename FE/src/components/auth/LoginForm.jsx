@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../../UserContext";
+import { useUser } from "../UserContext";
 
 
 
@@ -50,18 +50,23 @@ export default function LoginForm() {
       };
 
       // ✅ Lưu token riêng ra localStorage
-    localStorage.setItem("token", token);
+      localStorage.setItem("token", token);
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       sessionStorage.setItem("user", JSON.stringify(user));
       sessionStorage.setItem("userId", user.userId.toString());
 
-      if (user.roleName === "Quản trị viên") {
+      if (user.roleName === "Quản trị viên" || user.roleName === "ROLE_ADMIN") {
         navigate("/admin");
-      } else if (user.roleName === "Khách hàng") {
+      } else if (user.roleName === "Nhân viên" || user.roleName === "ROLE_STAFF") {
+        navigate("/staff");
+      } else if (user.roleName === "Khách hàng" || user.roleName === "ROLE_CUSTOMER") {
         navigate("/");
-      } else {
+      } else if( user.roleName === "Quản lý" || user.roleName === "ROLE_MANAGER") {
+        navigate("/manager");
+      }
+      else {
         setErrorMessage("Không xác định được vai trò người dùng.");
       }
 

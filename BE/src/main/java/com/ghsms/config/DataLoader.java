@@ -1,5 +1,6 @@
 package com.ghsms.config;
 
+import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.model.Role;
 import com.ghsms.model.User;
@@ -12,7 +13,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.ghsms.model.Service;
+import com.ghsms.model.Services;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public class DataLoader {
                         .name("System Administrator")
                         .role(adminRole)
                         .isActive(true)
+                        .authProvider(AuthProvider.LOCAL)
                         .build();
 
                 userRepository.save(adminUser);
@@ -59,33 +61,73 @@ public class DataLoader {
     CommandLineRunner loadServices(ServiceRepository serviceRepo) {
         return args -> {
             if (serviceRepo.count() == 0) {
-                Service generalConsultation = new Service();
-                generalConsultation.setServiceName("General Consultation");
+                Services generalConsultation = new Services();
+                generalConsultation.setServiceName("Tư vấn tổng quát");
                 generalConsultation.setCategory(ServiceBookingCategory.GENERAL_CONSULTATION);
-                generalConsultation.setPrice(new BigDecimal("50.00"));
-                generalConsultation.setDescription("Regular health checkup and consultation");
+                generalConsultation.setPrice(new BigDecimal("200000.00"));
+                generalConsultation.setDescription("Khám sức khỏe định kỳ và tư vấn");
+                generalConsultation.setDuration("30 phút");
                 serviceRepo.save(generalConsultation);
 
-                Service specialistConsultation = new Service();
-                specialistConsultation.setServiceName("Specialist Consultation");
+                Services specialistConsultation = new Services();
+                specialistConsultation.setServiceName("Tư vấn chuyên khoa");
                 specialistConsultation.setCategory(ServiceBookingCategory.SPECIALIST_CONSULTATION);
-                specialistConsultation.setPrice(new BigDecimal("100.00"));
-                specialistConsultation.setDescription("Consultation with specialist doctor");
+                specialistConsultation.setPrice(new BigDecimal("250000.00"));
+                specialistConsultation.setDescription("Tư vấn với bác sĩ chuyên khoa");
+                specialistConsultation.setDuration("20 phút");
                 serviceRepo.save(specialistConsultation);
 
-                Service reExamination = new Service();
-                reExamination.setServiceName("Re-examination");
+                Services reExamination = new Services();
+                reExamination.setServiceName("Tái khám");
                 reExamination.setCategory(ServiceBookingCategory.RE_EXAMINATION);
-                reExamination.setPrice(new BigDecimal("30.00"));
-                reExamination.setDescription("Follow-up consultation");
+                reExamination.setPrice(new BigDecimal("300000.00"));
+                reExamination.setDescription("Tư vấn tái khám");
+                reExamination.setDuration("25 phút");
                 serviceRepo.save(reExamination);
 
-                Service emergencyConsultation = new Service();
-                emergencyConsultation.setServiceName("Emergency Consultation");
+                Services emergencyConsultation = new Services();
+                emergencyConsultation.setServiceName("Tư vấn khẩn cấp");
                 emergencyConsultation.setCategory(ServiceBookingCategory.EMERGENCY_CONSULTATION);
-                emergencyConsultation.setPrice(new BigDecimal("150.00"));
-                emergencyConsultation.setDescription("Urgent medical consultation");
+                emergencyConsultation.setPrice(new BigDecimal("150000.00"));
+                emergencyConsultation.setDescription("Tư vấn y tế khẩn cấp");
+                emergencyConsultation.setDuration("25 phút");
                 serviceRepo.save(emergencyConsultation);
+
+                Services hivTest = new Services();
+                hivTest.setServiceName("Xét nghiệm HIV");
+                hivTest.setCategory(ServiceBookingCategory.STI_HIV);
+                hivTest.setPrice(new BigDecimal("200000.00"));
+                hivTest.setDescription("Phát hiện virus gây suy giảm miễn dịch mắc phải");
+                hivTest.setPreparation("Không cần nhịn ăn");
+                hivTest.setDuration("30 phút");
+                serviceRepo.save(hivTest);
+
+                Services syphilisTest = new Services();
+                syphilisTest.setServiceName("Xét nghiệm giang mai (Syphilis)");
+                syphilisTest.setCategory(ServiceBookingCategory.STI_Syphilis);
+                syphilisTest.setPrice(new BigDecimal("150000.00"));
+                syphilisTest.setDescription("Phát hiện vi khuẩn Treponema pallidum");
+                syphilisTest.setPreparation("Không cần nhịn ăn");
+                syphilisTest.setDuration("20 phút");
+                serviceRepo.save(syphilisTest);
+
+                Services gonorrheaTest = new Services();
+                gonorrheaTest.setServiceName("Xét nghiệm lậu (Gonorrhea)");
+                gonorrheaTest.setCategory(ServiceBookingCategory.STI_Gonorrhea);
+                gonorrheaTest.setPrice(new BigDecimal("180000.00"));
+                gonorrheaTest.setDescription("Phát hiện vi khuẩn Neisseria gonorrhoeae");
+                gonorrheaTest.setPreparation("Không quan hệ tình dục 24h trước xét nghiệm");
+                gonorrheaTest.setDuration("25 phút");
+                serviceRepo.save(gonorrheaTest);
+
+                Services chlamydiaTest = new Services();
+                chlamydiaTest.setServiceName("Xét nghiệm Chlamydia");
+                chlamydiaTest.setCategory(ServiceBookingCategory.STI_Chlamydia);
+                chlamydiaTest.setPrice(new BigDecimal("170000.00"));
+                chlamydiaTest.setDescription("Phát hiện vi khuẩn Chlamydia trachomatis");
+                chlamydiaTest.setPreparation("Không quan hệ tình dục 24h trước xét nghiệm");
+                chlamydiaTest.setDuration("25 phút");
+                serviceRepo.save(chlamydiaTest);
             }
         };
     }

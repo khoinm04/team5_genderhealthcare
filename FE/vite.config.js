@@ -9,22 +9,30 @@ export default defineConfig({
       'react-qr-code': 'react-qr-code',
     },
   },
+  define: {
+    global: {}, // 👈 Để fix lỗi "global is not defined"
+  },
   server: {
-    port: 5173,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080', // Hardcoded for reliability
-        changeOrigin: true,
-        secure: false,
-      },
+  port: 5173,
+  proxy: {
+    '/api': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+      secure: false,
+    },
+    '/ws': {
+      target: 'ws://localhost:8080',
+      changeOrigin: true,
+      ws: true,
+      secure: false,
+      rewrite: (path) => path
     },
   },
+},
   build: {
     sourcemap: true,
   },
   optimizeDeps: {
     include: ['react-qr-code'],
   },
-
 });
