@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 
+=======
+// src/components/PillScheduleForm.jsx
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 import React, { useState } from 'react';
 import { Pill } from 'lucide-react';
 
@@ -18,6 +22,7 @@ const PillScheduleForm = ({ onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.startDate) {
+<<<<<<< HEAD
       let pillTime = formData.time;
       if (pillTime.length === 5) pillTime += ':00';
       const data = { ...formData, pillTime };
@@ -28,6 +33,12 @@ const PillScheduleForm = ({ onSubmit }) => {
 
 
 
+=======
+      onSubmit(formData);
+    }
+  };
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   return (
     <form onSubmit={handleSubmit}>
       <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">

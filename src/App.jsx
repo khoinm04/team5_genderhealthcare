@@ -14,12 +14,17 @@ import OtpPasswordForm from "./components/OtpPasswordForm";
 import GoogleCallback from "./pages/GoogleCallback";
 import STIsTestPage from "./components/STIsTestPage";
 import PaymentPage from "./components/PaymentPage";
+<<<<<<< HEAD
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
 import UserGroupDetail from "./components/UserGroupDetail";
 import UserProfile from "./components/userProfile";
 import AppointmentHistory from "./components/AppointmentHistory";
+=======
+import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -78,6 +83,7 @@ export default function App() {
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
+<<<<<<< HEAD
           <Route path="/staff" element={<StaffDashboard />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
@@ -88,6 +94,13 @@ export default function App() {
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/orders" element={<AppointmentHistory />} />
           {/* Thêm các route khác nếu cần */}
+=======
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<OtpPasswordForm />} />
+          <Route path="/oauth2-success" element={<GoogleCallback />} />
+          <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         </Routes>
       </BrowserRouter>
     </UserContext.Provider>

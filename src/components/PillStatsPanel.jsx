@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const PillStatsPanel = ({ stats }) => (
+=======
+const PillStatsPanel = ({ stats, month, year }) => (
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   <div className="mb-4">
     <div className="text-base text-gray-500 mb-1 italic text-center">
       * Thống kê này chỉ áp dụng cho tháng đang xem trên lịch.

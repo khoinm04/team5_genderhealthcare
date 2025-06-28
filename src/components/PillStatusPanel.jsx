@@ -10,6 +10,7 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
   startDate.setHours(0, 0, 0, 0);
   const isBeforeStart = today < startDate;
 
+<<<<<<< HEAD
   // Hiển thị giờ uống thuốc dạng HH:mm
   let pillTime24 = "00:00";
   if (typeof pillSchedule?.pillTime === "string" && pillSchedule.pillTime.includes(":")) {
@@ -25,6 +26,15 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
   const missedCount = Object.values(pillHistory || {}).filter(x => x === false).length;
   // Số viên chưa uống nhưng chưa tới ngày (future pills): chỉ hiển thị nếu muốn
 
+=======
+  // Hiển thị giờ 24h (dự phòng)
+  let pillTime24 = pillSchedule.time;
+  if (pillSchedule.time) {
+    const [h, m] = pillSchedule.time.split(':');
+    pillTime24 = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   // Trễ giờ uống thuốc hôm nay chưa?
   const [pillHour, pillMinute] = pillTime24.split(':').map(Number);
   const now = new Date();
@@ -36,7 +46,11 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
       (now.getHours() === pillHour && now.getMinutes() > pillMinute)
     );
 
+<<<<<<< HEAD
   // Disable nút nếu chưa đến ngày, đã uống rồi hoặc có cảnh báo
+=======
+  // Nếu có missedWarning thì disable nút xác nhận uống thuốc hôm nay luôn
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   const isButtonDisabled = isBeforeStart || pillHistory[todayStr] === true || !!missedWarning;
 
   return (
@@ -50,7 +64,11 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
             Loại vỉ: <span className="font-semibold">{pillSchedule.type} viên</span>
           </p>
           <p className="text-sm text-gray-600">
+<<<<<<< HEAD
             Đã uống: <span className="font-semibold">{takenCount} / {totalPills}</span>
+=======
+            Viên đang uống: <span className="font-semibold">{pillSchedule.currentPill} / {pillSchedule.type}</span>
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
           </p>
         </div>
         <div>
@@ -77,7 +95,11 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Cảnh báo quên uống thuốc */}
+=======
+      {/* Cảnh báo quên uống thuốc (missed warning) */}
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
       {missedWarning && (
         <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-600 text-red-800 font-bold text-base rounded flex items-center gap-2">
           <AlertTriangle className="text-red-600" size={20} />
@@ -88,10 +110,18 @@ const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarn
       <button
         onClick={handleTakePill}
         disabled={isButtonDisabled}
+<<<<<<< HEAD
         className={`px-6 py-2 rounded-lg transition-all flex items-center gap-2 ${isButtonDisabled
           ? 'bg-gray-400 text-white cursor-not-allowed px-3 py-1 rounded-lg text-sm'
           : 'bg-gradient-to-r from-green-400 to-blue-400 text-white hover:from-green-500 hover:to-blue-500 px-3 py-1 rounded-lg text-sm'
           }`}
+=======
+        className={`px-6 py-2 rounded-lg transition-all flex items-center gap-2 ${
+          isButtonDisabled
+            ? 'bg-gray-400 text-white cursor-not-allowed'
+            : 'bg-gradient-to-r from-green-400 to-blue-400 text-white hover:from-green-500 hover:to-blue-500'
+        }`}
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
       >
         <Check size={18} />
         {isBeforeStart

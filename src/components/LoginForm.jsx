@@ -50,13 +50,18 @@ export default function LoginForm() {
       };
 
       // ✅ Lưu token riêng ra localStorage
+<<<<<<< HEAD
       localStorage.setItem("token", token);
+=======
+    localStorage.setItem("token", token);
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       sessionStorage.setItem("user", JSON.stringify(user));
       sessionStorage.setItem("userId", user.userId.toString());
 
+<<<<<<< HEAD
       if (user.roleName === "Quản trị viên" || user.roleName === "ROLE_ADMIN") {
         navigate("/admin");
       } else if (user.roleName === "Nhân viên" || user.roleName === "ROLE_STAFF") {
@@ -67,6 +72,13 @@ export default function LoginForm() {
         navigate("/manager");
       }
       else {
+=======
+      if (user.roleName === "Quản trị viên") {
+        navigate("/admin");
+      } else if (user.roleName === "Khách hàng") {
+        navigate("/");
+      } else {
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         setErrorMessage("Không xác định được vai trò người dùng.");
       }
 
@@ -104,6 +116,7 @@ export default function LoginForm() {
         <label htmlFor="password" className="text-[#1C0C11] text-base font-bold">
           Mật khẩu
         </label>
+<<<<<<< HEAD
         <div className="flex items-center w-full">
           <input
             id="password"
@@ -161,6 +174,62 @@ export default function LoginForm() {
         </div>
       </div>
 
+=======
+        <input
+          id="password"
+          type={showPassword ? "text" : "password"}
+          placeholder="Nhập mật khẩu"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="bg-[#FCF7F9] w-full h-10 rounded-xl border border-solid border-[#E8D1D6] px-3 pr-10"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-900"
+          aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        >
+          {showPassword ? (
+            // Icon mắt có gạch chéo (ẩn mật khẩu)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7a8.964 8.964 0 013.254-6.638M3 3l18 18"
+              />
+            </svg>
+          ) : (
+            // Icon mắt mở (hiện mật khẩu)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
       {errorMessage && (
         <p className="text-red-500 text-sm px-4 mt-2">{errorMessage}</p>
       )}

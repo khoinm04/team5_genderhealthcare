@@ -7,12 +7,21 @@ export const mockCycleData = {
 
 
 // Thuốc
+<<<<<<< HEAD
 // export const mockPillSchedule = {
 //   type: '28',
 //   startDate: '2025-06-01',
 //   time: '08:00',
 //   currentPill: 8,
 // };
+=======
+export const mockPillSchedule = {
+  type: '28',
+  startDate: '2025-06-01',
+  time: '08:00',
+  currentPill: 8,
+};
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 export const mockPillHistory = {
   '2025-06-01': false,
@@ -21,6 +30,7 @@ export const mockPillHistory = {
   '2025-06-04': false,
   '2025-06-05': true,
 };
+<<<<<<< HEAD
 
 export const mockPillSchedule = {
   id: 1,
@@ -35,3 +45,5 @@ export const mockPillSchedule = {
 
 
 
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054

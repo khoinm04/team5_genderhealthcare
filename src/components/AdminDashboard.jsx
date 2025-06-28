@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Users, MessageSquare, Bell, BarChart3, Calendar, Trash, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi } from 'lucide-react';
 import axios from 'axios';
+<<<<<<< HEAD
 import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 
 
@@ -37,6 +40,7 @@ const AdminDashboard = () => {
 
   // Initialize online users
   useEffect(() => {
+<<<<<<< HEAD
   const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!storedUser) {
     console.warn("Không có user trong localStorage/sessionStorage");
@@ -95,6 +99,51 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
 });
 
 });
+=======
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser) {
+      console.warn("Không có user trong localStorage/sessionStorage");
+      return;
+    }
+
+    let token = null;
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      token = parsedUser.token;
+    } catch (e) {
+      console.error("Lỗi parse user:", e);
+      return;
+    }
+
+    if (!token) {
+      console.warn("Không có token trong user object");
+      return;
+    }
+
+    axios.get("http://localhost:8080/api/admin/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      }
+    })
+      .then((res) => {
+        console.log("Phản hồi từ server:", res.data);
+        const fetchedUsers = res.data;
+        if (Array.isArray(fetchedUsers)) {
+          setUsers(fetchedUsers);
+          setOnlineUsers(fetchedUsers.filter(user => user.isOnline));
+        } else {
+          console.error("API trả về không phải mảng:", fetchedUsers);
+        }
+      })
+      .catch((err) => {
+        console.error("Lỗi khi lấy dữ liệu user:", err);
+      });
+
+  }, []);
+
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 
 
@@ -176,7 +225,68 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
         </div>
       </div>
 
+<<<<<<< HEAD
       
+=======
+      {/* Online Users Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Hiện đang trực tuyến</h3>
+            <span className="flex items-center text-green-600">
+              <Wifi className="h-4 w-4 mr-1" />
+              {onlineUsers.length} người dùng
+            </span>
+          </div>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {onlineUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center">
+                  <div className="h-2 w-2 bg-green-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">{user.name}</p>
+                    <p className="text-sm text-gray-600">{user.role}</p>
+                  </div>
+                </div>
+                <div className="text-right text-sm text-gray-500">
+                  <p>Trực tuyến</p>
+                  <p>{user.loginTime || user.lastLogin}</p>
+                </div>
+              </div>
+            ))}
+            {onlineUsers.length === 0 && (
+              <p className="text-center text-gray-500 py-4">Không có người dùng nào đang trực tuyến</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Hoạt động người dùng gần đây</h3>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {recentActivity.map((activity) => (
+              <div key={activity.id} className={`flex items-center p-3 border-l-4 border-blue-200 bg-blue-50 rounded`}>
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${activity.type === 'login' ? 'bg-green-100' :
+                  activity.type === 'logout' ? 'bg-red-100' : 'bg-blue-100'
+                  }`}>
+                  {activity.type === 'login' ? (
+                    <UserCheck className="h-4 w-4 text-green-600" />
+                  ) : activity.type === 'logout' ? (
+                    <X className="h-4 w-4 text-red-600" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-blue-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{activity.user}</p>
+                  <p className="text-sm text-gray-600">{activity.action}</p>
+                  <p className="text-xs text-gray-500">{activity.timestamp} • {activity.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -251,7 +361,11 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredUsers.map((user) => (
+<<<<<<< HEAD
               <tr key={user.userId} className="hover:bg-gray-50">
+=======
+              <tr key={user.id} className="hover:bg-gray-50">
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div>
@@ -278,6 +392,7 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
+<<<<<<< HEAD
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                       {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
@@ -294,6 +409,18 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
   </span>
 )}
 
+=======
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full w-fit ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                      {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
+                    </span>
+                    {user.isOnline && (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full mt-1 w-fit">
+                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1"></div>
+                        Trực tuyến
+                      </span>
+                    )}
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -689,6 +816,7 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
 
       alert("Cập nhật thành công!");
       setSelectedUser(null);
+<<<<<<< HEAD
     }  catch (error) {
   console.error("Lỗi khi cập nhật:", error);
 
@@ -703,6 +831,14 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
     alert("Lỗi khi cập nhật: " + fallbackMessage);
   }
 }
+=======
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Cập nhật thất bại";
+      alert("Lỗi khi cập nhật: " + errorMessage);
+    }
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
   };
 
@@ -741,6 +877,52 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
   }
 };
 
+<<<<<<< HEAD
+=======
+
+
+
+
+  // const handleSaveChanges = async () => {
+  //     const userId = selectedUser?.userId;
+
+  //     if (!userId) {
+  //       alert("Thiếu thông tin người dùng để cập nhật");
+  //       return;
+  //     }
+
+  //     try {
+  //       const updateData = {
+  //         name: selectedUser.name,
+  //         email: selectedUser.email,
+  //         roleName: selectedUser.roleName,
+  //         isActive: selectedUser.isActive // Make sure this is a boolean
+  //       };
+
+  //       console.log('Sending update data:', updateData); // Debug log
+
+  //       const response = await axios.put(
+  //         `/api/admin/users/${userId}`,
+  //         updateData,
+  //         {
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           withCredentials: true,
+  //         }
+  //       );
+
+  //       console.log('Response:', response.data); // Debug log
+  //       alert("Cập nhật thành công!");
+  //       // Refresh the user list or update the local state
+  //       setSelectedUser(null);
+  //     } catch (error) {
+  //       console.error("Lỗi khi cập nhật:", error);
+  //       alert("Lỗi khi cập nhật: " + (error.response?.data || error.message));
+  //     }
+  // };
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   // Update checkbox handler
   const handleCheckboxChange = (e) => {
     setSelectedUser(prev => ({
@@ -749,6 +931,11 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
     }));
   };
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -797,6 +984,29 @@ useOnlineUsersSocket((realtimeOnlineUsers) => {
               <Users className="h-4 w-4 mr-2" />
               Người dùng
             </button>
+<<<<<<< HEAD
+=======
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'messages'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Tin nhắn
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`flex items-center px-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'notifications'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Thông báo
+            </button>
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
           </nav>
         </div>
 

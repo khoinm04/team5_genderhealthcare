@@ -8,17 +8,27 @@ import PillCalendar from '../components/PillCalendar';
 import PillStatsPanel from '../components/PillStatsPanel';
 import axios from 'axios';
 
+<<<<<<< HEAD
 
 // Mock data, chỉ dùng khi phát triển/test UI
 import { mockCycleData, mockPillSchedule, mockPillHistory } from '../mocks/handlers';
 
 const USE_MOCK_DATA = false;; // Đổi true để test UI, false để dùng backend
+=======
+// Mock data, chỉ dùng khi phát triển/test UI
+import { mockCycleData, mockPillSchedule, mockPillHistory } from '../mocks/handlers';
+
+const USE_MOCK_DATA = true; // Đổi true để test UI, false để dùng backend
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 const ReproductiveHealthApp = () => {
     const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
     const [activeTab, setActiveTab] = useState('cycle');
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     // --- Chu kỳ kinh nguyệt
     // Nếu dùng mock thì lấy mock, không thì mặc định là trống để user nhập
     const [cycleData, setCycleData] = useState(
@@ -51,6 +61,7 @@ const ReproductiveHealthApp = () => {
     });
 
     // ==================== LẤY DỮ LIỆU THẬT TỪ BE ====================
+<<<<<<< HEAD
 
     useEffect(() => {
         if (!USE_MOCK_DATA && userId) { // nhớ check userId luôn nhé!
@@ -60,6 +71,12 @@ const ReproductiveHealthApp = () => {
                     Authorization: `Bearer ${token}`,
                 }
             })
+=======
+    useEffect(() => {
+        if (!USE_MOCK_DATA && userId) {
+            // Lấy chu kỳ từ backend
+            axios.get(`/api/menstrual-cycles/user/${userId}`)
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                 .then(res => {
                     if (res.data) {
                         setCycleData(res.data);
@@ -73,9 +90,12 @@ const ReproductiveHealthApp = () => {
         }
     }, [USE_MOCK_DATA, userId]);
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     useEffect(() => {
         if (!USE_MOCK_DATA && userId) {
             const token = localStorage.getItem('token');
@@ -153,9 +173,13 @@ const ReproductiveHealthApp = () => {
         const currentDate = new Date(year, month, day);
         const daysDiff = Math.floor((currentDate - cycleStart) / (1000 * 60 * 60 * 24));
         const cycleDay = daysDiff + 1;
+<<<<<<< HEAD
         // Lấy đúng số ngày hành kinh từ BE
         const periodDays = cycleData.periodDays || cycleData.menstruationDuration || 5;
         if (cycleDay <= periodDays) return 'period';
+=======
+        if (cycleDay <= cycleData.periodDays) return 'period';
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         const ovulationDay = cycleData.cycleLength - 14 + 1;
         if (cycleDay === ovulationDay) return 'ovulation';
         if (Math.abs(cycleDay - ovulationDay) <= 2) return 'high-fertility';
@@ -163,6 +187,7 @@ const ReproductiveHealthApp = () => {
         return 'low-fertility';
     };
 
+<<<<<<< HEAD
     // Xóa chu kì
     const handleDeleteCycle = () => {
         const cycleId = cycleData.cycleId;
@@ -200,6 +225,9 @@ const ReproductiveHealthApp = () => {
 
 
     // LỊCH THUỐC: xác định trạng thái ngày
+=======
+    // Lịch thuốc: xác định trạng thái ngày
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     const getPillDayStatus = (year, month, day) => {
         if (!day || !pillSchedule) return '';
         const pillStart = new Date(pillSchedule.startDate);
@@ -212,6 +240,7 @@ const ReproductiveHealthApp = () => {
         if (daysDiff < 0 || daysDiff >= maxDays) return '';
 
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+<<<<<<< HEAD
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -353,11 +382,89 @@ const ReproductiveHealthApp = () => {
     };
 
 
+=======
+        if (pillHistory[dateStr] === false) return 'missed';
+        if (pillHistory[dateStr] === true) return 'taken';
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (targetDate.getTime() === today.getTime()) return 'today';
+
+        return 'scheduled';
+    };
+
+    // Sự kiện lưu chu kỳ: user nhập xong nhấn Lưu
+    const handleSaveCycle = () => {
+        if (cycleData.startDate) {
+            setHasCycleData(true);
+            const startDate = new Date(cycleData.startDate);
+            setCycleCalendarMonth({ year: startDate.getFullYear(), month: startDate.getMonth() });
+
+            // Lưu dữ liệu chu kỳ lên backend!
+            const token = localStorage.getItem('token');
+            axios.post('/api/menstrual-cycles', {
+                ...cycleData,
+                userId // truyền userId nếu BE yêu cầu
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            })
+                .then(res => {
+                    // Có thể set lại state từ res.data nếu BE trả về dữ liệu mới nhất
+                    setCycleData(res.data);
+                    setHasCycleData(true);
+                })
+                .catch(err => {
+                    console.error('Lỗi lưu chu kỳ:', err);
+                    // Có thể thông báo lỗi cho user
+                });
+        }
+    };
+
+
+    // Sự kiện xác nhận đã uống thuốc hôm nay
+    const handleTakePill = () => {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        setPillHistory((prev) => ({ ...prev, [todayStr]: true }));
+        if (pillSchedule) {
+            setPillSchedule(prev => ({
+                ...prev,
+                currentPill: prev.currentPill < parseInt(prev.type) ? prev.currentPill + 1 : 1
+            }));
+
+            // Gọi API cập nhật pillHistory
+            const token = localStorage.getItem('token');
+            axios.put(`/api/contraceptive-schedules/${pillSchedule.id}/history`, {
+                date: todayStr,
+                status: true,
+                userId // nếu BE yêu cầu
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            }).catch(err => {
+                console.error('Lỗi cập nhật pill history:', err);
+            });
+        }
+    };
+
+
+    // Xóa lịch thuốc
+    const handleDeletePillSchedule = () => {
+        setPillSchedule(null);
+        setPillHistory({});
+        // Nếu dùng BE, nên gọi API DELETE ở đây
+    };
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     // Tạo mới lịch thuốc (khi user nhập từ form)
     const createPillSchedule = (formData) => {
         const newSchedule = {
             type: formData.type,
             startDate: formData.startDate,
+<<<<<<< HEAD
             pillTime: formData.pillTime,
             currentIndex: 0,
             isActive: true,
@@ -383,11 +490,38 @@ const ReproductiveHealthApp = () => {
                 const msg = err?.response?.data?.message || err?.response?.data?.error || "Lỗi không xác định";
                 alert(msg);
                 console.error("❌ Lỗi chi tiết:", err);
+=======
+            time: formData.time,
+            currentPill: 0,
+            isBreakPeriod: false,
+            breakUntil: null,
+            userId // nếu BE yêu cầu
+        };
+        setPillSchedule(newSchedule);
+
+        // Gọi API POST để lưu lên backend
+        const token = localStorage.getItem('token');
+        axios.post('/api/contraceptive-schedules', newSchedule, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        })
+            .then(res => {
+                // Cập nhật lại state nếu cần
+                setPillSchedule(res.data.schedule || newSchedule);
+                setPillHistory(res.data.history || {});
+            })
+            .catch(err => {
+                console.error('Lỗi lưu lịch thuốc:', err);
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
             });
     };
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     // Hàm cảnh báo quên uống thuốc
     function getMissedWarning(pillSchedule, pillHistory) {
         if (!pillSchedule) return '';
@@ -420,6 +554,7 @@ const ReproductiveHealthApp = () => {
     // Hàm thống kê thuốc từng tháng
     function getPillStats(pillSchedule, pillHistory, calendarMonth) {
         if (!pillSchedule) return { taken: 0, missed: 0, scheduled: 0 };
+<<<<<<< HEAD
 
         const { year, month } = calendarMonth;
         const pillStart = new Date(pillSchedule.startDate);
@@ -475,6 +610,29 @@ const ReproductiveHealthApp = () => {
         }
     }, [activeTab]);
 
+=======
+        const { year, month } = calendarMonth;
+        const pillStart = new Date(pillSchedule.startDate);
+        pillStart.setHours(0, 0, 0, 0);
+        const maxDays = pillSchedule.type === '21' ? 21 : 28;
+
+        let taken = 0, missed = 0, total = 0;
+
+        for (let i = 0; i < maxDays; i++) {
+            const d = new Date(pillStart);
+            d.setDate(pillStart.getDate() + i);
+            if (d.getMonth() !== month || d.getFullYear() !== year) continue;
+            const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+            if (pillHistory[dateStr] === true) taken++;
+            else if (pillHistory[dateStr] === false) missed++;
+            total++;
+        }
+
+        const scheduled = total - taken - missed;
+        return { taken, missed, scheduled };
+    }
+
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     // ==================== GIAO DIỆN CHÍNH ====================
     return (
         <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-100">
@@ -504,7 +662,10 @@ const ReproductiveHealthApp = () => {
                                 cycleData={cycleData}
                                 setCycleData={setCycleData}
                                 handleSaveCycle={handleSaveCycle}
+<<<<<<< HEAD
                                 disabled={hasCycleData}
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                             />
                             <CycleCalendar
                                 cycleCalendarMonth={cycleCalendarMonth}
@@ -513,6 +674,7 @@ const ReproductiveHealthApp = () => {
                                 getCycleDayType={getCycleDayType}
                                 hasCycleData={hasCycleData}
                             />
+<<<<<<< HEAD
                             <button
                                 onClick={handleDeleteCycle}
                                 className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
@@ -520,6 +682,8 @@ const ReproductiveHealthApp = () => {
                                 Xóa lịch chu kì
                             </button>
 
+=======
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                         </div>
                     )}
 
@@ -535,6 +699,7 @@ const ReproductiveHealthApp = () => {
                                             <span role="img" aria-label="warning">⚠️</span> {missedWarning}
                                         </div>
                                     )}
+<<<<<<< HEAD
 
                                     {console.log("✅ pillSchedule:", pillSchedule)}
                                     {console.log("✅ pillHistory:", pillHistory)}
@@ -542,6 +707,11 @@ const ReproductiveHealthApp = () => {
                                     <PillStatusPanel
                                         pillSchedule={pillSchedule}
                                         pillHistory={pillHistory || {}} // fallback tránh undefined
+=======
+                                    <PillStatusPanel
+                                        pillSchedule={pillSchedule}
+                                        pillHistory={pillHistory}
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                                         handleTakePill={handleTakePill}
                                         missedWarning={missedWarning}
                                     />
@@ -559,7 +729,11 @@ const ReproductiveHealthApp = () => {
                                     />
                                     <button
                                         onClick={handleDeletePillSchedule}
+<<<<<<< HEAD
                                         className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
+=======
+                                        className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-all"
+>>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                                     >
                                         Xóa lịch uống thuốc
                                     </button>
