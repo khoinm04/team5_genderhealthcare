@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { QrCode, Check, Copy, Loader2, CheckCircle } from "lucide-react";
 
-const PaymentPage = ({
-  paymentCode,
-  amount,
-  testName,
-  bookingId,
-  onCancel,
-  onSuccess
-}) => {
+const PaymentPage = () => {
+  // Mock data since we don't have router state
+  const mockState = {
+    paymentCode: "PAY123456789",
+    amount: 500000,
+    testName: "Xét nghiệm STI cơ bản",
+    bookingId: "BOOK001"
+  };
+
+  const { paymentCode, amount, testName, bookingId } = mockState;
   const [copiedCode, setCopiedCode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -34,25 +36,29 @@ const PaymentPage = ({
   const handlePaymentConfirmation = () => {
     setLoading(true);
 
+    // Mock API call simulation
     setTimeout(() => {
-      const isPaymentConfirmed = Math.random() > 0.3;
+      const isPaymentConfirmed = Math.random() > 0.3; // 70% success rate for demo
+
       if (isPaymentConfirmed) {
         setPaymentSuccess(true);
         setLoading(false);
         setTimeout(() => {
-          if (onSuccess) onSuccess();
+          window.location.href = '/';
         }, 2000);
       } else {
         setLoading(false);
         alert("Hệ thống chưa ghi nhận thanh toán. Vui lòng đợi hoặc thử lại sau.");
       }
-    }, 2000);
+    }, 2000); // 2 seconds loading time
   };
 
   const handleCancelPayment = () => {
     const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy thanh toán?");
     if (confirmCancel) {
-      if (onCancel) onCancel();
+      // In real app: navigate(-1) or history.back()
+      // For demo, we'll simulate going back
+      window.history.back();
     }
   };
 

@@ -11,7 +11,7 @@ import {
   AlertCircle,
   X,
   Home,
-  ChevronLeft, // Add this import
+  ChevronLeft,
 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -184,6 +184,8 @@ const STIsTestPage = () => {
       gender: "",
       age: "",
     });
+    const [validationErrors, setValidationErrors] = useState({});
+    const [showValidation, setShowValidation] = useState(false);
     const navigate = useNavigate();
 
     const availableTests = [
@@ -240,12 +242,75 @@ const STIsTestPage = () => {
       "16:30-17:00",
     ];
 
+    const validateForm = () => {
+      const errors = {};
+
+      // Test selection validation
+      if (!selectedTest) {
+        errors.test = "Vui lòng chọn một dịch vụ xét nghiệm";
+      }
+
+      // Name validation
+      if (!bookingData.name || bookingData.name.trim() === "") {
+        errors.name = "Vui lòng điền đầy đủ thông tin";
+      }
+
+      // Age validation
+      if (!bookingData.age || bookingData.age.trim() === "") {
+        errors.age = "Vui lòng điền đầy đủ thông tin";
+      } else {
+        const age = parseInt(bookingData.age);
+        if (isNaN(age) || age < 0 || age > 150) {
+          errors.age = "Tuổi không hợp lệ";
+        }
+      }
+
+      // Gender validation
+      if (!bookingData.gender || bookingData.gender === "") {
+        errors.gender = "Vui lòng điền đầy đủ thông tin";
+      }
+
+      // Phone validation
+      if (!bookingData.phone || bookingData.phone.trim() === "") {
+        errors.phone = "Vui lòng điền đầy đủ thông tin";
+      } else {
+        const phoneRegex = /^\d{10,11}$/;
+        if (!phoneRegex.test(bookingData.phone.replace(/\s/g, ""))) {
+          errors.phone = "Số điện thoại không hợp lệ";
+        }
+      }
+
+      // Email validation
+      if (!bookingData.email || bookingData.email.trim() === "") {
+        errors.email = "Vui lòng điền đầy đủ thông tin";
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(bookingData.email)) {
+          errors.email = "Email không hợp lệ";
+        }
+      }
+
+      // Date validation
+      if (!bookingData.date || bookingData.date.trim() === "") {
+        errors.date = "Vui lòng điền đầy đủ thông tin";
+      }
+
+      // Time validation
+      if (!bookingData.time || bookingData.time.trim() === "") {
+        errors.time = "Vui lòng điền đầy đủ thông tin";
+      }
+
+      setValidationErrors(errors);
+      return Object.keys(errors).length === 0;
+    };
+
     const handleTestSelection = (testId) => {
       setSelectedTest((prev) => {
         return prev?.id === testId
           ? null
           : availableTests.find((t) => t.id === testId);
       });
+      setValidationErrors(prev => ({ ...prev, test: "" }));
     };
 
     const handleInputChange = (field, value) => {
@@ -253,35 +318,36 @@ const STIsTestPage = () => {
         ...prev,
         [field]: value,
       }));
+      // Clear validation error for this field
+      setValidationErrors(prev => ({ ...prev, [field]: "" }));
     };
 
     const calculateTotal = () => (selectedTest ? selectedTest.price : 0);
 
+    const getRequiredFields = () => {
+      const required = [];
+      if (!selectedTest) required.push("Chọn dịch vụ xét nghiệm");
+      if (!bookingData.name) required.push("Nhập họ và tên");
+      if (!bookingData.age) required.push("Nhập tuổi");
+      if (!bookingData.gender) required.push("Chọn giới tính");
+      if (!bookingData.phone) required.push("Nhập số điện thoại");
+      if (!bookingData.email) required.push("Nhập địa chỉ email");
+      if (!bookingData.date) required.push("Chọn ngày xét nghiệm");
+      if (!bookingData.time) required.push("Chọn giờ xét nghiệm");
+      return required;
+    };
+
     const handleBooking = async () => {
+      setShowValidation(true);
+      
+      if (!validateForm()) {
+        return;
+      }
+
       const token = localStorage.getItem("token");
 
       if (!token) {
         alert("Bạn chưa đăng nhập. Vui lòng đăng nhập để đặt lịch.");
-        return;
-      }
-
-      if (!selectedTest) {
-        alert("Vui lòng chọn ít nhất một xét nghiệm");
-        return;
-      }
-
-      const { name, phone, email, date, time } = bookingData;
-
-      if (!name || !phone || !email || !date || !time) {
-        alert("Vui lòng điền đầy đủ thông tin");
-        return;
-      }
-
-      const isValidEmail = email.includes("@");
-      const isValidPhone = /^\d{10,11}$/.test(phone);
-
-      if (!isValidEmail || !isValidPhone) {
-        alert("Vui lòng nhập email hoặc số điện thoại hợp lệ.");
         return;
       }
 
@@ -290,16 +356,16 @@ const STIsTestPage = () => {
       const payload = {
         staffId: null,
         serviceIds: [selectedTest.id],
-        bookingDate: date,
-        timeSlot: time,
+        bookingDate: bookingData.date,
+        timeSlot: bookingData.time,
         paymentCode: null,
         status: null,
         isStiBooking: true,
-        customerName: name,
+        customerName: bookingData.name,
         customerAge: bookingData.age,
         customerGender: bookingData.gender,
-        customerPhone: phone,
-        customerEmail: email,
+        customerPhone: bookingData.phone,
+        customerEmail: bookingData.email,
         category: selectedTest.category,
       };
 
@@ -333,23 +399,30 @@ const STIsTestPage = () => {
       }
     };
 
+    const requiredFields = getRequiredFields();
+    const isFormValid = requiredFields.length === 0;
+
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Test Selection */}
+        {/* Test Selection and Form - Fixed width container */}
         <div className="lg:col-span-2">
+          {/* Service Selection */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Chọn xét nghiệm
+              Chọn dịch vụ xét nghiệm *
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {availableTests.map((test) => (
                 <div
                   key={test.id}
                   onClick={() => handleTestSelection(test.id)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedTest?.id === test.id
-                    ? "border-purple-600 bg-purple-50"
-                    : "border-gray-200 hover:border-purple-300"
-                    }`}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedTest?.id === test.id
+                      ? "border-purple-600 bg-purple-50"
+                      : validationErrors.test && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-200 hover:border-purple-300"
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">{test.name}</h3>
@@ -369,6 +442,9 @@ const STIsTestPage = () => {
                 </div>
               ))}
             </div>
+            {validationErrors.test && showValidation && (
+              <p className="text-red-500 text-sm mt-2">{validationErrors.test}</p>
+            )}
           </div>
 
           {/* Booking Form */}
@@ -385,9 +461,16 @@ const STIsTestPage = () => {
                   type="text"
                   value={bookingData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.name && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Nhập họ và tên"
                 />
+                {validationErrors.name && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+                )}
               </div>
 
               <div>
@@ -398,10 +481,17 @@ const STIsTestPage = () => {
                   type="number"
                   value={bookingData.age}
                   onChange={(e) => handleInputChange("age", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.age && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Nhập tuổi"
                   min="0"
                 />
+                {validationErrors.age && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.age}</p>
+                )}
               </div>
 
               <div>
@@ -411,13 +501,20 @@ const STIsTestPage = () => {
                 <select
                   value={bookingData.gender}
                   onChange={(e) => handleInputChange("gender", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.gender && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                 >
                   <option value="">-- Chọn giới tính --</option>
                   <option value="MALE">Nam</option>
                   <option value="FEMALE">Nữ</option>
                   <option value="OTHER">Khác</option>
                 </select>
+                {validationErrors.gender && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.gender}</p>
+                )}
               </div>
 
               <div>
@@ -428,10 +525,18 @@ const STIsTestPage = () => {
                   type="tel"
                   value={bookingData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.phone && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Nhập số điện thoại"
                 />
+                {validationErrors.phone && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
+                )}
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email *
@@ -440,10 +545,18 @@ const STIsTestPage = () => {
                   type="email"
                   value={bookingData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.email && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Nhập địa chỉ email"
                 />
+                {validationErrors.email && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+                )}
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Ngày xét nghiệm *
@@ -452,9 +565,16 @@ const STIsTestPage = () => {
                   type="date"
                   value={bookingData.date}
                   onChange={(e) => handleInputChange("date", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+                    validationErrors.date && showValidation
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   min={new Date().toISOString().split("T")[0]}
                 />
+                {validationErrors.date && showValidation && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.date}</p>
+                )}
               </div>
             </div>
 
@@ -468,15 +588,21 @@ const STIsTestPage = () => {
                   <button
                     key={time}
                     onClick={() => handleInputChange("time", time)}
-                    className={`p-2 text-sm border rounded-lg transition-colors ${bookingData.time === time
-                      ? "border-purple-600 bg-purple-50 text-purple-600"
-                      : "border-gray-300 hover:border-purple-300"
-                      }`}
+                    className={`p-2 text-sm border rounded-lg transition-colors ${
+                      bookingData.time === time
+                        ? "border-purple-600 bg-purple-50 text-purple-600"
+                        : validationErrors.time && showValidation
+                        ? "border-red-300 bg-red-50 text-red-600"
+                        : "border-gray-300 hover:border-purple-300"
+                    }`}
                   >
                     {time}
                   </button>
                 ))}
               </div>
+              {validationErrors.time && showValidation && (
+                <p className="text-red-500 text-sm mt-2">{validationErrors.time}</p>
+              )}
             </div>
 
             {/* Notes */}
@@ -533,14 +659,29 @@ const STIsTestPage = () => {
 
             <button
               onClick={handleBooking}
-              disabled={!selectedTest}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${selectedTest
-                ? "bg-purple-600 hover:bg-purple-700 text-white"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
+              disabled={!isFormValid}
+              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
+                isFormValid
+                  ? "bg-purple-600 hover:bg-purple-700 text-white"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
             >
               Đặt lịch xét nghiệm
             </button>
+
+            {/* Please Complete Section */}
+            {!isFormValid && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="font-semibold text-red-800 mb-3 text-sm">
+                  Vui lòng hoàn thành:
+                </h4>
+                <ul className="text-sm text-red-700 space-y-1">
+                  {requiredFields.map((field, index) => (
+                    <li key={index}>• {field}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Important Notes */}
             <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -915,7 +1056,7 @@ const STIsTestPage = () => {
                     {getStatusIcon(selectedResult.status)}
                     <span>
                       {selectedResult.status === "completed" && "Hoàn thành"}
-                      {selectedResult.status === "pending" && "Đang chờ"}
+                      {selectedResult.status === "pending" && "Đang chờ"}
                       {selectedResult.status === "in_progress" && "Đang xử lý"}
                       {selectedResult.status === "canceled" && "Đã hủy"}
                     </span>
@@ -1085,11 +1226,6 @@ const STIsTestPage = () => {
               <TestTube className="h-8 w-8" />
               <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
             </div>
-
-            {/* Remove the old home-exit button from here */}
-
-            {/* Remove the old home-exit button from here */}
-
           </div>
           <p className="text-purple-100 text-lg">
             Dịch vụ xét nghiệm các bệnh lây truyền qua đường tình dục an toàn và
