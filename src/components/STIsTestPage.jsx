@@ -1086,21 +1086,9 @@ const STIsTestPage = () => {
               <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
             </div>
 
-
             {/* Remove the old home-exit button from here */}
 
-
-            <button className="home-exit-button" onClick={handleHomeExit}>
-              🏠 Trang chủ / Thoát
-            </button>
-
             {/* Remove the old home-exit button from here */}
-
-
-
-            <button className="home-exit-button" onClick={handleHomeExit}>
-              🏠 Trang chủ / Thoát
-            </button>
 
           </div>
           <p className="text-purple-100 text-lg">
