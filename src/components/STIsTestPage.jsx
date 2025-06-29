@@ -1085,7 +1085,17 @@ const STIsTestPage = () => {
               <TestTube className="h-8 w-8" />
               <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
             </div>
+
             {/* Remove the old home-exit button from here */}
+
+
+            <button className="home-exit-button" onClick={handleHomeExit}>
+              🏠 Trang chủ / Thoát
+            </button>
+
+            {/* Remove the old home-exit button from here */}
+
+
           </div>
           <p className="text-purple-100 text-lg">
             Dịch vụ xét nghiệm các bệnh lây truyền qua đường tình dục an toàn và
