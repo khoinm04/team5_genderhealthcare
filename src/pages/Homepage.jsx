@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import Services from "../components/Services";
 import UserGroups from "../components/userGroups";
 import Footer from "../components/Footer";
+import ZaloButton from "../components/ZaloButton";
 
 
 const slides = [
@@ -113,6 +114,9 @@ export default function HomePage() {
       </div>
 
       <Footer />
+
+      {/* Zalo Contact Button */}
+      <ZaloButton />
     </div>
   );
 }

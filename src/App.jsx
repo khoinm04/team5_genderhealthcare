@@ -82,7 +82,7 @@ export default function App() {
           <Route path="/oauth2-success" element={<GoogleCallback />} />
           <Route path="/manager" element={<ManagerDashboard />} />
           <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
-
+          
           {/* Thêm các route khác nếu cần */}
         </Routes>
       </BrowserRouter>
