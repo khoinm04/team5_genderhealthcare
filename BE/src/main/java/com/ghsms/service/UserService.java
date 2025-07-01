@@ -1,14 +1,21 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.UserDTO;
+import com.ghsms.config.UserPrincipal;
+import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.User;
 import com.ghsms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.ghsms.mapper.UserMapper;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,6 +30,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+
 
 
     public User createUser(User user) {
@@ -83,6 +91,33 @@ public class UserService {
 
         return userRepository.save(user);
     }
+
+    public UserDTO updateProfile(Long userId, UserDTO updateData) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setName(updateData.getName());
+        user.setPhoneNumber(updateData.getPhoneNumber());
+
+        return new UserDTO(userRepository.save(user));
+    }
+
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new IllegalStateException("Tài khoản Google không thể đổi mật khẩu.");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
 
     //Các chức năng dành cho admin
     public List<User> getAllActiveUsers(){

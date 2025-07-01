@@ -17,6 +17,8 @@ import PaymentPage from "./components/PaymentPage";
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
+import UserProfile from "./components/UserProfile";
+import AppointmentHistory from "./components/AppointmentHistory";
 
 
 export default function App() {
@@ -82,6 +84,8 @@ export default function App() {
           <Route path="/oauth2-success" element={<GoogleCallback />} />
           <Route path="/manager" element={<ManagerDashboard />} />
           <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/orders" element={<AppointmentHistory />} />
 
           {/* Thêm các route khác nếu cần */}
         </Routes>

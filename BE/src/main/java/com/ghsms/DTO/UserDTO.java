@@ -1,5 +1,6 @@
 package com.ghsms.DTO;
 
+import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.model.User;
 import com.ghsms.util.RoleNameConverter;
 import lombok.Builder;
@@ -24,6 +25,7 @@ public class UserDTO implements Serializable {
     private String roleName;
     private String createdAt;
     private String lastLogin;
+    private AuthProvider authProvider;
 
     private Boolean isOnline; // ✅ Thêm dòng này
 
@@ -43,6 +45,7 @@ public class UserDTO implements Serializable {
         this.createdAt = user.getCreatedAt() != null ?
                 user.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy, h:mm:ss a")) : null;
 
+        this.authProvider = user.getAuthProvider() != null ? user.getAuthProvider() : AuthProvider.LOCAL;
     }
 
     public UserDTO(User user, Boolean isOnline) {

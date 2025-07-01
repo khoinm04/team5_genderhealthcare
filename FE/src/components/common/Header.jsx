@@ -1,90 +1,92 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
+import { User, ShoppingCart, Heart } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState(null);
+  const [isProfileVisible, setIsProfileVisible] = useState(false);
+  const [userInfo, setUserInfo] = useState({
+    name: "Người dùng",
+    email: "",
+    imageUrl: "",
+  });
 
-useEffect(() => {
-  const storedUser = localStorage.getItem("user");
+  const navigate = useNavigate();
 
-  if (storedUser) {
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      const { token, ...userInfo } = parsedUser;
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
 
-      if (!token) {
-        console.warn("Không có token trong localStorage.");
-        return fallbackToSessionStorage();
-      }
-
-      // Đặt user tạm thời, sau đó xác thực lại nếu muốn
-      setUser(userInfo);
-
-      // ✅ Gọi lại API xác thực nếu bạn muốn kiểm tra token hoặc cập nhật avatar, name mới nhất
-      axios.get("http://localhost:8080/gender-health-care/signingoogle", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => {
-          const userData = res.data.user;
-          localStorage.setItem("user", JSON.stringify({ ...userData, token }));
-          sessionStorage.setItem("user", JSON.stringify(userData));
-          sessionStorage.setItem("userId", userData.userId.toString());
-          setUser(userData); // Cập nhật user từ backend
-        })
-        .catch((err) => {
-          console.error("Token không hợp lệ hoặc đã hết hạn:", err);
-          localStorage.removeItem("user");
-          fallbackToSessionStorage();
-        });
-
-    } catch (e) {
-      console.error("Không parse được user từ localStorage:", e);
-      fallbackToSessionStorage();
-    }
-  } else {
-    fallbackToSessionStorage();
-  }
-
-  function fallbackToSessionStorage() {
-    const sessionUser = sessionStorage.getItem("user");
-    if (sessionUser) {
+    if (storedUser) {
       try {
-        const parsed = JSON.parse(sessionUser);
-        setUser(parsed);
+        const parsedUser = JSON.parse(storedUser);
+        const { token, ...userInfo } = parsedUser;
+
+        if (!token) {
+          console.warn("Không có token trong localStorage.");
+          return fallbackToSessionStorage();
+        }
+
+        setUser(userInfo);
+
+        axios.get("http://localhost:8080/gender-health-care/signingoogle", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((res) => {
+            const userData = res.data.user;
+            localStorage.setItem("user", JSON.stringify({ ...userData, token }));
+            sessionStorage.setItem("user", JSON.stringify(userData));
+            sessionStorage.setItem("userId", userData.userId.toString());
+            setUser(userData);
+            setUserInfo(userData);
+          })
+          .catch((err) => {
+            console.error("Token không hợp lệ hoặc đã hết hạn:", err);
+            localStorage.removeItem("user");
+            fallbackToSessionStorage();
+          });
+
       } catch (e) {
-        console.error("Lỗi parse user trong sessionStorage:", e);
-        sessionStorage.removeItem("user");
-        setUser(null);
+        console.error("Không parse được user từ localStorage:", e);
+        fallbackToSessionStorage();
       }
     } else {
-      setUser(null);
+      fallbackToSessionStorage();
     }
-  }
-}, []);
 
-
-
-
+    function fallbackToSessionStorage() {
+      const sessionUser = sessionStorage.getItem("user");
+      if (sessionUser) {
+        try {
+          const parsed = JSON.parse(sessionUser);
+          setUser(parsed);
+        } catch (e) {
+          console.error("Lỗi parse user trong sessionStorage:", e);
+          sessionStorage.removeItem("user");
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    }
+  }, []);
 
   const handleLogout = () => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  axios.post("http://localhost:8080/gender-health-care/logout", {}, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  }).finally(() => {
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("userId");
-    window.location.href = "/";
-  });
-};
-
-
+    axios.post("http://localhost:8080/gender-health-care/logout", {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }).finally(() => {
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("userId");
+      window.location.href = "/";
+    });
+  };
 
   const menuItems = [
     { name: "Trang chủ", path: "/" },
@@ -104,86 +106,131 @@ useEffect(() => {
     }
   };
 
+  const handleProfileClick = () => {
+    setIsProfileVisible(!isProfileVisible);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.profile-menu') && !event.target.closest('.avatar-wrapper')) {
+        setIsProfileVisible(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  const handleEditProfile = () => {
+    navigate("/user-profile");
+  };
+
+  const handleViewOrders = () => {
+    navigate("/orders");
+  };
+
   return (
-    <div className="flex items-center self-stretch py-3 px-10 bg-gray-300">
-      <div className="w-4 h-4 mr-4"></div>
-      <span className="text-[#1C0C11] text-lg font-bold mr-0.5">
-        Dịch vụ chăm sóc sức khỏe giới tính
-      </span>
-
-      <div className="flex flex-1 justify-between items-center">
-        <div className="flex shrink-0 items-center py-[9px] pr-0.5 ml-[326px] gap-[39px]">
-          {menuItems.map(({ name, path }) =>
-            path.startsWith("#") ? (
-              <a
-                key={name}
-                href={path}
-                onClick={(e) => handleScroll(e, path)}
-                className="text-[#1C0C11] text-sm font-bold hover:underline cursor-pointer"
-              >
-                {name}
-              </a>
-            ) : (
-              <a
-                key={name}
-                href={path}
-                className="text-[#1C0C11] text-sm font-bold hover:underline"
-              >
-                {name}
-              </a>
-            )
-          )}
+    <header className="flex items-center justify-between py-4 px-6 lg:px-10 bg-gradient-to-r from-pink-100 to-purple-100 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+          <Heart className="w-6 h-6 text-white" />
         </div>
+        <span className="text-[#1C0C11] text-xl font-bold">
+          Dịch vụ chăm sóc sức khỏe giới tính
+        </span>
+      </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col text-right">
-                <span className="font-bold">{user.name || "Người dùng"}</span>
-                <span className="text-xs text-gray-600">{user.email || ""}</span>
-              </div>
-              {user.imageUrl ? (
+      <nav className="hidden lg:flex items-center gap-8">
+        {menuItems.map(({ name, path }) =>
+          path.startsWith("#") ? (
+            <a
+              key={name}
+              href={path}
+              onClick={(e) => handleScroll(e, path)}
+              className="text-[#061178] text-sm font-semibold cursor-pointer transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
+            >
+              {name}
+            </a>
+          ) : (
+            <a
+              key={name}
+              href={path}
+              className="text-[#061178] text-sm font-semibold transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
+            >
+              {name}
+            </a>
+          )
+        )}
+      </nav>
+
+      <div className="flex items-center gap-3">
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col text-right">
+              <span className="font-semibold text-sm">{userInfo.name || "Người dùng"}</span>
+              <span className="text-xs text-gray-600">{userInfo.email || ""}</span>
+            </div>
+
+            <div className="relative avatar-wrapper" onClick={handleProfileClick}>
+              {userInfo.imageUrl ? (
                 <img
-                  src={user.imageUrl}
+                  src={userInfo.imageUrl}
                   alt="avatar"
-                  className="w-10 h-10 rounded-full"
+                  className="w-10 h-10 rounded-full cursor-pointer border-2 border-pink-200 hover:border-pink-400 transition-colors"
                 />
               ) : (
-                <div className="w-10 h-10 bg-gray-500 text-white flex items-center justify-center rounded-full overflow-hidden">
-                  <img src="/image/messi.png" alt="avt" className="w-full h-full object-cover"/>
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-500 text-white flex items-center justify-center rounded-full cursor-pointer border-2 border-pink-200 hover:border-pink-400 transition-colors">
+                  <User className="w-5 h-5" />
                 </div>
               )}
-              <button
-                onClick={handleLogout}
-                className="bg-green-500 text-white py-1.5 px-3 rounded-lg text-sm font-bold hover:bg-green-600"
-              >
-                Đăng xuất
-              </button>
-            </div>
-          ) : (
-            <>
-              <a
-                href="/login"
-                className="flex flex-col shrink-0 items-center bg-[#8C66D9] text-white py-[9px] px-8 rounded-xl font-bold no-underline"
-              >
-                Đăng nhập
-              </a>
-              <a
-                href="/register"
-                className="flex flex-col shrink-0 items-center bg-[#C4B4E2] text-[#4B3B72] py-[9px] px-8 rounded-xl font-bold no-underline"
-              >
-                Đăng ký
-              </a>
-            </>
-          )}
-        </div>
 
-        <img
-          src="https://storage.googleapis.com/tagjs-prod.appspot.com/v1/mbASLNLBhc/xnj4zgzw_expires_30_days.png"
-          className="w-10 h-10 object-fill"
-          alt="logo"
-        />
+              {isProfileVisible && (
+                <div className="absolute top-12 right-0 bg-white shadow-xl rounded-lg w-48 py-2 profile-menu z-20 border border-gray-100">
+                  <button 
+                    className="block text-sm text-gray-800 px-4 py-3 hover:bg-gray-50 w-full text-left flex items-center transition-colors"
+                    onClick={handleEditProfile}
+                  >
+                    <User className="w-4 h-4 mr-3" />
+                    Hồ sơ
+                  </button>
+                  <button 
+                    className="block text-sm text-gray-800 px-4 py-3 hover:bg-gray-50 w-full text-left flex items-center transition-colors"
+                    onClick={handleViewOrders}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-3" />
+                    Đơn đặt lịch
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <a
+              href="/login"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2.5 px-6 rounded-xl font-semibold shadow-md transition-all duration-300 hover:from-purple-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg no-underline"
+            >
+              Đăng nhập
+            </a>
+            <a
+              href="/register"
+              className="bg-gradient-to-r from-pink-500 to-pink-600 text-white py-2.5 px-6 rounded-xl font-semibold shadow-md transition-all duration-300 hover:from-pink-600 hover:to-pink-700 hover:scale-105 hover:shadow-lg no-underline"
+            >
+              Đăng ký
+            </a>
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
 }
