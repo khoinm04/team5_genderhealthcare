@@ -6,6 +6,7 @@ import com.ghsms.model.ConsultantDetails;
 import com.ghsms.model.Services;
 import com.ghsms.model.StaffDetails;
 import com.ghsms.model.User;
+import com.ghsms.repository.ServiceRepository;
 import com.ghsms.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -171,4 +172,21 @@ public class ManagerController {
         return ResponseEntity.ok(response);
     }
 
+
+    //lay tong so dich vu dang co
+    @GetMapping("/total-services")
+    public ResponseEntity<Map<String, Object>> getTotalServices() {
+        long count = serviceService.countServiceActiveTrue(); // hoặc điều kiện tùy hệ thống
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalServices", count);
+        result.put("serviceChange", "+0 từ tháng trước"); // nếu muốn có biểu đồ thay đổi
+        return ResponseEntity.ok(result);
+    }
+
+    //api them dich vu
+    @PostMapping("/create")
+    public ResponseEntity<Services> createService(@RequestBody CreateServiceRequest request) {
+        Services created = serviceService.createService(request);
+        return ResponseEntity.ok(created);
+    }
 }

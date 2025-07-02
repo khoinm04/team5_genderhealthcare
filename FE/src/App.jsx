@@ -16,22 +16,35 @@ import STIsTestPage from "./components/STIsTestPage";
 import PaymentPage from "./components/PaymentPage";
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
+import ScheduleManagement from './components/ScheduleManagement';
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
+import ConsultantDashboard from "./components/ConsultantDashboard";
 import UserProfile from "./components/UserProfile";
 import AppointmentHistory from "./components/AppointmentHistory";
+import BookingSuccessWrapper from "./components/BookingSuccessWrapper";
+import PaymentVnpayPage from './components/PaymentVnpayPage';
+
+
+import { usePillReminderSocket } from "./hooks/usePillReminderSocket";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 
 export default function App() {
   const [user, setUser] = useState(null);
 
-  // ✅ Load user từ localStorage hoặc Google
+  // ✅ Kết nối socket nhắc nhở nếu đã có user
+
+  usePillReminderSocket();
+
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // Nếu không có user trong localStorage, thử check Google login
       axios
         .get("http://localhost:8080/gender-health-care/signingoogle", {
           withCredentials: true,
@@ -53,7 +66,6 @@ export default function App() {
     }
   }, []);
 
-  // ✅ Đồng bộ user giữa các tab khi login/logout
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "user") {
@@ -83,13 +95,19 @@ export default function App() {
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
           <Route path="/oauth2-success" element={<GoogleCallback />} />
           <Route path="/manager" element={<ManagerDashboard />} />
+          <Route path="/manager/schedules" element={<ScheduleManagement />} />
           <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
+          <Route path="/consultant" element={<ConsultantDashboard />} />
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/orders" element={<AppointmentHistory />} />
+          <Route path="/booking-success" element={<BookingSuccessWrapper />} />
+          <Route path="/vnpay-payment" element={<PaymentVnpayPage />} />
 
-          {/* Thêm các route khác nếu cần */}
         </Routes>
       </BrowserRouter>
+      <ToastContainer />
     </UserContext.Provider>
   );
 }
+
+// nhớ tải npm install react-icons

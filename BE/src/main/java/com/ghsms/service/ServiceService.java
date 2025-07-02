@@ -1,5 +1,6 @@
 package com.ghsms.service;
 
+import com.ghsms.DTO.CreateServiceRequest;
 import com.ghsms.DTO.ServiceResponseDTO;
 import com.ghsms.DTO.ServiceUpdateDTO;
 import com.ghsms.exceptions.ResourceNotFoundException;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class ServiceService {
             dto.setServiceId(service.getServiceId());
             dto.setServiceName(service.getServiceName());
             dto.setCategory(service.getCategory());
+            dto.setCategoryType(service.getCategoryType());
             dto.setDescription(service.getDescription());
             dto.setPrice(service.getPrice());
             dto.setDuration(service.getDuration());
@@ -52,4 +55,23 @@ public class ServiceService {
         serviceRepository.save(service);
     }
 
+    // dem tong so dich vu cho manager
+    public long countServiceActiveTrue(){
+        return serviceRepository.countByActiveTrue();
+    }
+
+    public Services createService(CreateServiceRequest request) {
+        Services service = new Services();
+        service.setServiceName(request.getServiceName());
+        service.setDescription(request.getDescription());
+        service.setPrice(request.getPrice()); // ✅ BigDecimal
+        service.setDuration(request.getDuration());
+        service.setCategory(request.getCategory());
+        service.setCategoryType(request.getCategoryType()); // ✅ Enum
+        service.setActive(request.getIsActive() != null ? request.getIsActive() : true);
+
+        return serviceRepository.save(service);
+    }
+
 }
+

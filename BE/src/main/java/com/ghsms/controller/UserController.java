@@ -1,7 +1,13 @@
 package com.ghsms.controller;
 
 import com.ghsms.DTO.UserDTO;
+<<<<<<< HEAD
 import com.ghsms.config.UserPrincipal;
+=======
+import com.ghsms.DTO.UserInfoDTO;
+import com.ghsms.config.UserPrincipal;
+import com.ghsms.model.CustomerDetails;
+>>>>>>> An
 import com.ghsms.model.Root;
 import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
@@ -124,5 +130,27 @@ public class UserController {
 //
 //        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
 //    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserDTO> updateProfile(@AuthenticationPrincipal UserPrincipal user,
+                                                 @RequestBody UserDTO updateData) {
+        Long userId = user.getId(); // ✅ sẽ không null nếu token hợp lệ
+        UserDTO updatedUser = userService.updateProfile(userId, updateData);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+
+
+    // Đổi mật khẩu
+    @PutMapping("/change-password")
+    public ResponseEntity<String> changePassword(@AuthenticationPrincipal UserPrincipal user,
+                                                 @RequestParam String currentPassword,
+                                                 @RequestParam String newPassword) {
+        Long userId = user.getId();
+        userService.changePassword(userId, currentPassword, newPassword);
+        return ResponseEntity.ok("Đổi mật khẩu thành công.");
+    }
+
+
 
 }

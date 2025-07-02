@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, FileText, CreditCard, CheckCircle, XCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AppointmentHistory = () => {
   const [appointments, setAppointments] = useState([]);
@@ -10,110 +11,72 @@ const AppointmentHistory = () => {
 
   // Load dữ liệu giả
   useEffect(() => {
-    const mockAppointments = [
-      {
-        id: 1,
-        type: 'test',
-        title: 'Xét nghiệm HIV',
-        date: '2024-06-20',
-        time: '09:00',
-        doctor: 'BS. Nguyễn Văn A',
-        status: 'completed',
-        price: 500000,
-        notes: 'Kết quả xét nghiệm bình thường'
-      },
-      {
-        id: 2,
-        type: 'test',
-        title: 'Xét nghiệm giang mai (Syphilis)',
-        date: '2024-06-25',
-        time: '10:15',
-        doctor: 'BS. Lê Văn C',
-        status: 'scheduled',
-        price: 800000,
-        notes: 'Cần nhịn ăn 8 tiếng trước khi xét nghiệm'
-      },
-      {
-        id: 3,
-        type: 'consultation',
-        title: 'Tư vấn tổng quát',
-        date: '2024-06-18',
-        time: '16:00',
-        doctor: 'BS. Phạm Thị D',
-        status: 'cancelled',
-        price: 200000,
-        notes: 'Bệnh nhân hủy lịch'
-      },
-      {
-        id: 4,
-        type: 'test',
-        title: 'Xét nghiệm lậu (Gonorrhea)',
-        date: '2024-06-15',
-        time: '08:30',
-        doctor: 'BS. Hoàng Văn E',
-        status: 'completed',
-        price: 400000,
-        notes: 'Kết quả âm tính'
-      },
-      {
-        id: 5,
-        type: 'consultation',
-        title: 'Tư vấn chuyên khoa',
-        date: '2024-06-12',
-        time: '11:00',
-        doctor: 'BS. Nguyễn Thị F',
-        status: 'completed',
-        price: 250000,
-        notes: 'Đã tư vấn xong, bệnh nhân hài lòng'
-      },
-      {
-        id: 6,
-        type: 'test',
-        title: 'Xét nghiệm Chlamydia',
-        date: '2024-06-28',
-        time: '13:45',
-        doctor: 'BS. Lê Thị G',
-        status: 'scheduled',
-        price: 600000,
-        notes: 'Nhớ mang theo thẻ BHYT'
-      },
-      {
-        id: 7,
-        type: 'consultation',
-        title: 'Tái khám',
-        date: '2024-06-30',
-        time: '15:30',
-        doctor: 'BS. Trần Văn H',
-        status: 'scheduled',
-        price: 350000,
-        notes: 'Cần thanh toán trước khi khám'
-      }
-    ];
+  const fetchAppointments = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/bookings/history', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
+      const transformed = response.data.map((item) => ({
+        id: item.id,
+        type: item.categoryType.toLowerCase(), // "CONSULTATION" => "consultation"
+        title: item.serviceName,
+        date: item.date,
+time: item.timeSlot, // giữ nguyên toàn bộ chuỗi timeSlot
+        doctor: item.assignedStaff || 'Chưa gán',
+        status: item.status.toLowerCase(),
+        price: item.price,
+        notes: item.notes,
+      }));
 
-    setTimeout(() => {
-      setAppointments(mockAppointments);
+      setAppointments(transformed);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu từ API:", error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
+
+  fetchAppointments();
+}, []);
+
+
+
+
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100';
-      case 'scheduled': return 'text-blue-600 bg-blue-100';
-      case 'cancelled': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
+  switch (status?.toLowerCase()) {
+    case 'completed': return 'text-green-600 bg-green-100';
+    case 'scheduled':
+    case 'confirmed':
+    case 'rescheduled': return 'text-blue-600 bg-blue-100';
+    case 'pending':
+    case 'in_progress':
+    case 'ongoing': return 'text-yellow-700 bg-yellow-100';
+    case 'canceled':
+    case 'cancelled': return 'text-red-600 bg-red-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
 
   const getStatusText = (status) => {
-    switch (status) {
-      case 'completed': return 'Đã hoàn thành';
-      case 'scheduled': return 'Đã đặt lịch';
-      case 'cancelled': return 'Đã hủy';
-      default: return 'Không xác định';
-    }
-  };
+  switch (status?.toLowerCase()) {
+    case 'pending': return 'Chờ xác nhận';
+    case 'confirmed': return 'Đã xác nhận';
+    case 'scheduled': return 'Đã lên lịch';
+    case 'rescheduled': return 'Đã dời lịch';
+    case 'ongoing': return 'Đang thực hiện';
+    case 'in_progress': return 'Đang xét nghiệm';
+    case 'completed': return 'Hoàn thành';
+    case 'canceled': // cả test lẫn consultation
+    case 'cancelled': return 'Đã hủy';
+    default: return 'Không xác định';
+  }
+};
+
 
   const getStatusIcon = (status) => {
     switch (status) {

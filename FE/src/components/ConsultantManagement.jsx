@@ -10,11 +10,16 @@ const ConsultantManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredConsultants = consultants.filter(member => {
-    const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || member.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        member.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchesFilter =
+    filterStatus === 'all' ||
+    String(member.active) === filterStatus; // vì active là boolean, filterStatus là string
+
+  return matchesSearch && matchesFilter;
+});
+
 
   const openModal = (type, consultant) => {
     setModalType(type);
@@ -28,49 +33,49 @@ const ConsultantManagement = () => {
   };
 
   const handleSaveConsultant = async (formData) => {
-  console.log("🔍 Kiểm tra formData:", formData);
+    console.log("🔍 Kiểm tra formData:", formData);
 
-  if (modalType === 'add') {
-    const newConsultant = {
-      id: Date.now().toString(),
-      ...formData,
-      status: 'active',
-    };
-    setConsultants([...consultants, newConsultant]);
-  } else if (modalType === 'edit') {
-    try {
-      console.log("🚀 specialization gửi lên:", formData.specialization);
+    if (modalType === 'add') {
+      const newConsultant = {
+        id: Date.now().toString(),
+        ...formData,
+        status: 'active',
+      };
+      setConsultants([...consultants, newConsultant]);
+    } else if (modalType === 'edit') {
+      try {
+        console.log("🚀 specialization gửi lên:", formData.specialization);
 
-      const response = await fetch('/api/manager/consultants/full', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          consultantId: selectedConsultant.id,
-          name: formData.name,
-          email: formData.email,
-          phoneNumber: formData.phoneNumber,
-          specialization: formData.specialization,
-          hireDate: formData.hireDate,
-          yearsOfExperience: formData.yearsOfExperience, // 🆕 Thêm năm kinh nghiệm
-        }),
-      });
+        const response = await fetch('/api/manager/consultants/full', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            consultantId: selectedConsultant.id,
+            name: formData.name,
+            email: formData.email,
+            phoneNumber: formData.phoneNumber,
+            specialization: formData.specialization,
+            hireDate: formData.hireDate,
+            yearsOfExperience: formData.yearsOfExperience, // 🆕 Thêm năm kinh nghiệm
+          }),
+        });
 
-      const result = await response.text();
-      if (!response.ok) {
-        console.error("❌ Cập nhật thất bại:", response.status, result);
-        throw new Error('Cập nhật thất bại');
-      }
+        const result = await response.text();
+        if (!response.ok) {
+          console.error("❌ Cập nhật thất bại:", response.status, result);
+          throw new Error('Cập nhật thất bại');
+        }
 
-      alert('Cập nhật thành công');
+        alert('Cập nhật thành công');
 
-      // ✅ Cập nhật local state
-      setConsultants(prev =>
-        prev.map((member) =>
-          member.id === selectedConsultant.id
-            ? {
+        // ✅ Cập nhật local state
+        setConsultants(prev =>
+          prev.map((member) =>
+            member.id === selectedConsultant.id
+              ? {
                 ...member,
                 name: formData.name,
                 email: formData.email,
@@ -79,15 +84,15 @@ const ConsultantManagement = () => {
                 hireDate: formData.hireDate,
                 yearsOfExperience: formData.yearsOfExperience,
               }
-            : member
-        )
-      );
-    } catch (error) {
-      console.error("❌ Lỗi khi gọi API:", error);
-      alert('Cập nhật thông tin thất bại');
+              : member
+          )
+        );
+      } catch (error) {
+        console.error("❌ Lỗi khi gọi API:", error);
+        alert('Cập nhật thông tin thất bại');
+      }
     }
-  }
-};
+  };
 
 
   const getStatusBadge = (active) => {
@@ -138,19 +143,19 @@ const ConsultantManagement = () => {
   }, []);
 
   const translateSpecialty = (specialization) => {
-  switch (specialization) {
-    case 'GENERAL_CONSULTATION':
-      return 'Tư vấn tổng quát';
-    case 'SPECIALIST_CONSULTATION':
-      return 'Tư vấn chuyên khoa';
-    case 'RE_EXAMINATION':
-      return 'Tư vấn tái khám';
-    case 'EMERGENCY_CONSULTATION':
-      return 'Tư vấn y tế khẩn cấp';
-    default:
-      return specialization;
-  }
-};
+    switch (specialization) {
+      case 'GENERAL_CONSULTATION':
+        return 'Tư vấn tổng quát';
+      case 'SPECIALIST_CONSULTATION':
+        return 'Tư vấn chuyên khoa';
+      case 'RE_EXAMINATION':
+        return 'Tư vấn tái khám';
+      case 'EMERGENCY_CONSULTATION':
+        return 'Tư vấn y tế khẩn cấp';
+      default:
+        return specialization;
+    }
+  };
 
   return (
     <div className="p-6">
@@ -160,13 +165,7 @@ const ConsultantManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý tư vấn viên</h1>
           <p className="text-gray-600 mt-1">Quản lý thông tin và lịch tư vấn của các chuyên gia</p>
         </div>
-        <button
-          onClick={() => openModal('add')}
-          className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          Thêm tư vấn viên
-        </button>
+
       </div>
 
       {/* Search and Filter */}
@@ -190,9 +189,8 @@ const ConsultantManagement = () => {
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="available">Sẵn sàng</option>
-              <option value="busy">Bận</option>
-              <option value="offline">Offline</option>
+              <option value="true">Hoạt động</option>
+              <option value="false">Không hoạt động</option>
             </select>
           </div>
         </div>
@@ -210,6 +208,7 @@ const ConsultantManagement = () => {
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Kinh nghiệm</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Trạng thái</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Ngày bắt đầu</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-900">Chứng chỉ</th>
                 <th className="text-center py-3 px-4 font-medium text-gray-900">Thao tác</th>
               </tr>
             </thead>
@@ -224,18 +223,37 @@ const ConsultantManagement = () => {
                         </span>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{consultant.fullName}</p>
+                        <p className="text-sm font-medium text-gray-900 h-1">{consultant.fullName}</p>
                         <p className="text-sm text-gray-500">{consultant.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.roleDisplay}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900">{translateSpecialty(consultant.specialization) || 'Chưa xác định'}</td>
+                  <td className="py-4 px-4 text-sm">
+                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
+                      {translateSpecialty(consultant.specialization) || 'Chưa xác định'}
+                    </span>
+                  </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.yearsOfExperience} năm</td>
                   <td className="py-4 px-4">{getStatusBadge(consultant.active)}</td>
                   <td className="py-4 px-4 text-sm text-gray-900">
                     {new Date(consultant.hireDate).toLocaleDateString('vi-VN')}
                   </td>
+                  <td className="py-4 px-4 text-sm">
+                    {consultant.certificates && consultant.certificates.length > 0 ? (
+                      consultant.certificates.map((cert, index) => (
+                        <span
+                          key={index}
+                          className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block mr-1 mb-1"
+                        >
+                          {cert}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-500 italic">Chưa có chứng chỉ</span>
+                    )}
+                  </td>
+
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-center space-x-2">
                       <button
@@ -318,7 +336,7 @@ const ConsultantManagement = () => {
                       {new Date(selectedConsultant.hireDate).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
-                
+
                 </div>
               )}
               {(modalType === 'edit' || modalType === 'add') && (
@@ -349,7 +367,7 @@ const ConsultantManagement = () => {
 // Consultant Form Component
 const ConsultantForm = ({ consultant, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: consultant?.name || '',
+    name: consultant?.fullName || consultant?.name || '',
     email: consultant?.email || '',
     phoneNumber: consultant?.phoneNumber || '',
     specialization: consultant?.specialization || '',

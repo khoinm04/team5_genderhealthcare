@@ -20,13 +20,12 @@ import java.util.Set;
 @AllArgsConstructor
 public class CustomerDetails {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "CustomerID")
     private Long customerId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // Uses the ID of the User entity as the ID for ConsultantDetails
-    @JoinColumn(name = "CustomerID") // This is the FK column in ConsultantDetails table that references Users.UserID
+    @MapsId // sử dụng User.userId làm luôn customerId
+    @JoinColumn(name = "CustomerID")
     private User customer;
 
     @NotBlank(message = "Tên đầy đủ không được để trống")
@@ -50,6 +49,6 @@ public class CustomerDetails {
     @Column(name = "Email", nullable = false, unique = true, length = 100)
     private String email;
 
-    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private Set<Booking> bookings;
 }

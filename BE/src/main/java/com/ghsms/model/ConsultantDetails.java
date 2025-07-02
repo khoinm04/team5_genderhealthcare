@@ -43,4 +43,7 @@ public class ConsultantDetails implements Serializable {
 
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
+
+    @OneToMany(mappedBy = "consultant", cascade = CascadeType.ALL)
+    private Set<Certificate> certificates;
 }

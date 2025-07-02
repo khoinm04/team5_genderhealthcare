@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
 export const useOnlineUsersSocket = (onUpdate) => {
@@ -36,41 +35,38 @@ export const useOnlineUsersSocket = (onUpdate) => {
     }
 
     const client = new Client({
-  webSocketFactory: () => new SockJS(`http://localhost:8080/ws?token=${token}`, null, {
-    transports: ['websocket'],
-    withCredentials: true
-  }),
-  connectHeaders: {
-    Authorization: `Bearer ${token}`
-  },
-  debug: (str) => console.log("📡 STOMP:", str),
+      webSocketFactory: () => {
+        console.log("🧪 Using raw WebSocket to ws://localhost:8080/ws");
+        return new WebSocket("ws://localhost:8080/ws");
+      },
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+      debug: (str) => console.log("📡 STOMP:", str),
       onConnect: (frame) => {
         console.log("✅ STOMP connected!", frame);
-        client.subscribe('/topic/online-users', message => {
+
+        client.publish({
+          destination: "/app/online",
+          body: "",
+        });
+
+        client.subscribe("/topic/online-users", (message) => {
           try {
             const users = JSON.parse(message.body);
-            console.log("📥 Received online users:", users);
             onUpdateRef.current(users);
           } catch (e) {
             console.error("❌ Failed to parse message:", e);
           }
         });
       },
-      onDisconnect: () => {
-        console.log("❌ STOMP disconnected");
-      },
-      onStompError: (frame) => {
-        console.error("❌ STOMP error:", frame);
-      },
-      onWebSocketClose: (event) => {
-        console.error("🔄 WebSocket closed:", event);
-      },
-      onWebSocketError: (error) => {
-        console.error("❌ WebSocket error:", error);
-      },
+      onDisconnect: () => console.log("❌ STOMP disconnected"),
+      onStompError: (frame) => console.error("❌ STOMP error:", frame),
+      onWebSocketClose: (event) => console.error("🔄 WebSocket closed:", event),
+      onWebSocketError: (error) => console.error("❌ WebSocket error:", error),
       reconnectDelay: 5000,
       heartbeatIncoming: 25000,
-      heartbeatOutgoing: 25000
+      heartbeatOutgoing: 25000,
     });
 
     client.activate();
@@ -84,4 +80,27 @@ export const useOnlineUsersSocket = (onUpdate) => {
       clientRef.current = null;
     };
   }, []);
+
+  // 👇 Gửi tín hiệu offline
+  const sendOfflineSignal = () => {
+    if (clientRef.current?.connected) {
+      clientRef.current.publish({
+        destination: "/app/offline",
+        body: "",
+      });
+      console.log("📤 Sent /app/offline signal");
+    }
+  };
+
+  // 👇 Gọi khi logout
+  const deactivateClient = async () => {
+    await sendOfflineSignal();
+    if (clientRef.current?.active) {
+      await clientRef.current.deactivate();
+      console.log("🛑 STOMP manually deactivated on logout");
+    }
+  };
+
+  return { deactivateClient, sendOfflineSignal }; // ✅ TRẢ RA ĐẦY ĐỦ
 };
+

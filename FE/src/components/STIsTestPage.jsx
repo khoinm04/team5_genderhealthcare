@@ -14,11 +14,24 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // For navigation to payment page
 
+
 const STIsTestPage = () => {
   const [activeTab, setActiveTab] = useState("results");
   const [selectedResult, setSelectedResult] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [testResults, setTestResults] = useState([]);
+  const [step, setStep] = useState(1); // 1 = booking, 2 = payment, 3 = success
+  const [paymentCode, setPaymentCode] = useState("");
+  const [selectedService, setSelectedService] = useState(null);
+  const [bookingId, setBookingId] = useState(null);
+  const [contactInfo, setContactInfo] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    age: '',
+    gender: '',
+    notes: ''
+  });
 
 
   useEffect(() => {
@@ -42,6 +55,8 @@ const STIsTestPage = () => {
           })
         );
 
+        
+
         Promise.all(testResultsPromises)
           .then((results) => {
             const allTestResults = results.flatMap((result) => result.data.testResults);
@@ -51,6 +66,7 @@ const STIsTestPage = () => {
                 bookingId: result.bookingId,
                 patientName: result.customerName,
                 testDate: result.scheduledTime,
+                timeSlot:result.timeSlot,
                 tests: [result.testName],
                 status: result.status.toLowerCase(),
                 currentPhase: result.currentPhase,
@@ -106,6 +122,7 @@ const STIsTestPage = () => {
         return "text-gray-600 bg-gray-100";
     }
   };
+
   const translateGender = (gender) => {
     switch (gender) {
       case "MALE":
@@ -144,26 +161,37 @@ const STIsTestPage = () => {
     setSelectedResult(null);
   };
 
-  const handleDownload = (downloadUrl) => {
-    axios
-      .get(downloadUrl, {
-        withCredentials: true,
-        responseType: "blob",
-      })
-      .then((response) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `test_result.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      })
-      .catch((err) => {
-        console.error("Lỗi tải file:", err);
-        alert("Không thể tải file kết quả. Vui lòng thử lại.");
+  const handleDownload = async (bookingId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/bookings/sti/test-result/${bookingId}/report?format=PDF`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("📛 Server Error:", res.status, errorText);
+        alert(`Tải kết quả thất bại: ${res.status} - ${errorText}`);
+        return;
+      }
+
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ket-qua-xet-nghiem-${bookingId}.pdf`;
+      link.click();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Lỗi tải PDF:", error);
+      alert("Tải kết quả thất bại");
+    }
   };
+
 
   const STIsTestBooking = () => {
     const [selectedTest, setSelectedTest] = useState(null);
@@ -286,7 +314,7 @@ const STIsTestPage = () => {
         bookingDate: date,
         timeSlot: time,
         paymentCode: null,
-        status: null,
+        status: "COMPLETED", // ✅ sửa chỗ này
         isStiBooking: true,
         customerName: name,
         customerAge: bookingData.age,
@@ -309,20 +337,78 @@ const STIsTestPage = () => {
           response.data?.paymentCode &&
           response.data?.booking?.bookingId
         ) {
-          navigate("/payment", {
-            state: {
-              paymentCode: response.data.paymentCode,
-              amount: amount,
-              testName: selectedTest.name,
-              bookingId: response.data.booking.bookingId,
-            },
-          });
+         navigate("/booking-success", {
+  state: {
+    testName: selectedTest.name,
+    date,
+    time,
+    fullName: name,
+    amount,
+    email,
+    phone,
+  }
+});
+
+
+
         } else {
           alert("Lỗi phản hồi từ hệ thống. Vui lòng thử lại.");
         }
       } catch (error) {
         console.error("Lỗi đặt lịch:", error.response?.data || error.message);
         alert("Không thể gửi đặt lịch. Vui lòng thử lại sau.");
+      }
+    };
+
+
+    // api lay thong tin ngươi dung co san
+    useEffect(() => {
+      const fetchProfile = async () => {
+        try {
+          const token = JSON.parse(localStorage.getItem("user"))?.token;
+          const res = await axios.get("/api/bookings/profile", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          // Nếu có thông tin thì set vào bookingData
+          if (res.data && res.data.fullName) {
+            setBookingData((prev) => ({
+              ...prev,
+              name: res.data.fullName || "",
+              age: res.data.age || "",
+              gender: res.data.gender || "",
+              phone: res.data.phone || "",
+              email: res.data.email || ""
+            }));
+          }
+        } catch (err) {
+          console.error("Không thể tải thông tin người dùng:", err);
+        }
+      };
+
+      fetchProfile();
+    }, []);
+
+    const handleUpdateProfile = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem("user"))?.token;
+
+        const payload = {
+          fullName: bookingData.name,
+          age: bookingData.age,
+          gender: bookingData.gender,
+          phone: bookingData.phone,
+          email: bookingData.email
+        };
+
+        await axios.put("/api/bookings/profile", payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        alert("Cập nhật thông tin thành công!");
+      } catch (error) {
+        console.error("Lỗi cập nhật thông tin:", error);
+        alert("Cập nhật thất bại!");
       }
     };
 
@@ -448,11 +534,18 @@ const STIsTestPage = () => {
                   value={bookingData.date}
                   onChange={(e) => handleInputChange("date", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  min={new Date().toISOString().split("T")[0]}
+                  min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
                 />
               </div>
             </div>
-
+<div className="flex justify-end mt-6">
+            <button
+              onClick={handleUpdateProfile}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Lưu thông tin
+            </button>
+          </div>
             {/* Time Selection */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -488,6 +581,8 @@ const STIsTestPage = () => {
               />
             </div>
           </div>
+          
+
         </div>
 
         {/* Booking Summary */}
@@ -713,6 +808,22 @@ const STIsTestPage = () => {
     );
   };
 
+  const getProgressPercentage = (status) => {
+    switch (status?.toLowerCase()) {
+      case "pending":
+        return 25;
+      case "in_progress":
+        return 50;
+      case "completed":
+        return 100;
+      case "canceled":
+        return 0;
+      default:
+        return 0;
+    }
+  };
+
+
   const STIsTestResults = () => {
     return (
       <div className="space-y-6">
@@ -776,10 +887,11 @@ const STIsTestPage = () => {
                         </p>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
                           <div
-                            className="bg-purple-600 h-2.5 rounded-full"
-                            style={{ width: `${result.progressPercentage}%` }}
+                            className="bg-purple-600 h-2.5 rounded-full transition-all duration-500"
+                            style={{ width: `${getProgressPercentage(result.status)}%` }}
                           ></div>
                         </div>
+
                         {result.estimatedMinutesRemaining > 0 && (
                           <p className="text-xs text-gray-500 mt-1">
                             Thời gian hoàn thành dự kiến: {result.estimatedMinutesRemaining} phút
@@ -796,9 +908,9 @@ const STIsTestPage = () => {
                       <Eye className="h-4 w-4" />
                       <span>Xem chi tiết</span>
                     </button>
-                    {result.downloadUrl && result.status === "completed" && (
+                    {result.bookingId && result.status === "completed" && (
                       <button
-                        onClick={() => handleDownload(result.downloadUrl)}
+                        onClick={() => handleDownload(result.bookingId)}
                         className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                       >
                         <Download className="h-5 w-5" />
@@ -816,6 +928,29 @@ const STIsTestPage = () => {
 
   const DetailsModal = () => {
     if (!showDetailsModal || !selectedResult) return null;
+    console.log("🧪 selectedResult", selectedResult);
+
+    const getProgressPercentage = (status) => {
+      switch (status?.toUpperCase()) {
+        case "PENDING":
+          return 25;
+        case "IN_PROGRESS":
+        case "SCHEDULED":
+          return 50;
+        case "COMPLETED":
+          return 100;
+        case "CANCELED":
+          return 0;
+        default:
+          return 0;
+      }
+    };
+
+    const progress = getProgressPercentage(selectedResult.status);
+    console.log("Tiến độ:", progress);
+
+
+
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -901,6 +1036,15 @@ const STIsTestPage = () => {
                   </p>
                 </div>
                 <div>
+  <span className="text-sm font-medium text-gray-700">
+    Khung giờ:
+  </span>
+  <p className="text-gray-900">
+    {selectedResult.timeSlot}
+  </p>
+</div>
+
+                <div>
                   <span className="text-sm font-medium text-gray-700">
                     Trạng thái:
                   </span>
@@ -931,10 +1075,12 @@ const STIsTestPage = () => {
                   </span>
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
                     <div
-                      className="bg-purple-600 h-2.5 rounded-full"
-                      style={{ width: `${selectedResult.progressPercentage}%` }}
+                      className="bg-purple-600 h-2.5 rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%` }}
                     ></div>
                   </div>
+
+
                   {selectedResult.estimatedMinutesRemaining > 0 && (
                     <p className="text-sm text-gray-600 mt-1">
                       Thời gian hoàn thành dự kiến: {selectedResult.estimatedMinutesRemaining} phút
@@ -1002,6 +1148,7 @@ const STIsTestPage = () => {
                               </span>
                             </div>
                           </div>
+
                         </div>
                       )
                     )}
@@ -1040,7 +1187,7 @@ const STIsTestPage = () => {
             <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
               {selectedResult.downloadUrl && selectedResult.status === "completed" && (
                 <button
-                  onClick={() => handleDownload(selectedResult.downloadUrl)}
+                  onClick={() => handleDownload(selectedResult.bookingId)}
                   className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Download className="h-4 w-4" />
@@ -1117,7 +1264,45 @@ const STIsTestPage = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === "book-test" && <STIsTestBooking />}
+        {activeTab === "book-test" && step === 1 && (
+          <STIsTestBooking
+            onBookingSuccess={(code, service, id) => {
+              setPaymentCode(code);
+              setSelectedService(service);
+              setBookingId(id);
+              setStep(2);
+            }}
+          />
+        )}
+        {activeTab === "book-test" && step === 2 && (
+          <PaymentPage
+            paymentCode={paymentCode}
+            amount={selectedService?.price}
+            testName={selectedService?.serviceName}
+            bookingId={bookingId}
+            onCancel={() => {
+              setStep(1);
+              setPaymentCode("");
+              setSelectedService(null);
+              setBookingId(null);
+            }}
+            onSuccess={() => setStep(3)}
+          />
+        )}
+
+        {activeTab === "book-test" && step === 3 && (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-green-600">Đặt lịch xét nghiệm thành công!</h2>
+            <p className="mt-2 text-gray-600">Chúng tôi sẽ gửi thông báo khi lịch được xác nhận.</p>
+            <button
+              onClick={() => setStep(1)}
+              className="mt-6 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+            >
+              Đặt lịch khác
+            </button>
+          </div>
+        )}
+
         {activeTab === "test-info" && <STIsTestInfo />}
         {activeTab === "results" && <STIsTestResults />}
       </div>

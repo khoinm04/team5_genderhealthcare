@@ -10,11 +10,17 @@ const StaffManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredStaff = staff.filter(member => {
-    const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || member.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const matchesSearch =
+    member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchesFilter =
+    filterStatus === 'all' ||
+    String(member.active) === filterStatus;
+
+  return matchesSearch && matchesFilter;
+});
+
 
   const openModal = (type, staffMember) => {
     setModalType(type);
@@ -124,19 +130,19 @@ const StaffManagement = () => {
   }, []);
 
   const translateSpecialty = (specialization) => {
-  switch (specialization) {
-    case 'STI_HIV':
-      return 'Xét nghiệm HIV';
-    case 'STI_SYPHILIS':
-      return 'Xét nghiệm giang mai (Syphilis)';
-    case 'STI_GONORRHEA':
-      return 'Xét nghiệm lậu (Gonorrhea)';
-    case 'STI_Chlamydia':
-      return 'Xét nghiệm Chlamydia';
-    default:
-      return specialization;
-  }
-};
+    switch (specialization) {
+      case 'STI_HIV':
+        return 'Xét nghiệm HIV';
+      case 'STI_SYPHILIS':
+        return 'Xét nghiệm giang mai (Syphilis)';
+      case 'STI_GONORRHEA':
+        return 'Xét nghiệm lậu (Gonorrhea)';
+      case 'STI_Chlamydia':
+        return 'Xét nghiệm Chlamydia';
+      default:
+        return specialization;
+    }
+  };
 
 
   return (
@@ -147,13 +153,7 @@ const StaffManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý nhân viên</h1>
           <p className="text-gray-600 mt-1">Quản lý thông tin và lịch làm việc của nhân viên</p>
         </div>
-        <button
-          onClick={() => openModal('add')}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          Thêm nhân viên
-        </button>
+        
       </div>
 
       {/* Search and Filter */}
@@ -177,9 +177,10 @@ const StaffManagement = () => {
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
-              <option value="inactive">Không hoạt động</option>
+              <option value="true">Hoạt động</option>
+              <option value="false">Không hoạt động</option>
             </select>
+
           </div>
         </div>
       </div>
@@ -215,7 +216,12 @@ const StaffManagement = () => {
                     </div>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{member.roleDisplay}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900">{translateSpecialty(member.specialization) || 'Chưa xác định'}</td>
+                  <td className="py-4 px-4 text-sm">
+                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
+                      {translateSpecialty(member.specialization) || 'Chưa xác định'}
+                    </span>
+                  </td>
+
                   <td className="py-4 px-4">{getStatusBadge(member.active)}</td>
                   <td className="py-4 px-4 text-sm text-gray-900">
                     {new Date(member.hireDate).toLocaleDateString('vi-VN')}
@@ -332,7 +338,7 @@ const StaffManagement = () => {
 // Staff Form Component
 const StaffForm = ({ staff, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: staff?.name || '',
+    name: staff?.fullName || '',
     email: staff?.email || '',
     phoneNumber: staff?.phoneNumber || '',
     specialization: staff?.specialization || '',

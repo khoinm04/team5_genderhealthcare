@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     List<User> findByIsActiveTrue();
+
+
     List<User> findByRole_Name(RoleName roleName);
     long countByRole_Name(RoleName role); // 👈 dùng enum, không dùng String
 

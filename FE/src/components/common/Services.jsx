@@ -17,7 +17,7 @@ const servicesData = [
 
   },
   {
-    title: "Quản lý dịch vụ xét nghiệm STIs",
+    title: "Đặt lịch xét nghiệm STIs",
     description: "Quản lý quá trình xét nghiệm các bệnh lây truyền qua đường tình dục từ đặt lịch đến trả kết quả.",
     icon: "🧪",
     navigateTo: "/booking/sti",

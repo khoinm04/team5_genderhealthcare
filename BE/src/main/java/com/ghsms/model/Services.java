@@ -1,6 +1,8 @@
 package com.ghsms.model;
 
+import com.ghsms.file_enum.ConsultantSpecialization;
 import com.ghsms.file_enum.ServiceBookingCategory;
+import com.ghsms.file_enum.ServiceCategoryType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -25,7 +27,12 @@ public class Services {
     private String serviceName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "Category", nullable = false)
+    @Column(name = "category_type")
+    private ServiceCategoryType categoryType;
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "Category")
     private ServiceBookingCategory category;
 
     @Column(name = "Description",columnDefinition = "nvarchar(100)")
@@ -42,5 +49,11 @@ public class Services {
     private String duration; // e.g., "30 phút"
 
     @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
-    private boolean isActive = true;
+    private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "specialization", length = 100)
+    private ConsultantSpecialization specialization;
+
+
 }

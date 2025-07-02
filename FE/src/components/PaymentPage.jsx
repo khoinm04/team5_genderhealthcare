@@ -1,26 +1,26 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { QrCode, Check, Copy } from "lucide-react";
-import QRCode from "react-qr-code";
 import axios from "axios";
+import { QrCode, Check, Copy, Loader2, CheckCircle, XCircle } from "lucide-react";
 
-const PaymentPage = () => {
-  const { state } = useLocation();
-  const navigate = useNavigate();
-  const { paymentCode, amount, testName, bookingId } = state || {};
+const PaymentPage = ({ paymentCode, amount, testName, bookingId, onCancel, onSuccess }) => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
 
   useEffect(() => {
+    console.log("paymentCode:", paymentCode);
+    console.log("amount:", amount);
+    console.log("testName:", testName);
+    console.log("bookingId:", bookingId);
+
     if (!paymentCode || !amount || !testName || !bookingId) {
       alert("Thông tin thanh toán không hợp lệ. Vui lòng thử lại.");
-      navigate("/booking/sti?tab=book-test");
     }
-  }, [paymentCode, amount, testName, bookingId, navigate]);
+  }, [paymentCode, amount, testName, bookingId]);
 
-  const formatPrice = (price) => {
-    return `${price?.toLocaleString("vi-VN")} đ`;
-  };
+
+  const formatPrice = (price) => `${price?.toLocaleString("vi-VN")} đ`;
 
   const copyPaymentCode = () => {
     navigator.clipboard.writeText(paymentCode).then(() => {
@@ -29,108 +29,196 @@ const PaymentPage = () => {
     });
   };
 
-  const handlePaymentConfirmation = () => {
+  const handlePaymentConfirmation = async () => {
     setLoading(true);
-    const token = localStorage.getItem("token");
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
+    try {
+      const token = localStorage.getItem("token");
 
-    axios
-        .get(`/api/bookings/payment/${paymentCode}`, config)
-        .then((response) => {
-          if (response.data.status === "CONFIRMED") {
-            alert("Thanh toán thành công! Bạn sẽ được chuyển về trang kết quả.");
-            navigate("/booking/sti?tab=results");
-          } else {
-            alert("Hệ thống chưa ghi nhận thanh toán. Vui lòng đợi hoặc thử lại sau.");
-          }
-        })
-        .catch((err) => {
-          console.error("Lỗi xác nhận thanh toán:", err);
-          alert("Đã có lỗi xảy ra. Vui lòng thử lại.");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      await axios.patch(`/api/bookings/confirm-payment`, null, {
+        params: { paymentCode },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setPaymentSuccess();
+      pollForCompletedStatus();
+    } catch (err) {
+      alert("Lỗi khi xác nhận thanh toán. Vui lòng thử lại.");
+      setLoading(false);
+    }
   };
 
+
+  const pollForCompletedStatus = () => {
+    const startTime = Date.now();
+    const timeout = 60000;
+    const token = localStorage.getItem("token");
+
+    const interval = setInterval(async () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > timeout) {
+        clearInterval(interval);
+        await handleAutoCancel();
+        return;
+      }
+
+      try {
+        const res = await axios.get(`/api/bookings/payment/${paymentCode}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const status = res.data?.status;
+        console.log("✅ Trạng thái từ API:", status);
+
+        if (status?.toUpperCase() === "COMPLETED") {
+          clearInterval(interval);
+          setPaymentSuccess(true);
+          setTimeout(() => {
+            if (onSuccess) onSuccess();
+          }, 1000);
+        }
+      } catch (err) {
+        console.error("❌ Lỗi khi kiểm tra trạng thái booking:", err);
+      }
+    }, 5000);
+  };
+
+
+
+  const handleAutoCancel = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.patch(`/api/bookings/cancel`, null, {
+        params: { paymentCode },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setPaymentFailed(true);
+      if (onCancel) onCancel();
+    } catch (err) {
+      alert("Lỗi khi hủy đặt lịch: " + (err.response?.data?.error || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleCancelPayment = () => {
+    const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy thanh toán?");
+    if (confirmCancel && onCancel) {
+      onCancel();
+    }
+  };
+
+  const LoadingModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
+        <h3 className="text-lg font-semibold text-gray-800 mt-4">Đang xác nhận thanh toán</h3>
+        <p className="text-sm text-gray-600">Vui lòng đợi trong giây lát...</p>
+      </div>
+    </div>
+  );
+
+  const SuccessModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
+        <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
+        <h3 className="text-lg font-semibold text-gray-800 mt-4">Thanh toán thành công!</h3>
+        <p className="text-sm text-gray-600">Đang chuyển về trang chủ...</p>
+      </div>
+    </div>
+  );
+
+  const FailureModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
+        <XCircle className="w-12 h-12 text-red-600 mx-auto" />
+        <h3 className="text-lg font-semibold text-gray-800 mt-4">Đặt lịch không thành công</h3>
+        <p className="text-sm text-gray-600">Không nhận được xác nhận trong vòng 1 phút</p>
+      </div>
+    </div>
+  );
+
   return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 flex justify-center items-center">
-        <div className="max-w-xl w-full">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-            <QrCode className="w-6 h-6 mr-2" />
-            Thanh toán QR Code
-          </h2>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 flex justify-center items-center">
+      <div className="max-w-xl w-full">
+        <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
+          <QrCode className="w-6 h-6 mr-2" /> Thanh toán QR Code
+        </h2>
 
-          <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 text-center">
-            <div className="w-64 h-64 mx-auto bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center mb-4">
-              <div className="text-center">
-                <QRCode
-                    value={`https://img.vietqr.io/image/MB-0396057100-qr_only.png?amount=${amount}&addInfo=${paymentCode}`}
-                    size={240}
-                />
-                <p className="text-sm text-gray-500 mt-2">Quét bằng app ngân hàng để thanh toán</p>
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 text-center">
+          <img
+            src={`https://img.vietqr.io/image/MB-0396057100-qr_only.png?amount=${amount}&addInfo=${paymentCode}`}
+            alt="QR Code"
+            width={240}
+            height={240}
+            className="mx-auto border-2 border-gray-300 rounded-lg shadow-sm"
+          />
+          <p className="text-sm text-gray-500 mt-3">Quét bằng app ngân hàng để thanh toán</p>
 
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600">Số tài khoản:</p>
-                  <code className="bg-gray-100 px-3 py-1 rounded text-sm font-mono">0396057100</code>
-                </div>
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600">Nội dung chuyển khoản:</p>
-                  <code className="bg-gray-100 px-3 py-1 rounded text-sm font-mono">{paymentCode}</code>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Mã thanh toán:</p>
-              <div className="flex items-center justify-center space-x-2">
-                <code className="bg-gray-100 px-3 py-1 rounded text-sm font-mono">{paymentCode}</code>
-                <button
-                    onClick={copyPaymentCode}
-                    className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
-                    title="Sao chép mã"
-                >
-                  {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              {copiedCode && <p className="text-xs text-green-600 mt-1">Đã sao chép!</p>}
-            </div>
-
-            <div className="border-t pt-4">
-              <p className="text-lg font-semibold text-gray-800">
-                Số tiền: <span className="text-blue-600">{formatPrice(amount)}</span>
-              </p>
-            </div>
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 mb-1">Số tài khoản:</p>
+            <code className="bg-gray-100 px-3 py-2 rounded text-sm font-mono">0396057100</code>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-blue-800 mb-2">Hướng dẫn thanh toán:</h3>
-            <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside text-left">
-              <li>Mở ứng dụng ngân hàng hoặc ví điện tử</li>
-              <li>Chọn chức năng quét QR Code</li>
-              <li>Quét mã QR hoặc nhập mã thanh toán</li>
-              <li>Xác nhận số tiền và thực hiện thanh toán</li>
-              <li>Sau khi thanh toán, nhấn "Xác nhận thanh toán"</li>
-            </ol>
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 mb-1">Mã thanh toán:</p>
+            <div className="flex items-center justify-center space-x-2">
+              <code className="bg-gray-100 px-3 py-2 rounded text-sm font-mono">{paymentCode}</code>
+              <button
+                onClick={copyPaymentCode}
+                className="p-2 text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
+            {copiedCode && <p className="text-xs text-green-600 mt-1">Đã sao chép!</p>}
           </div>
 
-          <button
-              onClick={handlePaymentConfirmation}
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Đang xử lý..." : "Xác nhận đã thanh toán"}
-          </button>
-
-          <p className="text-xs text-gray-500 text-center mt-2">
-            * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
+          <p className="mt-4 text-lg font-semibold text-gray-800">
+            Số tiền: <span className="text-blue-600">{formatPrice(amount)}</span>
           </p>
         </div>
+
+        <div className="flex space-x-4">
+          <button
+            onClick={handleCancelPayment}
+            disabled={loading || paymentSuccess}
+            className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 disabled:opacity-50"
+          >
+            Hủy thanh toán
+          </button>
+          <button
+            onClick={handlePaymentConfirmation}
+            disabled={loading || paymentSuccess}
+            className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            {paymentSuccess ? (
+              <span className="flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 mr-2" /> Đã thanh toán
+              </span>
+            ) : (
+              "Xác nhận đã thanh toán"
+            )}
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 text-center mt-2">
+          * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
+        </p>
       </div>
+
+      {loading && <LoadingModal />}
+      {paymentSuccess && <SuccessModal />}
+      {paymentFailed && <FailureModal />}
+    </div>
   );
 };
 

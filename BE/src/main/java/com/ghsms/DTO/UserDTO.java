@@ -44,7 +44,10 @@ public class UserDTO implements Serializable {
 
         this.createdAt = user.getCreatedAt() != null ?
                 user.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy, h:mm:ss a")) : null;
+<<<<<<< HEAD
 
+=======
+>>>>>>> An
         this.authProvider = user.getAuthProvider() != null ? user.getAuthProvider() : AuthProvider.LOCAL;
     }
 
@@ -52,7 +55,6 @@ public class UserDTO implements Serializable {
         this(user);
         this.isOnline = isOnline != null ? isOnline : false;
     }
-
 
 
 }

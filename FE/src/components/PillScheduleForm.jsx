@@ -1,4 +1,4 @@
-// src/components/PillScheduleForm.jsx
+
 import React, { useState } from 'react';
 import { Pill } from 'lucide-react';
 
@@ -18,9 +18,15 @@ const PillScheduleForm = ({ onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.startDate) {
-      onSubmit(formData);
+      let pillTime = formData.time;
+      if (pillTime.length === 5) pillTime += ':00';
+      const data = { ...formData, pillTime };
+      delete data.time;
+      onSubmit(data);
     }
   };
+
+
 
   return (
     <form onSubmit={handleSubmit}>
