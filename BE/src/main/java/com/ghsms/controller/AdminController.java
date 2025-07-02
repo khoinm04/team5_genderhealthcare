@@ -1,5 +1,6 @@
 package com.ghsms.controller;
 
+import com.ghsms.DTO.CreateUserRequest;
 import com.ghsms.DTO.DailyStatsDTO;
 import com.ghsms.DTO.UserDTO;
 import com.ghsms.DTO.UserUpdateDTO;
@@ -43,6 +44,13 @@ public class AdminController {
     private final OnlineUserBroadcaster onlineUserBroadcaster; // 👈 Thêm broadcaster để phát trực tuyến
     private final BookingService bookingService;
     private final AdminStatsService adminStatsService;
+
+    //tạo nguoi dung moi
+    @PostMapping("/create-user")
+    public ResponseEntity<String> createUser(@RequestBody CreateUserRequest req) {
+        userService.createUserByAdmin(req);
+        return ResponseEntity.ok("Tạo tài khoản thành công");
+    }
 
     // Lấy danh sách tất cả user
     @GetMapping

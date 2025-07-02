@@ -10,11 +10,16 @@ const ConsultantManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredConsultants = consultants.filter(member => {
-    const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || member.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        member.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchesFilter =
+    filterStatus === 'all' ||
+    String(member.active) === filterStatus; // vì active là boolean, filterStatus là string
+
+  return matchesSearch && matchesFilter;
+});
+
 
   const openModal = (type, consultant) => {
     setModalType(type);
@@ -160,13 +165,7 @@ const ConsultantManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý tư vấn viên</h1>
           <p className="text-gray-600 mt-1">Quản lý thông tin và lịch tư vấn của các chuyên gia</p>
         </div>
-        <button
-          onClick={() => openModal('add')}
-          className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          Thêm tư vấn viên
-        </button>
+
       </div>
 
       {/* Search and Filter */}
@@ -190,9 +189,8 @@ const ConsultantManagement = () => {
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="available">Sẵn sàng</option>
-              <option value="busy">Bận</option>
-              <option value="offline">Offline</option>
+              <option value="true">Hoạt động</option>
+              <option value="false">Không hoạt động</option>
             </select>
           </div>
         </div>
@@ -210,6 +208,7 @@ const ConsultantManagement = () => {
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Kinh nghiệm</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Trạng thái</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-900">Ngày bắt đầu</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-900">Chứng chỉ</th>
                 <th className="text-center py-3 px-4 font-medium text-gray-900">Thao tác</th>
               </tr>
             </thead>
@@ -240,6 +239,21 @@ const ConsultantManagement = () => {
                   <td className="py-4 px-4 text-sm text-gray-900">
                     {new Date(consultant.hireDate).toLocaleDateString('vi-VN')}
                   </td>
+                  <td className="py-4 px-4 text-sm">
+                    {consultant.certificates && consultant.certificates.length > 0 ? (
+                      consultant.certificates.map((cert, index) => (
+                        <span
+                          key={index}
+                          className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block mr-1 mb-1"
+                        >
+                          {cert}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-500 italic">Chưa có chứng chỉ</span>
+                    )}
+                  </td>
+
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-center space-x-2">
                       <button
@@ -353,7 +367,7 @@ const ConsultantManagement = () => {
 // Consultant Form Component
 const ConsultantForm = ({ consultant, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: consultant?.name || '',
+    name: consultant?.fullName || consultant?.name || '',
     email: consultant?.email || '',
     phoneNumber: consultant?.phoneNumber || '',
     specialization: consultant?.specialization || '',

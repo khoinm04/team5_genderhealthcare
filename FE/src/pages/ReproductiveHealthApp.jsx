@@ -7,6 +7,10 @@ import PillStatusPanel from '../components/PillStatusPanel';
 import PillCalendar from '../components/PillCalendar';
 import PillStatsPanel from '../components/PillStatsPanel';
 import axios from 'axios';
+import { toast } from "react-toastify";
+
+import PillConfirmedToast from "../components/PillConfirmedToast"; // Đường dẫn đúng nhé
+
 
 
 // Mock data, chỉ dùng khi phát triển/test UI
@@ -289,39 +293,60 @@ const ReproductiveHealthApp = () => {
 
     // Sự kiện xác nhận đã uống thuốc hôm nay
     const handleTakePill = () => {
-        if (!pillSchedule?.id) return;
+    if (!pillSchedule?.id) return;
 
-        const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
 
-        axios.patch(`/api/contraceptive-schedules/${pillSchedule.id}/confirm`, null, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            }
-        })
-            .then(res => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    // ✅ Chặn trước khi gửi API, đề phòng WebSocket phản ứng quá nhanh
+    window.justConfirmed = true;
+    setTimeout(() => {
+        window.justConfirmed = false;
+    }, 6000); // đủ dài để chặn toast WebSocket
 
-                // ✅ Cập nhật local pillHistory để disable nút ngay lập tức
-                setPillHistory(prev => ({
+    axios.patch(`/api/contraceptive-schedules/${pillSchedule.id}/confirm`, null, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    })
+        .then(res => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+
+            // ✅ Cập nhật state và localStorage
+            setPillHistory(prev => {
+                const updated = {
                     ...prev,
                     [todayStr]: true,
-                }));
-
-                // ✅ Cập nhật local currentPill nếu muốn hiệu ứng UI
-                setPillSchedule(prev => ({
-                    ...prev,
-                    currentPill: prev.currentPill < parseInt(prev.type) ? prev.currentPill + 1 : 1,
-                }));
-
-                alert(res.data); // "Đã xác nhận bạn đã uống thuốc hôm nay!"
-            })
-            .catch(err => {
-                const msg = err?.response?.data || "Xác nhận thất bại!";
-                alert(msg);
+                };
+                localStorage.setItem("pillHistory", JSON.stringify(updated));
+                return updated;
             });
-    };
+
+            // ✅ Cập nhật currentPill UI
+            setPillSchedule(prev => ({
+                ...prev,
+                currentPill: prev.currentPill < parseInt(prev.type) ? prev.currentPill + 1 : 1,
+            }));
+
+            // ✅ Hiển thị toast xác nhận uống
+            toast.success(
+                <PillConfirmedToast
+                    pillIndex={(pillSchedule.currentPill ?? 0) + 1}
+                    pillType={pillSchedule.type}
+                />,
+                {
+                    position: "top-right",
+                    autoClose: 8000,
+                }
+            );
+        })
+        .catch(err => {
+            const msg = err?.response?.data || "Xác nhận thất bại!";
+            alert(msg);
+        });
+};
+
 
 
 
@@ -334,7 +359,6 @@ const ReproductiveHealthApp = () => {
 
         const token = localStorage.getItem('token');
 
-        // Gọi API BE để xóa
         axios.delete(`/api/contraceptive-schedules/${pillSchedule.id}`, {
             params: { userId: userId },
             headers: {
@@ -343,8 +367,12 @@ const ReproductiveHealthApp = () => {
         })
             .then(res => {
                 alert(res.data || "Đã xóa thành công lịch uống thuốc!");
+
+                // ✅ Xóa toàn bộ state và localStorage liên quan
                 setPillSchedule(null);
                 setPillHistory({});
+                localStorage.removeItem("pillHistory"); // <<== thêm dòng này
+
             })
             .catch(err => {
                 const msg = err?.response?.data || "Xóa lịch thuốc thất bại!";
@@ -353,46 +381,52 @@ const ReproductiveHealthApp = () => {
     };
 
 
+
     // Tạo mới lịch thuốc (khi user nhập từ form)
     const createPillSchedule = (formData) => {
-  const newSchedule = {
-    type: formData.type,
-    startDate: formData.startDate,    // "yyyy-MM-dd"
-    pillTime: formData.pillTime,      // "HH:mm:ss"
-    currentIndex: 0,
-    isActive: true,
-    breakUntil: null
-  };
+        const newSchedule = {
+            type: formData.type,
+            startDate: formData.startDate,    // "yyyy-MM-dd"
+            pillTime: formData.pillTime,      // "HH:mm:ss"
+            currentIndex: 0,
+            isActive: true,
+            breakUntil: null
+        };
 
-  console.log("🎯 Dữ liệu gửi:", newSchedule);
+        console.log("🎯 Dữ liệu gửi:", newSchedule);
 
 
-  const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token');
 
-  axios.post('/api/contraceptive-schedules', newSchedule, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(() => {
-      return axios.get('/api/contraceptive-schedules/current', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    })
-    .then(res => {
-      setPillSchedule(res.data.schedule);
-      setPillHistory(res.data.history || {});
-      alert("Đăng ký lịch uống thuốc thành công!");
-    })
-    .catch(err => {
-      const msg = err?.response?.data?.message || err?.response?.data?.error || "Lỗi không xác định";
-      alert(msg);
-      console.error("❌ Lỗi chi tiết:", err.response?.data || err);
-    });
-};
+        axios.post('/api/contraceptive-schedules', newSchedule, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(() => {
+                return axios.get('/api/contraceptive-schedules/current', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+            })
+            .then(res => {
+                setPillSchedule(res.data.schedule);
+                setPillHistory(res.data.history || {});
+
+                // ✅ Lưu vào localStorage để đồng bộ với WebSocket
+                localStorage.setItem("pillHistory", JSON.stringify(res.data.history || {}));
+
+                alert("Đăng ký lịch uống thuốc thành công!");
+            })
+
+            .catch(err => {
+                const msg = err?.response?.data?.message || err?.response?.data?.error || "Lỗi không xác định";
+                alert(msg);
+                console.error("❌ Lỗi chi tiết:", err.response?.data || err);
+            });
+    };
 
 
 

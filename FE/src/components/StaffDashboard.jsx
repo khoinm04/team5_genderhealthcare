@@ -421,7 +421,7 @@ const StaffDashboard = () => {
 
 
   const updateStatus = async (id, newStatus, type) => {
-    // ✅ 1. Cập nhật React state (UI)
+    // 1. Cập nhật UI
     if (type === 'schedule') {
       setSchedules(prev =>
         prev.map(item =>
@@ -431,40 +431,31 @@ const StaffDashboard = () => {
     } else {
       setTestOrders(prev =>
         prev.map(item =>
-          item.id === id ? { ...item, status: newStatus } : item
+          item.id === id ? { ...item, statusBooking: newStatus } : item
         )
       );
+
     }
 
-    // ✅ 2. Lấy lại item tương ứng
-    const item = (type === "schedule"
+    // 2. Lấy lại item
+    const item = type === "schedule"
       ? schedules.find(s => s.id === id)
-      : testOrders.find(t => t.id === id)
-    );
+      : testOrders.find(t => t.id === id);
 
     if (!item) {
       alert("Không tìm thấy dữ liệu cần cập nhật.");
       return;
     }
 
-    // ✅ 3. Chuẩn bị payload gửi lên server
+    // 3. Gửi chỉ status
     const token = localStorage.getItem("token");
-
     const payload = {
       bookingId: item.id,
-      customerName: item.customerName,
-      customerPhone: item.customerPhone,
-      testResultUpdates: item.testResults?.map(tr => ({
-        testResultId: tr.testResultId,
-        status: tr.testResultId === id ? newStatus : tr.status,
-      })) || []
+      status: newStatus
     };
 
-    console.log("📤 Payload gửi lên:", payload);
-
-    // ✅ 4. Gọi API cập nhật
     try {
-      const response = await fetch("http://localhost:8080/api/staff/bookings/update", {
+      const response = await fetch("http://localhost:8080/api/staff/bookings/update-status", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -487,6 +478,7 @@ const StaffDashboard = () => {
       alert("Lỗi khi cập nhật trạng thái xuống hệ thống.");
     }
   };
+
 
 
   const filteredSchedules = schedules.filter(schedule => {
@@ -629,8 +621,10 @@ const StaffDashboard = () => {
             customerId: `KH${booking.userId}`,
             customerName: booking.customerName,
             email: booking.customerEmail,
-            phone: booking.customerPhone,
+            customerPhone: booking.customerPhone,
             bookingDate: booking.bookingDate,
+            statusBooking: booking.status?.toUpperCase() || "PENDING_PAYMENT",
+
             timeSlot: booking.timeSlot, // ✅ THÊM DÒNG NÀY!
             startTime,
             endTime,
@@ -735,6 +729,7 @@ const StaffDashboard = () => {
           return {
             id: booking.bookingId,
             customerName: booking.customerName,
+            customerPhone: booking.customerPhone,
             email: booking.customerEmail,
             consultantName: booking.consultantName || "Chưa gán",
             date: booking.date || booking.bookingDate,
@@ -784,7 +779,7 @@ const StaffDashboard = () => {
         case "CONFIRMED":
           return "Đã xác nhận";
         case "COMPLETED":
-          return "Đã hoàn thành";
+          return "Đã thanh toán";
         case "CANCELED":
           return "Đã hủy";
         default:
@@ -795,6 +790,20 @@ const StaffDashboard = () => {
     return status;
   };
 
+  const statusOptions = [
+    { label: 'Chờ thanh toán', value: 'PENDING_PAYMENT', color: 'yellow' },
+    { label: 'Đã xác nhận', value: 'CONFIRMED', color: 'blue' },
+    { label: 'Đã thanh toán', value: 'COMPLETED', color: 'emerald' },
+    { label: 'Đã hủy', value: 'CANCELED', color: 'red' },
+  ];
+
+
+  const colorMap = {
+    yellow: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300",
+    blue: "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200",
+    emerald: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200",
+    red: "bg-red-100 text-red-800 hover:bg-red-200 border-red-200"
+  };
 
 
 
@@ -1069,7 +1078,7 @@ const StaffDashboard = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tư Vấn Viên</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dịch Vụ</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày & Giờ</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái Thanh Toán</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
                     </tr>
                   </thead>
@@ -1223,6 +1232,7 @@ const StaffDashboard = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày Xét Nghiệm</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dịch Vụ</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái Thanh Toán</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
                     </tr>
                   </thead>
@@ -1268,6 +1278,12 @@ const StaffDashboard = () => {
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.statusCode, 'testOrder')}`}>
                             {getStatusIcon(order.statusCode, 'testOrder')}
                             <span className="ml-1 capitalize">{translateStatusLabel(order.statusCode, 'testOrder')}</span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.statusBooking, 'schedule')}`}>
+                            {getStatusIcon(order.statusBooking, 'schedule')}
+                            <span className="ml-1 capitalize">{translateStatusLabel(order.statusBooking, 'schedule')}</span>
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -1470,16 +1486,16 @@ const StaffDashboard = () => {
                     />
                   </div>
                   <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Kết Thúc</label>
-                  <input
-                    type="time"
-                    value={newSchedule.endTime}
-                    onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Kết Thúc</label>
+                    <input
+                      type="time"
+                      value={newSchedule.endTime}
+                      onChange={(e) => setNewSchedule({ ...newSchedule, endTime: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
-                </div>
-                
+
               </div>
             ) : (
               <div className="space-y-4">
@@ -1727,7 +1743,6 @@ const StaffDashboard = () => {
                           </option>
                         ))}
                     </select>
-
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ngày *</label>
@@ -1747,6 +1762,7 @@ const StaffDashboard = () => {
                     >
                       <option value="PENDING_PAYMENT">Chờ Thanh Toán</option>
                       <option value="CONFIRMED">Đã Xác Nhận</option>
+                      <option value="COMPLETED">Đã Thanh Toán</option>
                       <option value="CANCELED">Đã Hủy</option>
                     </select>
                   </div>
@@ -1832,10 +1848,10 @@ const StaffDashboard = () => {
                       }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <option value="PENDING">Đang Chờ</option>
-                      <option value="IN_PROGRESS">Đang Thực Hiện</option>
-                      <option value="COMPLETED">Đã Hoàn Thành</option>
-                      <option value="CANCELED">Đã Hủy</option>
+                      <option value="PENDING">Chờ xử lý</option>
+                      <option value="IN_PROGRESS">Đang xử lý</option>
+                      <option value="COMPLETED">Đã hoàn thành</option>
+                      <option value="CANCELED">Đã hủy</option>
                     </select>
                   </div>
                   {/* <div>
@@ -1922,10 +1938,10 @@ const StaffDashboard = () => {
                   <p className="text-sm font-medium text-gray-500 mb-1">Email</p>
                   <p className="text-sm text-gray-900">{selectedItem.email}</p>
                 </div>
-                {selectedItem.phone && (
+                {selectedItem.customerPhone && (
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Số Điện Thoại</p>
-                    <p className="text-sm text-gray-900">{selectedItem.phone}</p>
+                    <p className="text-sm text-gray-900">{selectedItem.customerPhone}</p>
                   </div>
                 )}
                 <div>
@@ -1994,26 +2010,32 @@ const StaffDashboard = () => {
 
               <div className="border-t pt-4">
                 <p className="text-sm font-medium text-gray-500 mb-3">Cập Nhật Trạng Thái</p>
-                <div className="flex flex-wrap gap-2">
+                {/* <div className="flex flex-wrap gap-2">
                   {modalType === 'schedule' ? (
                     <>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'scheduled', 'schedule')}
-                        className="px-3 py-1 text-xs bg-amber-100 text-amber-800 rounded-full hover:bg-amber-200 transition-colors border border-amber-200"
+                        onClick={() => updateStatus(selectedItem.id, 'PENDING_PAYMENT', 'schedule')}
+                        className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition-colors border border-yellow-300"
                       >
-                        Đã Lên Lịch
+                        Chờ thanh toán
                       </button>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'confirmed', 'schedule')}
+                        onClick={() => updateStatus(selectedItem.id, 'CONFIRMED', 'schedule')}
                         className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors border border-blue-200"
                       >
-                        Đã Xác Nhận
+                        Đã xác nhận
                       </button>
                       <button
-                        onClick={() => updateStatus(selectedItem.id, 'completed', 'schedule')}
+                        onClick={() => updateStatus(selectedItem.id, 'COMPLETE', 'schedule')}
                         className="px-3 py-1 text-xs bg-emerald-100 text-emerald-800 rounded-full hover:bg-emerald-200 transition-colors border border-emerald-200"
                       >
-                        Đã Hoàn Thành
+                        Đã hoàn thành
+                      </button>
+                      <button
+                        onClick={() => updateStatus(selectedItem.id, 'CANCELED', 'schedule')}
+                        className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded-full hover:bg-red-200 transition-colors border border-red-200"
+                      >
+                        Đã hủy
                       </button>
                     </>
                   ) : (
@@ -2038,7 +2060,19 @@ const StaffDashboard = () => {
                       </button>
                     </>
                   )}
+                </div> */}
+                <div className="flex flex-wrap gap-2">
+                  {statusOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => updateStatus(selectedItem.id, opt.value, modalType)}
+                      className={`px-3 py-1 text-xs rounded-full transition-colors border ${colorMap[opt.color]}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
+
               </div>
             </div>
           </div>

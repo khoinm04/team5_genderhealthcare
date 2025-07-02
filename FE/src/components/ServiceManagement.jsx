@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Eye, Trash2, Filter } from 'lucide-react';
+import axios from 'axios';
 
 const ServiceManagement = () => {
   const [services, setServices] = useState([]);
@@ -39,17 +40,17 @@ const ServiceManagement = () => {
   });
 
   const openModal = (type, service) => {
-  setModalType(type);
+    setModalType(type);
 
-  if (type === 'edit' || type === 'view') {
-    const cleanedDuration = String(service.duration).replace(/\D/g, '');
-    setSelectedService({ ...service, duration: cleanedDuration });
-  } else {
-    setSelectedService(service);
-  }
+    if (type === 'edit' || type === 'view') {
+      const cleanedDuration = String(service.duration).replace(/\D/g, '');
+      setSelectedService({ ...service, duration: cleanedDuration });
+    } else {
+      setSelectedService(service);
+    }
 
-  setShowModal(true);
-};
+    setShowModal(true);
+  };
 
   const closeModal = () => {
     setShowModal(false);
@@ -120,6 +121,18 @@ const ServiceManagement = () => {
     }
   };
 
+  const translateCategoryType = (type) => {
+    switch (type) {
+      case 'TEST':
+        return 'Xét nghiệm';
+      case 'CONSULTATION':
+        return 'Tư vấn';
+      default:
+        return 'Không xác định';
+    }
+  };
+
+
   const handleSaveService = () => {
     if (!selectedService) return;
 
@@ -164,6 +177,30 @@ const ServiceManagement = () => {
       });
   };
 
+  //api them dich vu
+  const handleAddService = async () => {
+    try {
+      const token = JSON.parse(localStorage.getItem("user"))?.token;
+
+      // Kiểm tra dữ liệu cần thiết
+      if (!selectedService.serviceName || !selectedService.price || !selectedService.categoryType) {
+        alert("Vui lòng nhập đầy đủ thông tin dịch vụ");
+        return;
+      }
+
+      await axios.post("/api/manager/create", selectedService, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert("Thêm dịch vụ thành công");
+      // fetchServices(); // gọi lại API để cập nhật danh sách
+      closeModal();
+
+    } catch (error) {
+      console.error("Lỗi khi thêm dịch vụ:", error);
+      alert("Thêm dịch vụ thất bại");
+    }
+  };
 
 
 
@@ -332,7 +369,8 @@ const ServiceManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Danh mục</label>
-                    <p className="mt-1 text-sm text-gray-900">{translateCategory(selectedService.category)}</p>
+                    <p className="mt-1 text-sm text-gray-900">  {translateCategoryType(selectedService.categoryType)}
+                    </p>
 
                   </div>
                 </div>
@@ -391,24 +429,23 @@ const ServiceManagement = () => {
                       />
 
                     </div>
+                    
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Danh mục</label>
                     <select
-                      defaultValue={selectedService?.category || ''}
+                      value={selectedService?.categoryType || ''}
                       onChange={(e) =>
-                        setSelectedService(prev => ({ ...prev, category: e.target.value }))
+                        setSelectedService(prev => ({ ...prev, categoryType: e.target.value }))
                       }
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                       <option value="">Chọn danh mục</option>
-                      {categories.map(category => (
-                        <option key={category.value} value={category.value}>
-                          {category.label}
-                        </option>
-                      ))}
+                      <option value="CONSULTATION">Tư vấn</option>
+                      <option value="TEST">Xét nghiệm</option>
                     </select>
                   </div>
+
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
@@ -422,8 +459,8 @@ const ServiceManagement = () => {
                       }
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <option value="active">Đang hoạt động</option>
-                      <option value="inactive">Tạm dừng</option>
+                      <option value="true">Đang hoạt động</option>
+                      <option value="false">Tạm dừng</option>
                     </select>
                   </div>
                 </form>
@@ -446,11 +483,18 @@ const ServiceManagement = () => {
               )}
               {modalType !== 'view' && modalType !== 'delete' && (
                 <button
-                  onClick={modalType === 'edit' ? handleSaveService : closeModal}
+                  onClick={
+                    modalType === 'edit'
+                      ? handleSaveService
+                      : modalType === 'add'
+                        ? handleAddService
+                        : closeModal
+                  }
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
                   {modalType === 'add' ? 'Thêm' : 'Lưu'}
                 </button>
+
               )}
             </div>
           </div>

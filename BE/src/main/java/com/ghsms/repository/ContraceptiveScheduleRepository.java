@@ -9,3 +9,5 @@ public interface ContraceptiveScheduleRepository extends JpaRepository<Contracep
     List<ContraceptiveSchedule> findByActiveTrue();
     List<ContraceptiveSchedule> findByUserUserIdAndActiveTrue(Long userId);
 }
+
+

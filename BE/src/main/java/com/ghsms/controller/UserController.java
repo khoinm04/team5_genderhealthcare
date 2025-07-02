@@ -1,6 +1,9 @@
 package com.ghsms.controller;
 
 import com.ghsms.DTO.UserDTO;
+import com.ghsms.DTO.UserInfoDTO;
+import com.ghsms.config.UserPrincipal;
+import com.ghsms.model.CustomerDetails;
 import com.ghsms.model.Root;
 import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
@@ -13,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +31,7 @@ import java.util.stream.Collectors;
 public class UserController {
     private final JwtService jwtService;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final UserService userService;
 
     @GetMapping("/signingoogle")
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
@@ -101,5 +106,27 @@ public class UserController {
 //
 //        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
 //    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserDTO> updateProfile(@AuthenticationPrincipal UserPrincipal user,
+                                                 @RequestBody UserDTO updateData) {
+        Long userId = user.getId(); // ✅ sẽ không null nếu token hợp lệ
+        UserDTO updatedUser = userService.updateProfile(userId, updateData);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+
+
+    // Đổi mật khẩu
+    @PutMapping("/change-password")
+    public ResponseEntity<String> changePassword(@AuthenticationPrincipal UserPrincipal user,
+                                                 @RequestParam String currentPassword,
+                                                 @RequestParam String newPassword) {
+        Long userId = user.getId();
+        userService.changePassword(userId, currentPassword, newPassword);
+        return ResponseEntity.ok("Đổi mật khẩu thành công.");
+    }
+
+
 
 }

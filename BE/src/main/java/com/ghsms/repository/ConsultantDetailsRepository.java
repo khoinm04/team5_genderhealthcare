@@ -4,6 +4,8 @@ import com.ghsms.DTO.ConsultantDetailsDTO;
 import com.ghsms.file_enum.ConsultantSpecialization;
 import com.ghsms.model.Booking;
 import com.ghsms.model.ConsultantDetails;
+import com.ghsms.model.CustomerDetails;
+import com.ghsms.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

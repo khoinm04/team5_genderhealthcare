@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class DailyStatsDTO {
     private LocalDate date;
-    private long totalUsers;
-    private long totalBookings;
+    private long totalUsers;             // Tài khoản mới
+    private long bookingConsultant;      // Số booking tư vấn
+    private long bookingTest;            // Số booking xét nghiệm
 }
-

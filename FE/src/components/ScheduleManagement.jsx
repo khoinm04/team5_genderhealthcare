@@ -56,6 +56,10 @@ const ScheduleManagement = () => {
         label: 'Đã xác nhận',
         class: 'bg-green-100 text-green-800'
       },
+      COMPLETED: {
+        label: 'Đã thanh toán',
+        class: 'bg-green-100 text-green-800'
+      },
       CANCELED: {
         label: 'Đã hủy',
         class: 'bg-red-100 text-red-800'
@@ -347,6 +351,7 @@ const ScheduleManagement = () => {
                         >
                           <option value="PENDING_PAYMENT">Chờ thanh toán</option>
                           <option value="CONFIRMED">Đã xác nhận</option>
+                          <option value="COMPLETED">Đã thanh toán</option>
                           <option value="CANCELED">Đã hủy</option>
                         </select>
                       </div>

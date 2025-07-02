@@ -31,6 +31,10 @@ public class TestResultDTO implements Serializable {
     private String customerPhone;
     private String customerEmail;
 
+    //booking
+    private String timeSlot;
+
+
     // Additional fields for better tracking
     private String customerName;
     private String serviceCategory;

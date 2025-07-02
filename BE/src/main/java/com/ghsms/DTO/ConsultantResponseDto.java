@@ -1,6 +1,7 @@
 package com.ghsms.DTO;
 
 import com.ghsms.file_enum.ConsultantSpecialization;
+import com.ghsms.model.Certificate;
 import com.ghsms.model.ConsultantDetails;
 import com.ghsms.model.User;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -24,8 +28,19 @@ public class ConsultantResponseDto {
     private Integer yearsOfExperience;
     private Boolean active;
     private String phoneNumber;
+    private List<String> certificates;
+
 
     public static ConsultantResponseDto from(User user, ConsultantDetails details) {
+        List<String> certNames = details != null && details.getCertificates() != null
+                ? details.getCertificates().stream()
+                .map(Certificate::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .toList()
+                : List.of();
+
+
+
         return ConsultantResponseDto.builder()
                 .id(user.getUserId())
                 .fullName(user.getName())
@@ -36,6 +51,7 @@ public class ConsultantResponseDto {
                 .yearsOfExperience(details != null ? details.getYearsOfExperience() : null)
                 .active(user.getIsActive())
                 .phoneNumber(user.getPhoneNumber())
+                .certificates(certNames) // ✅ QUAN TRỌNG: thêm dòng này
                 .build();
     }
 }

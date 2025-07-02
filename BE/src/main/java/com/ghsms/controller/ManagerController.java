@@ -182,4 +182,11 @@ public class ManagerController {
         result.put("serviceChange", "+0 từ tháng trước"); // nếu muốn có biểu đồ thay đổi
         return ResponseEntity.ok(result);
     }
+
+    //api them dich vu
+    @PostMapping("/create")
+    public ResponseEntity<Services> createService(@RequestBody CreateServiceRequest request) {
+        Services created = serviceService.createService(request);
+        return ResponseEntity.ok(created);
+    }
 }

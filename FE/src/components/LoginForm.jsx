@@ -65,6 +65,8 @@ export default function LoginForm() {
         navigate("/");
       } else if( user.roleName === "Quản lý" || user.roleName === "ROLE_MANAGER") {
         navigate("/manager");
+      } else if ( user.roleName === "Tư vấn viên" || user.roleName === "ROLE_CONSULTANT"){
+        navigate("/consultant")
       }
       else {
         setErrorMessage("Không xác định được vai trò người dùng.");

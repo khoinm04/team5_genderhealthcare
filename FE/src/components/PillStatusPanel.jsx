@@ -1,5 +1,6 @@
 import { Check, Clock, AlertTriangle } from 'lucide-react';
 
+
 const PillStatusPanel = ({ pillSchedule, pillHistory, handleTakePill, missedWarning }) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

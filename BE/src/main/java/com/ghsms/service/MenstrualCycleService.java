@@ -1,6 +1,7 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.MenstrualCycleDTO;
+import com.ghsms.DTO.NotificationDTO;
 import com.ghsms.model.MenstrualCycle;
 import com.ghsms.model.Notification;
 import com.ghsms.model.User;
@@ -8,6 +9,7 @@ import com.ghsms.repository.MenstrualCycleRepository;
 import com.ghsms.repository.NotificationRepository;
 import com.ghsms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ public class MenstrualCycleService {
     private final MenstrualCycleRepository menstrualCycleRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
 
     // Thêm thông tin theo dõi chu kỳ kinh nguyệt
@@ -289,10 +292,12 @@ public class MenstrualCycleService {
         notification.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(notification);
 
-//        // 2. Gửi WebSocket
-//        NotificationWebSocketHandler.sendNotificationToUser(
-//                cycle.getCustomer().getUserId(),
-//                message
-//        );
+        // 2. Gửi WebSocket
+        messagingTemplate.convertAndSend(
+                "/topic/user/" + cycle.getCustomer().getUserId(),
+                message
+        );
+
+        System.out.println("✅ Đã gửi thông báo chu kỳ cho user: " + cycle.getCustomer().getUserId());
     }
 }

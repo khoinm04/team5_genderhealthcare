@@ -1,6 +1,7 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.BookingDTO;
+import com.ghsms.DTO.BookingResponseHistoryDTO;
 import com.ghsms.DTO.BookingUpdateRequestDTO;
 import com.ghsms.file_enum.*;
 import com.ghsms.mapper.BookingMapper;
@@ -15,6 +16,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,10 +52,16 @@ public class BookingService {
 
 
     //danh cho websocket bang thong ke cua admin
+    private final MailService mailService;
+
+
 
 
     @PersistenceContext
     private EntityManager entityManager;
+
+
+
 
     public Booking createBooking(BookingDTO bookingDTO) {
         CustomerDetails customerDetails = null;
@@ -101,10 +110,26 @@ public class BookingService {
             booking.addService(services);
         }
 
+        // Lưu booking trước
+        Booking savedBooking = bookingRepository.save(booking);
 
-        return bookingRepository.save(booking);
+        // 🔥 Sau khi tạo Booking xong → tạo Consultation
+        Consultation consultation = new Consultation();
+        consultation.setCustomer(customerDetails); // dùng đúng kiểu CustomerDetails
+        consultation.setBooking(savedBooking);
+        consultation.setDateScheduled(bookingDTO.getBookingDate());
+        consultation.setTimeSlot(bookingDTO.getTimeSlot());
+        consultation.setStatus(ConsultationStatus.PENDING);
+        consultation.setTopic(bookingDTO.getTopic());
+        consultation.setNote(bookingDTO.getNote());
 
+        // Không set consultant → sẽ null
+        consultationRepository.save(consultation);
+
+        // Trả về booking đã lưu
+        return savedBooking;
     }
+
 
     public Booking findByPaymentCode(String paymentCode) {
         return bookingRepository.findByPaymentCode(paymentCode)
@@ -118,7 +143,7 @@ public class BookingService {
         User user;
 
         if (bookingDTO.getUserId() != null) {
-            // 🔹 Trường hợp khách đã đăng nhập
+            // Trường hợp khách đã đăng nhập
             user = userRepository.findById(bookingDTO.getUserId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -136,7 +161,7 @@ public class BookingService {
             }
 
         } else {
-            // 🔹 Trường hợp staff tạo giúp —> Tạo luôn User mới
+            // Trường hợp staff tạo giúp —> Tạo luôn User mới
             user = new User();
             user.setName(bookingDTO.getCustomerName());
             user.setEmail(bookingDTO.getCustomerEmail());
@@ -154,7 +179,7 @@ public class BookingService {
 
             user = userRepository.save(user);
 
-            // ➕ Tạo CustomerDetails gắn với User vừa tạo
+            // Tạo CustomerDetails gắn với User vừa tạo
             customerDetails = new CustomerDetails();
             customerDetails.setFullName(bookingDTO.getCustomerName());
             customerDetails.setEmail(bookingDTO.getCustomerEmail());
@@ -171,7 +196,7 @@ public class BookingService {
         booking.setCustomer(customerDetails);
         booking.setBookingDate(bookingDTO.getBookingDate());
         booking.setTimeSlot(bookingDTO.getTimeSlot());
-        booking.setStatus(BookingStatus.PENDING_PAYMENT);
+        booking.setStatus(BookingStatus.COMPLETED);
         booking.setPaymentCode(paymentCodeGenerator.generatePaymentCode());
 
         for (Long serviceId : bookingDTO.getServiceIds()) {
@@ -191,6 +216,29 @@ public class BookingService {
         }
 
         booking = bookingRepository.save(booking);
+
+        // ✅ Lấy tên các dịch vụ đã đặt
+        String serviceNames = booking.getServices().stream()
+                .map(Services::getServiceName)
+                .collect(Collectors.joining(", "));
+
+// ✅ Gửi email xác nhận đặt lịch
+        String subject = "Xác nhận đặt lịch xét nghiệm STI";
+        String body = String.format(
+                "Chào %s,\n\nBạn đã đặt lịch xét nghiệm thành công vào ngày %s, khung giờ %s.\n" +
+                        "Mã thanh toán: %s.\n" +
+                        "Dịch vụ đã chọn: %s.\n\n" +
+                        "Vui lòng đến đúng giờ và mang theo mã thanh toán.\n\nTrân trọng,\nTrung tâm Y tế",
+                customerDetails.getFullName(),
+                booking.getBookingDate(),
+                booking.getTimeSlot(),
+                booking.getPaymentCode(),
+                serviceNames
+        );
+
+        mailService.sendEmail(customerDetails.getEmail(), subject, body);
+
+
 
         // ➕ Tạo TestResult
         LocalDateTime appointmentTime = LocalDateTime.parse(booking.getBookingDate() + "T" + booking.getTimeSlot().split("-")[0]);
@@ -601,6 +649,98 @@ public class BookingService {
     public long getTotalBookings() {
         return bookingRepository.count(); // dùng method mặc định
     }
+    
+    //dung de update trạng thai booking trên trang staff
+    @Transactional
+    public void updateStatusByStaff(Long bookingId, BookingStatus newStatus) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với ID: " + bookingId));
+
+        booking.setStatus(newStatus);
+        bookingRepository.save(booking);
+    }
+
+
+    //danh cho payment
+    public Booking confirmPayment(String paymentCode) {
+        Booking booking = findByPaymentCode(paymentCode);
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking is not pending payment");
+        }
+        booking.setStatus(BookingStatus.CONFIRMED);
+        return bookingRepository.save(booking);
+    }
+
+    public Booking cancelBooking(String paymentCode) {
+        Booking booking = findByPaymentCode(paymentCode);
+        if (booking.getStatus() == BookingStatus.COMPLETED || booking.getStatus() == BookingStatus.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot cancel a completed or already canceled booking");
+        }
+        booking.setStatus(BookingStatus.CANCELED);
+        return bookingRepository.save(booking);
+    }
+
+//lay lich su boong cua hai dat lich
+private BookingResponseHistoryDTO convertToBookingHistoryDTO(Booking booking) {
+    BookingResponseHistoryDTO dto = new BookingResponseHistoryDTO();
+    dto.setId(booking.getBookingId());
+    dto.setDate(booking.getBookingDate());
+    dto.setTimeSlot(booking.getTimeSlot());
+
+    Services service = booking.getServices()
+            .stream()
+            .findFirst()
+            .orElse(null);
+
+    if (service != null) {
+        dto.setCategoryType(service.getCategoryType().name());
+        dto.setServiceName(service.getServiceName());
+        dto.setPrice(service.getPrice());
+
+        switch (service.getCategoryType()) {
+            case CONSULTATION -> {
+                Consultation consultation = booking.getConsultation();
+                if (consultation != null) {
+                    dto.setStatus(consultation.getStatus() != null ? consultation.getStatus().name() : null);
+                    dto.setNotes(consultation.getNote());
+                    if (booking.getConsultant() != null && booking.getConsultant().getConsultant() != null) {
+                        dto.setAssignedStaff(booking.getConsultant().getConsultant().getName());
+                    } else {
+                        dto.setAssignedStaff(null);
+                    }
+                }
+            }
+            case TEST -> {
+                TestResult test = booking.getTestResults()
+                        .stream()
+                        .findFirst()
+                        .orElse(null);
+                if (test != null) {
+                    dto.setStatus(test.getStatus() != null ? test.getStatus().name() : null);
+                    dto.setNotes(test.getNotes());
+                    if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
+                        dto.setAssignedStaff(booking.getStaff().getStaff().getName());
+                    } else {
+                        dto.setAssignedStaff(null);
+                    }
+                }
+            }
+        }
+    }
+
+    return dto;
+}
+
+// láy suser ứng voi booking
+public List<BookingResponseHistoryDTO> getBookingsByUserId(Long userId) {
+    List<Booking> bookings = bookingRepository.findByCustomer_Customer_UserId(userId);
+
+    return bookings.stream()
+            .map(this::convertToBookingHistoryDTO)
+            .collect(Collectors.toList());
+}
+
+
 
 
 }

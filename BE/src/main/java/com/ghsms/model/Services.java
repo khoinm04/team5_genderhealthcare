@@ -32,7 +32,7 @@ public class Services {
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "Category", nullable = false)
+    @Column(name = "Category")
     private ServiceBookingCategory category;
 
     @Column(name = "Description",columnDefinition = "nvarchar(100)")

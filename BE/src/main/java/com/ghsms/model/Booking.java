@@ -63,6 +63,8 @@ public class Booking {
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TestResult> testResults = new HashSet<>();
 
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
+    private Consultation consultation;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "Status", length = 50)

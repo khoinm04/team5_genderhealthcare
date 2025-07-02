@@ -1,5 +1,6 @@
 package com.ghsms.service;
 
+import com.ghsms.DTO.CreateServiceRequest;
 import com.ghsms.DTO.ServiceResponseDTO;
 import com.ghsms.DTO.ServiceUpdateDTO;
 import com.ghsms.exceptions.ResourceNotFoundException;
@@ -27,6 +28,7 @@ public class ServiceService {
             dto.setServiceId(service.getServiceId());
             dto.setServiceName(service.getServiceName());
             dto.setCategory(service.getCategory());
+            dto.setCategoryType(service.getCategoryType());
             dto.setDescription(service.getDescription());
             dto.setPrice(service.getPrice());
             dto.setDuration(service.getDuration());
@@ -57,4 +59,19 @@ public class ServiceService {
     public long countServiceActiveTrue(){
         return serviceRepository.countByActiveTrue();
     }
+
+    public Services createService(CreateServiceRequest request) {
+        Services service = new Services();
+        service.setServiceName(request.getServiceName());
+        service.setDescription(request.getDescription());
+        service.setPrice(request.getPrice()); // ✅ BigDecimal
+        service.setDuration(request.getDuration());
+        service.setCategory(request.getCategory());
+        service.setCategoryType(request.getCategoryType()); // ✅ Enum
+        service.setActive(request.getIsActive() != null ? request.getIsActive() : true);
+
+        return serviceRepository.save(service);
+    }
+
 }
+

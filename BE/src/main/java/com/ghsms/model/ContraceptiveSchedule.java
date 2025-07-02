@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalTime;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ContraceptiveSchedules")
@@ -39,4 +41,20 @@ public class ContraceptiveSchedule {
 
     @Column(name = "BreakUntil")
     private LocalDate breakUntil; // null nếu không nghỉ, hoặc ngày kết thúc kỳ nghỉ nếu vỉ 21
+
+    @Column(name = "TakenToday", nullable = false)
+    private boolean takenToday = false; // Đã uống thuốc hôm nay chưa
+
+    @Column(name = "MissedCount", nullable = false)
+    private int missedCount = 0; // Số lần quên uống thuốc liên tiếp
+
+    @Column(name = "LastCheckedDate")
+    private LocalDate lastCheckedDate; // Ngày kiểm tra cuối cùng
+
+    // ✅ THÊM MỚI: Danh sách những ngày quên uống thuốc
+    @ElementCollection
+    @CollectionTable(name = "MissedPillDates",
+            joinColumns = @JoinColumn(name = "ScheduleID"))
+    @Column(name = "MissedDate")
+    private List<LocalDate> missedPillDates = new ArrayList<>(); // Danh sách ngày quên uống
 }

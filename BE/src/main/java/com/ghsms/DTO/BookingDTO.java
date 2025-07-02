@@ -66,5 +66,10 @@ public class BookingDTO implements Serializable {
 
     private List<TestResultDTO> testResults;
 
+    //danh cho consultation
+    private String topic;
+    private String note;
+
+    private Integer amount;  // hoặc Long nếu bạn dùng số lớn
 
 }

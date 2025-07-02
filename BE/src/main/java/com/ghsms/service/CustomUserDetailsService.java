@@ -1,6 +1,9 @@
 package com.ghsms.service;
 
+import com.ghsms.DTO.UserInfoDTO;
+import com.ghsms.model.CustomerDetails;
 import com.ghsms.model.User;
+import com.ghsms.repository.CustomerDetailsRepository;
 import com.ghsms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,8 @@ import java.util.Collections;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final CustomerDetailsRepository customerDetailsRepository;
+
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -44,4 +50,26 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .authorities(new SimpleGrantedAuthority(user.getRole().getName().toString()))
                 .build();
     }
+
+    public Optional<CustomerDetails> findByCustomer(User user) {
+        return customerDetailsRepository.findByCustomer(user);
+    }
+
+    public void updateCustomerDetails(Long userId, UserInfoDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        CustomerDetails details = customerDetailsRepository.findByCustomer(user)
+                .orElseGet(() -> new CustomerDetails()); // nếu chưa có thì tạo mới
+
+        details.setCustomer(user);
+        details.setFullName(dto.getFullName());
+        details.setPhoneNumber(dto.getPhone());
+        details.setAge(dto.getAge());
+        details.setGender(dto.getGender());
+        details.setEmail(dto.getEmail());
+
+        customerDetailsRepository.save(details);
+    }
+
 }

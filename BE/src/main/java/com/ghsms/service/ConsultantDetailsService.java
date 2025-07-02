@@ -47,28 +47,35 @@ public class ConsultantDetailsService {
         return consultantDetailsRepository.findById(consultantId);
     }
 
+    @Transactional
     public void updateConsultantAndUser(ConsultantUpdateRequestDto dto) {
+        // 1. Lấy user ra trước
         User user = userRepository.findById(dto.getConsultantId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tư vấn viên"));
 
+        // 2. Cập nhật thông tin cơ bản của User
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPhoneNumber(dto.getPhoneNumber());
+        userRepository.save(user); // nên gọi save để đảm bảo cập nhật
 
+        // 3. Lấy hoặc khởi tạo ConsultantDetails
         ConsultantDetails details = consultantDetailsRepository.findById(dto.getConsultantId())
-                .orElse(null);
+                .orElseGet(() -> {
+                    ConsultantDetails newDetails = new ConsultantDetails();
+                    newDetails.setConsultant(user); // do dùng @MapsId
+                    return newDetails;
+                });
 
-        if (details == null) {
-            details = new ConsultantDetails();
-            details.setConsultant(user); // dùng @MapsId nên không cần set id
-        }
-
-        details.setSpecialization(dto.getSpecialization()); // hoặc dto.getSpecialization().toString()
+        // 4. Gán thông tin chuyên môn
+        details.setSpecialization(dto.getSpecialization());
         details.setHireDate(dto.getHireDate());
         details.setYearsOfExperience(dto.getYearsOfExperience());
 
+        // 5. Lưu lại
         consultantDetailsRepository.save(details);
     }
+
 
     public void deleteById(Long consultantId) {
         consultantDetailsRepository.deleteById(consultantId);
@@ -201,6 +208,8 @@ public class ConsultantDetailsService {
 
         return booking.getBookingId();
     }
+
+
 
 
 }

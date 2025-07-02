@@ -2,6 +2,8 @@ package com.ghsms.controller;
 
 import com.ghsms.DTO.*;
 import com.ghsms.config.UserPrincipal;
+import com.ghsms.file_enum.BookingStatus;
+import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.Booking;
 import com.ghsms.model.CustomerDetails;
@@ -219,5 +221,21 @@ public class StaffController {
         Long newBookingId = consultantDetailsService.createConsultationBooking(req);
         return ResponseEntity.ok(Map.of("bookingId", newBookingId));
     }
+
+    //dung de update status thanh toan chung
+    @PutMapping("/bookings/update-status")
+    public ResponseEntity<?> updateBookingStatusByStaff(@RequestBody StaffUpdateStatusDTO dto) {
+        try {
+            BookingStatus status = BookingStatus.valueOf(dto.getStatus());
+            bookingService.updateStatusByStaff(dto.getBookingId(), status);
+            return ResponseEntity.ok(Map.of("message", "Cập nhật trạng thái booking thành công"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Trạng thái không hợp lệ"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
 
 }
