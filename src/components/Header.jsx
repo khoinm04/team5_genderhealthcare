@@ -134,8 +134,8 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between py-4 px-6 lg:px-10 bg-gradient-to-r from-pink-100 to-purple-100 shadow-sm">
-      <div className="flex items-center gap-3">
+    <header className="flex items-center py-4 px-6 lg:px-10 bg-gradient-to-r from-pink-100 to-purple-100 shadow-sm">
+      <div className="flex-none flex items-center gap-2">
         <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
           <Heart className="w-7 h-7 text-white" />
         </div>
@@ -144,31 +144,35 @@ export default function Header() {
         </span>
       </div>
 
-      <nav className="hidden lg:flex items-center gap-10">
-        {menuItems.map(({ name, path }) =>
-          path.startsWith("#") ? (
-            <a
-              key={name}
-              href={path}
-              onClick={(e) => handleScroll(e, path)}
-              className="text-black text-xl font-semibold cursor-pointer transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
-            >
-              {name}
-            </a>
-          ) : (
-            <a
-              key={name}
-              href={path}
-              className="text-black text-xl font-semibold cursor-pointer transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
-            >
-              {name}
-            </a>
-          )
-        )}
+      <nav className="flex-1 flex items-center">
+        <div className="w-full flex justify-center">
+          <div className="hidden lg:flex items-center gap-10">
+          {menuItems.map(({ name, path }) =>
+            path.startsWith("#") ? (
+              <a
+                key={name}
+                href={path}
+                onClick={(e) => handleScroll(e, path)}
+                className="text-black text-xl font-semibold cursor-pointer transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
+              >
+                {name}
+              </a>
+            ) : (
+              <a
+                key={name}
+                href={path}
+                className="text-black text-xl font-semibold cursor-pointer transition-all duration-300 ease-in-out hover:text-pink-600 hover:scale-105 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-pink-500 after:transition-all after:duration-300 hover:after:w-full no-underline"
+              >
+                {name}
+              </a>
+            )
+          )}
+          </div>
+        </div>
       </nav>
 
 
-      <div className="flex items-center gap-3">
+      <div className="flex-none flex items-center gap-3">
         {user ? (
           <div className="flex items-center gap-3">
             {/* ✅ NotificationCenter đầu tiên */}

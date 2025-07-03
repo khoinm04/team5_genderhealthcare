@@ -37,7 +37,7 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
             <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
               <Calendar className="w-4 h-4 text-pink-500" />
             </div>
-            Ngày xảy ra kỳ kinh nguyệt gần nhất
+            Ngày xảy ra kỳ kinh nguyệt gần nhất:
           </label>
           <input
             type="date"
@@ -59,7 +59,7 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
               <Clock className="w-4 h-4 text-purple-500" />
             </div>
-            Trung bình độ dài chu kỳ
+            Trung bình độ dài chu kỳ cũ của bạn:
           </label>
           <input
             type="number"
@@ -83,7 +83,7 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
             <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
               <Droplets className="w-4 h-4 text-red-500" />
             </div>
-            Trung bình độ dài ngày hành kinh
+            Trung bình độ dài ngày hành kinh cũ của bạn:
           </label>
           <input
             type="number"
@@ -117,7 +117,11 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-500 mt-1">•</span>
-                  <span>Độ dài chu kỳ = số ngày từ ngày đầu kỳ này đến ngày đầu kỳ tiếp theo</span>
+                  <span>Độ dài chu kỳ = trung bình cộng của độ dài chu kỳ trong 6 tháng gần nhất</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">•</span>
+                  <span>Độ dài ngày hành kinh = trung bình độ dài ngày hành kinh của bạn</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-500 mt-1">•</span>
@@ -132,7 +136,7 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
       <div className="flex justify-center">
         <button
           onClick={handleSaveCycle}
-          className={`px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+          className={`px-10 py-3 rounded-2xl font-bold text-lg transition-all duration-300 ${
             disabled 
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
               : 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 shadow-xl hover:shadow-2xl transform hover:scale-105 hover:-translate-y-1'
@@ -140,11 +144,11 @@ const CycleForm = ({ cycleData, setCycleData, handleSaveCycle, disabled }) => {
           disabled={disabled}
         >
           {disabled ? (
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-3 min-w-[200px] justify-center">
               Đã tính toán chu kỳ
             </span>
           ) : (
-            <span className="flex items-center gap-4">
+            <span className="flex items-center gap-2 min-w-[200px] justify-center">
               Tính toán chu kỳ của tôi
             </span>
           )}

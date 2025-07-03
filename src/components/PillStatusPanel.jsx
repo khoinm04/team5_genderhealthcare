@@ -64,7 +64,7 @@ const PillStatusPanel = ({
   return (
     <div className="mb-6">
       {/* ===== ALERT HIỂN THỊ NỔI BẬT KHI QUÁ GIỚI HẠN ===== */}
-      {missedInfo && missedInfo.totalMissedDays > missedInfo.maxAllowedMissed && (
+      {missedInfo && missedInfo.consecutiveMissedCount > missedInfo.maxAllowedMissed && (
         <div className="mb-5 p-4 rounded-xl bg-red-100 border-l-4 border-red-500 flex items-center gap-3 animate-pulse">
           <XCircle className="w-6 h-6 text-red-600" />
           <div>
@@ -125,7 +125,7 @@ const PillStatusPanel = ({
           </div>
           <div className="bg-white/70 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-red-600">{missedInfo.totalMissedDays}</div>
-            <div className="text-sm text-gray-600">Đã quên</div>
+            <div className="text-sm text-gray-600">Tổng ngày quên uống thuốc</div>
           </div>
           <div className="bg-white/70 rounded-xl p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{pillSchedule.type}</div>
@@ -283,7 +283,7 @@ const PillStatusPanel = ({
           {!isBeforeStart && !hasTakenToday && !missedWarning && (
             <button
               onClick={handleTakePill}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 min-w-[180px] justify-center"
             >
               <CheckCircle className="w-5 h-5" />
               Tôi đã uống thuốc

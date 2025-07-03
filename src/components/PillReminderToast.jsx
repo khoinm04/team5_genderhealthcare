@@ -13,7 +13,7 @@ export default function PillReminderToast({ pillIndex, pillType }) {
         <span>Nhắc nhở uống thuốc</span>
       </div>
       <div className="mt-1 text-gray-800">
-        ➤ Hãy uống viên thứ <b>{pillIndex}</b> của vỉ <b>{pillType}</b> viên.
+        Hãy uống viên thứ <b>{pillIndex}</b> của vỉ <b>{pillType}</b> viên.
       </div>
       <div className="mt-1 text-sm flex items-center text-gray-500">
         <FaRegClock className="mr-1" />

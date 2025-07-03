@@ -482,7 +482,7 @@ const ReproductiveHealthApp = () => {
             })
             .catch(err => {
                 const msg = err?.response?.data || "Xác nhận thất bại!";
-                toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg)); f
+                toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
             });
     };
 
@@ -664,9 +664,9 @@ const ReproductiveHealthApp = () => {
                                         <h2 className="text-xl font-bold text-blue-700 mb-4">Bạn chưa nhập chu kỳ kinh nguyệt!</h2>
                                         <button
                                             onClick={() => setShowCycleForm(true)}
-                                            className=" mt-8 px-14 py-4 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl text-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all "
+                                            className="min-w-[250px] mt-8 px-14 py-4 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl text-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all "
                                         >
-                                            Nhập chu kỳ đầu tiên
+                                            Theo dõi chu kỳ kinh nguyệt.
                                         </button>
                                     </div>
                                 ) : (

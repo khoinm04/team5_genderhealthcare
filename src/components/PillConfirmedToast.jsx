@@ -13,7 +13,7 @@ export default function PillConfirmedToast({ pillIndex, pillType }) {
         <span>Đã xác nhận uống thuốc</span>
       </div>
       <div className="mt-1 text-gray-800">
-        ✅ Bạn đã uống viên thứ <b>{pillIndex}</b> của vỉ <b>{pillType}</b> viên. Chúc bạn khỏe mạnh!
+        Bạn đã uống viên thứ <b>{pillIndex}</b> của vỉ <b>{pillType}</b> viên. Chúc bạn khỏe mạnh!
       </div>
       <div className="mt-1 text-sm flex items-center text-gray-500">
         <FaRegClock className="mr-1" />
