@@ -12,3 +12,6 @@ button {
   border-radius: 9999px !important;
   padding: 0 !important;
 }
+a {
+  text-decoration: none !important;
+}

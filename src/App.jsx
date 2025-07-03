@@ -14,29 +14,35 @@ import OtpPasswordForm from "./components/OtpPasswordForm";
 import GoogleCallback from "./pages/GoogleCallback";
 import STIsTestPage from "./components/STIsTestPage";
 import PaymentPage from "./components/PaymentPage";
-<<<<<<< HEAD
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
+import ScheduleManagement from './components/ScheduleManagement';
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
-import UserGroupDetail from "./components/UserGroupDetail";
+import ConsultantDashboard from "./components/ConsultantDashboard";
+import UserGroups from "./components/userGroups";
+import UserGroupDetail from "./components/UserGroupDetail"; 
 import UserProfile from "./components/userProfile";
 import AppointmentHistory from "./components/AppointmentHistory";
-=======
-import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
+import { usePillReminderSocket } from "./hooks/usePillReminderSocket";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
+
 
 export default function App() {
   const [user, setUser] = useState(null);
 
-  // ✅ Load user từ localStorage hoặc Google
+  // ✅ Kết nối socket nhắc nhở nếu đã có user
+
+  usePillReminderSocket();
+
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     } else {
-      // Nếu không có user trong localStorage, thử check Google login
       axios
         .get("http://localhost:8080/gender-health-care/signingoogle", {
           withCredentials: true,
@@ -58,7 +64,6 @@ export default function App() {
     }
   }, []);
 
-  // ✅ Đồng bộ user giữa các tab khi login/logout
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "user") {
@@ -83,26 +88,23 @@ export default function App() {
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
-<<<<<<< HEAD
           <Route path="/staff" element={<StaffDashboard />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<OtpPasswordForm />} />
           <Route path="/oauth2-success" element={<GoogleCallback />} />
           <Route path="/manager" element={<ManagerDashboard />} />
+          <Route path="/manager/schedules" element={<ScheduleManagement />} />
           <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
+          <Route path="/consultant" element={<ConsultantDashboard />} />
+          <Route path="/groups" element={<UserGroups />} />
           <Route path="/groups/:groupSlug" element={<UserGroupDetail />} />
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/orders" element={<AppointmentHistory />} />
-          {/* Thêm các route khác nếu cần */}
-=======
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-otp" element={<OtpPasswordForm />} />
-          <Route path="/oauth2-success" element={<GoogleCallback />} />
-          <Route path="/booking/menstrual" element={<ReproductiveHealthApp />} />
-
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         </Routes>
       </BrowserRouter>
+      <ToastContainer />
     </UserContext.Provider>
   );
 }
+
+// nhớ tải npm install react-icons

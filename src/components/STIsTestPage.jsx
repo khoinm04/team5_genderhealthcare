@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   TestTube,
   Calendar,
@@ -19,11 +20,7 @@ const STIsTestPage = () => {
   const [selectedResult, setSelectedResult] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [testResults, setTestResults] = useState([]);
-<<<<<<< HEAD
 
-=======
-  const userId = Number(sessionStorage.getItem("userId"));
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -36,11 +33,7 @@ const STIsTestPage = () => {
         },
       })
       .then((res) => {
-<<<<<<< HEAD
         const bookings = res.data.bookings || [];
-=======
-        const bookings = res.data;
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
         const testResultsPromises = bookings.map((booking) =>
           axios.get(`/api/bookings/sti/${booking.bookingId}/test-results`, {
@@ -67,17 +60,10 @@ const STIsTestPage = () => {
                 details: {
                   patientInfo: {
                     name: result.customerName,
-<<<<<<< HEAD
                     age: result.customerAge || "N/A",
                     gender: result.customerGender || "N/A",
                     phone: result.customerPhone || "N/A",
                     email: result.customerEmail || "N/A",
-=======
-                    age: "N/A",
-                    gender: "N/A",
-                    phone: "N/A",
-                    email: "N/A",
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                   },
                   testResults: {
                     [result.testName]: {
@@ -90,11 +76,7 @@ const STIsTestPage = () => {
                   nextAppointment: null,
                 },
                 downloadUrl:
-<<<<<<< HEAD
                   result.status === "completed"
-=======
-                  result.status === "COMPLETED"
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                     ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF`
                     : null,
               }))
@@ -111,7 +93,6 @@ const STIsTestPage = () => {
 
 
   const getStatusColor = (status) => {
-<<<<<<< HEAD
     switch (status.toLowerCase()) {
       case "completed":
       case "confirmed":
@@ -152,37 +133,6 @@ const STIsTestPage = () => {
         return <AlertCircle className="h-4 w-4" />;
     }
   };
-=======
-  switch (status.toLowerCase()) {
-    case "completed":
-    case "confirmed":
-      return "text-green-600 bg-green-100";
-    case "pending":
-      return "text-yellow-600 bg-yellow-100";
-    case "in_progress":
-      return "text-blue-600 bg-blue-100";
-    case "canceled":
-      return "text-red-600 bg-red-100";
-    default:
-      return "text-gray-600 bg-gray-100";
-  }
-};
-
-const getStatusIcon = (status) => {
-  switch (status.toLowerCase()) {
-    case "completed":
-    case "confirmed":
-      return <CheckCircle className="h-4 w-4" />;
-    case "pending":
-    case "in_progress":
-      return <Clock className="h-4 w-4" />;
-    case "canceled":
-      return <AlertCircle className="h-4 w-4" />;
-    default:
-      return <AlertCircle className="h-4 w-4" />;
-  }
-};
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
 
 
   const handleViewDetails = (result) => {
@@ -225,11 +175,8 @@ const getStatusIcon = (status) => {
       date: "",
       time: "",
       notes: "",
-<<<<<<< HEAD
       gender: "",
       age: "",
-=======
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     });
     const navigate = useNavigate();
 
@@ -324,7 +271,6 @@ const getStatusIcon = (status) => {
         return;
       }
 
-<<<<<<< HEAD
       const isValidEmail = email.includes("@");
       const isValidPhone = /^\d{10,11}$/.test(phone);
 
@@ -335,8 +281,6 @@ const getStatusIcon = (status) => {
 
       const amount = calculateTotal();
 
-=======
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
       const payload = {
         staffId: null,
         serviceIds: [selectedTest.id],
@@ -345,14 +289,9 @@ const getStatusIcon = (status) => {
         paymentCode: null,
         status: null,
         isStiBooking: true,
-<<<<<<< HEAD
         customerName: name,
         customerAge: bookingData.age,
         customerGender: bookingData.gender,
-=======
-        customerGender: null,
-        customerName: name,
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         customerPhone: phone,
         customerEmail: email,
         category: selectedTest.category,
@@ -366,7 +305,6 @@ const getStatusIcon = (status) => {
           },
         });
 
-<<<<<<< HEAD
         if (
           (response.status === 200 || response.status === 201) &&
           response.data?.paymentCode &&
@@ -376,23 +314,12 @@ const getStatusIcon = (status) => {
             state: {
               paymentCode: response.data.paymentCode,
               amount: amount,
-=======
-        if (response.status === 200 || response.status === 201) {
-          navigate("/payment", {
-            state: {
-              paymentCode: response.data.paymentCode,
-              amount: calculateTotal(),
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
               testName: selectedTest.name,
               bookingId: response.data.booking.bookingId,
             },
           });
         } else {
-<<<<<<< HEAD
           alert("Lỗi phản hồi từ hệ thống. Vui lòng thử lại.");
-=======
-          alert("Có lỗi xảy ra. Vui lòng thử lại.");
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         }
       } catch (error) {
         console.error("Lỗi đặt lịch:", error.response?.data || error.message);
@@ -400,10 +327,7 @@ const getStatusIcon = (status) => {
       }
     };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Test Selection */}
@@ -460,7 +384,6 @@ const getStatusIcon = (status) => {
                   placeholder="Nhập họ và tên"
                 />
               </div>
-<<<<<<< HEAD
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -493,8 +416,6 @@ const getStatusIcon = (status) => {
               </div>
 
 
-=======
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số điện thoại *
@@ -528,7 +449,7 @@ const getStatusIcon = (status) => {
                   value={bookingData.date}
                   onChange={(e) => handleInputChange("date", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  min={new Date().toISOString().split("T")[0]}
+                  min={new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split("T")[0]}
                 />
               </div>
             </div>
@@ -942,13 +863,9 @@ const getStatusIcon = (status) => {
                     Giới tính:
                   </span>
                   <p className="text-gray-900">
-<<<<<<< HEAD
                     <p className="text-gray-900">
                       {translateGender(selectedResult.details.patientInfo.gender)}
                     </p>
-=======
-                    {selectedResult.details.patientInfo.gender}
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                   </p>
                 </div>
                 <div>
@@ -996,18 +913,11 @@ const getStatusIcon = (status) => {
                     {getStatusIcon(selectedResult.status)}
                     <span>
                       {selectedResult.status === "completed" && "Hoàn thành"}
-<<<<<<< HEAD
                       {selectedResult.status === "pending" && "Đang chờ"}
                       {selectedResult.status === "in_progress" && "Đang xử lý"}
                       {selectedResult.status === "canceled" && "Đã hủy"}
                     </span>
 
-=======
-                      {result.status === "pending" && "Đang chờ"}
-                      {result.status === "in_progress" && "Đang xử lý"}
-                      {result.status === "canceled" && "Đã hủy"}
-                    </span>
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
                   </span>
                 </div>
                 <div className="md:col-span-2">
@@ -1151,13 +1061,28 @@ const getStatusIcon = (status) => {
     );
   };
 
+  const useHome = useNavigate();
+
+  const handleBackToHome = () => {
+    useHome("/"); // Điều hướng về trang chủ
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-2">
+        <button
+          onClick={handleBackToHome}
+          className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          <span className="text-base font-medium">Trang chủ</span>
+        </button>
+      </div>
       {/* Header */}
       <div className="bg-purple-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-3 mb-4">
-            <TestTube className="h-8 w-8" />
+            <TestTube className="h-8 w-8" />D
             <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
           </div>
           <p className="text-purple-100 text-lg">

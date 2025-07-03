@@ -33,23 +33,15 @@ const servicesData = [
 
 export default function Services() {
   return (
-<<<<<<< HEAD
-    <div className="mx-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
-=======
-    <div className="flex flex-wrap justify-between self-stretch mx-4 gap-6">
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
-      {servicesData.map(({ title, description, icon,navigateTo }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
+      {servicesData.map(({ title, description, icon, navigateTo }) => (
         <ServiceCard
           key={title}
           title={title}
           description={description}
           icon={icon}
           navigateTo={navigateTo}
-<<<<<<< HEAD
           className="w-full"
-=======
-          className="flex-shrink-0 w-full sm:w-[48%] lg:w-[31%]"
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         />
       ))}
     </div>

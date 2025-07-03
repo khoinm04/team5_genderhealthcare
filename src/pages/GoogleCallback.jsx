@@ -16,7 +16,6 @@ const GoogleCallback = () => {
         })
         .then((res) => {
           const user = res.data.user;
-<<<<<<< HEAD
           const role = user.roleName; // 👈 lấy roleName
 
           // ✅ Lưu thông tin vào localStorage
@@ -39,18 +38,6 @@ const GoogleCallback = () => {
         .catch((err) => {
           console.error("Lỗi khi lấy thông tin user:", err);
           window.location.replace("/login");
-=======
-          localStorage.setItem("user", JSON.stringify({
-            ...user,
-            token
-          }));
-          console.log("Đăng nhập thành công qua Google:", user);
-          window.location.replace("/"); // ← Chuyển về trang chính
-        })
-        .catch((err) => {
-          console.error("Lỗi khi lấy thông tin user:", err);
-          window.location.replace("/login"); // ← Chuyển về trang login nếu lỗi
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
         });
     } else {
       console.error("Không tìm thấy token trong URL");

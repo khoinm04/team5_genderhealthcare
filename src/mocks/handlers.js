@@ -1,49 +1,37 @@
-// Chu kì kinh nguyệt
+// Chu kỳ kinh nguyệt - Test nhiều trường hợp
 export const mockCycleData = {
-  startDate: '2025-06-01',
-  cycleLength: 28,
-  periodDays: 5,
+  startDate: '2025-07-01',                 // Ngày bắt đầu kỳ hành kinh hiện tại (đổi sang tháng 7 cho dễ test)
+  endDate: '2025-07-28',                   // Ngày kết thúc chu kỳ hiện tại
+  cycleLength: 28,                         // Chu kỳ dài 28 ngày
+  menstruationDuration: 5,                 // Số ngày hành kinh
+  predictedOvulationDate: '2025-07-14',    // Ngày rụng trứng dự đoán
+  predictedFertileWindowStartDate: '2025-07-10', // Cửa sổ thụ thai bắt đầu
+  predictedFertileWindowEndDate: '2025-07-15',   // Cửa sổ thụ thai kết thúc
+  nextPredictedDate: '2025-07-29'          // Dự đoán kỳ kinh nguyệt kế tiếp
 };
 
-
-// Thuốc
-<<<<<<< HEAD
-// export const mockPillSchedule = {
-//   type: '28',
-//   startDate: '2025-06-01',
-//   time: '08:00',
-//   currentPill: 8,
-// };
-=======
+// Lịch uống thuốc: thử loại 28 viên (test cả vỉ dài và lịch nhiều ngày)
 export const mockPillSchedule = {
-  type: '28',
-  startDate: '2025-06-01',
-  time: '08:00',
-  currentPill: 8,
-};
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054
-
-export const mockPillHistory = {
-  '2025-06-01': false,
-  '2025-06-02': false,
-  '2025-06-03': true,
-  '2025-06-04': false,
-  '2025-06-05': true,
-};
-<<<<<<< HEAD
-
-export const mockPillSchedule = {
-  id: 1,
-  userId: 99,
-  type: "21", // hoặc "28"
-  startDate: "2025-06-10",
+  id: 28,
+  userId: 2,
+  type: "28",
+  startDate: "2025-07-01",
   pillTime: "07:00:00",
-  currentIndex: 10, // đang đến viên thứ 11 (tính từ 0)
+  currentIndex: 15,
   isActive: true,
   breakUntil: null
 };
+export const mockPillHistory = {
+  '2025-07-01': true,
+  '2025-07-02': false, // Quên 1
+  '2025-07-03': true,
+  '2025-07-04': false, // Quên 2
+  '2025-07-05': true,
+  '2025-07-06': true,
+  '2025-07-07': true,
+  '2025-07-08': false, // Quên 3
+  '2025-07-09': false, // Quên 4
+  '2025-07-10': true,
+  // ...các ngày khác nếu muốn
+};
 
-
-
-=======
->>>>>>> 5baec3af8f463cce850f68938b652c2447704054

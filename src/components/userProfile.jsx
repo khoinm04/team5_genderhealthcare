@@ -97,10 +97,10 @@ const UserProfile = () => {
     setProfileData(tempData);
     setIsEditing(false);
     setSaveMessage('Lưu thành công!');
-    
+
     setTimeout(() => {
-    setSaveMessage('');
-  }, 3000);
+      setSaveMessage('');
+    }, 3000);
   };
 
   const handleCancel = () => {
@@ -489,13 +489,15 @@ const UserProfile = () => {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={handleBackToHome}
-                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Trang chủ
-              </button>
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-2">
+                <button
+                  onClick={handleBackToHome}
+                  className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  <span className="text-base font-medium">Trang chủ</span>
+                </button>
+              </div>
 
             </div>
           </div>

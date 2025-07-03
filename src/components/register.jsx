@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Check, AlertCircle, Mail, Lock, User, Phone } from 'lucide-react';
+import { Eye, EyeOff, Check, AlertCircle, Mail, Lock, User, Phone, Heart } from 'lucide-react';
 import axios from 'axios';
-
+import SocialLoginButtons from './SocialLoginButtons';
 
 export default function SignupForm() {
-
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -35,7 +34,6 @@ export default function SignupForm() {
       newErrors.fullName = 'Tên là bắt buộc';
     }
 
-
     if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'Email là bắt buộc';
     } else if (!validateEmail(formData.email)) {
@@ -47,8 +45,6 @@ export default function SignupForm() {
     } else if (!/^(0|\+84)[0-9]{9,10}$/.test(formData.phone)) {
       newErrors.phone = 'Số điện thoại không hợp lệ';
     }
-
-
 
     if (!formData.password) {
       newErrors.password = 'Mật khẩu là bắt buộc';
@@ -86,35 +82,31 @@ export default function SignupForm() {
     };
     try {
       const response = await axios.post(
-        'http://localhost:8080/api/auth/register', // URL backend của bạn
+        'http://localhost:8080/api/auth/register',
         dataToSend,
         {
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
           },
-          withCredentials: true // nếu backend cần gửi cookie/session
+          withCredentials: true
         }
       );
 
       alert('Tạo tài khoản thành công! Chào mừng bạn, ' + response.data.fullName);
-      // reset form hoặc chuyển hướng nếu cần
     } catch (error) {
-  if (error.response) {
-    const backendMessage = error.response.data;
+      if (error.response) {
+        const backendMessage = error.response.data;
 
-    // Trường hợp backend trả về chuỗi plain text như "Email đã được đăng ký"
-    if (typeof backendMessage === 'string' && backendMessage.includes('Email')) {
-      setErrors(prev => ({ ...prev, email: backendMessage }));
-    } else {
-      // Nếu cần log lỗi khác
-      console.error('Lỗi khác từ server:', backendMessage);
-    }
-  } else {
-    console.error('Lỗi mạng hoặc server:', error.message);
-  }
-}
- finally {
+        if (typeof backendMessage === 'string' && backendMessage.includes('Email')) {
+          setErrors(prev => ({ ...prev, email: backendMessage }));
+        } else {
+          console.error('Lỗi khác từ server:', backendMessage);
+        }
+      } else {
+        console.error('Lỗi mạng hoặc server:', error.message);
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -156,61 +148,57 @@ export default function SignupForm() {
   const passwordStrength = getPasswordStrength();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-4">
-            <User className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full mb-4">
+            <Heart className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Tạo Tài Khoản</h1>
-          <p className="text-gray-600">Tạo tài khoản để bắt đầu theo dõi sức khỏe của bạn bắt đầu từ hôm nay</p>
+          <p className="text-gray-600">Tạo tài khoản để bắt đầu theo dõi sức khỏe của bạn</p>
         </div>
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <div className="space-y-6">
-            {/* Name Fields */}
-            <div className="grid gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.fullName ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="Ví dụ: Nguyễn Văn An"
-                  />
-                  {errors.fullName && (
-                    <AlertCircle className="absolute right-3 top-3 w-5 h-5 text-red-500" />
-                  )}
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Name Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Họ và tên <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${errors.fullName ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="Ví dụ: Nguyễn Văn An"
+                />
                 {errors.fullName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+                  <AlertCircle className="absolute right-3 top-3 w-5 h-5 text-red-500" />
                 )}
               </div>
-
-
+              {errors.fullName && (
+                <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+              )}
             </div>
 
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Địa Chỉ Email
+                Địa chỉ Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="nguyen@example.com"
                 />
                 {errors.email && (
@@ -225,16 +213,16 @@ export default function SignupForm() {
             {/* Phone Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số Điện Thoại <span className="text-gray-400">(tùy chọn)</span>
+                Số điện thoại <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Phone className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="Ví dụ: 0123456789"
                 />
                 {errors.phone && (
@@ -249,161 +237,140 @@ export default function SignupForm() {
             {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật Khẩu
+                Mật khẩu <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="Tạo mật khẩu mạnh"
                 />
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                </button> */}
               </div>
-            </div>
 
-            {/* Password Strength Indicator */}
-            {formData.password && (
-              <div className="mt-2">
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+              {/* Password Strength Indicator */}
+              {formData.password && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Độ mạnh mật khẩu:</span>
+                    <span className={`text-sm font-medium ${passwordStrength.strength <= 2 ? 'text-red-500' : passwordStrength.strength <= 3 ? 'text-yellow-500' : 'text-green-500'}`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full transition-all ${passwordStrength.color}`}
+                      className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
                       style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
                     />
                   </div>
-                  <span className="text-sm text-gray-600">{passwordStrength.label}</span>
                 </div>
-              </div>
-            )}
+              )}
 
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-            )}
-          </div>
-
-          {/* Confirm Password Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Xác Nhận Mật Khẩu
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                placeholder="Xác nhận mật khẩu của bạn"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-              {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                <Check className="absolute right-10 top-3 w-5 h-5 text-green-500" />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
             </div>
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
-            )}
-          </div>
 
-          {/* Checkboxes */}
-          <div className="space-y-3">
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                name="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onChange={handleInputChange}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label className="ml-3 text-sm text-gray-700">
-                Tôi đồng ý với{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-800 underline">
-                  Điều Khoản Dịch Vụ
-                </a>{' '}
-                và{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-800 underline">
-                  Chính Sách Bảo Mật
-                </a>
+            {/* Confirm Password Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Xác nhận mật khẩu <span className="text-red-500">*</span>
               </label>
-            </div>
-            {errors.agreeToTerms && (
-              <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>
-            )}
-
-            {/* <div className="flex items-start">
-              <input
-                type="checkbox"
-                name="subscribeNewsletter"
-                checked={formData.subscribeNewsletter}
-                onChange={handleInputChange}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label className="ml-3 text-sm text-gray-700">
-                Tôi muốn nhận thông tin cập nhật và email tiếp thị
-              </label>
-            </div> */}
-          </div>
-
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium text-lg hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-center"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Đang Tạo Tài Khoản...
+              <div className="relative">
+                <Lock className="absolute left-3 top-4 w-5 h-5 text-gray-400" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="Xác nhận mật khẩu của bạn"
+                />
+                {/* <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button> */}
+                {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                  <Check className="absolute right-10 top-3 w-5 h-5 text-green-500" />
+                )}
               </div>
-            ) : (
-              'Tạo Tài Khoản'
-            )}
-          </button>
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            {/* Terms Checkbox */}
+            <div className="space-y-3">
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  name="agreeToTerms"
+                  checked={formData.agreeToTerms}
+                  onChange={handleInputChange}
+                  className="mt-1 w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                />
+                <label className="ml-3 text-sm text-gray-700">
+                  Tôi đồng ý với{' '}
+                  <a href="#" className="text-pink-600 hover:text-pink-700 underline transition-colors">
+                    Điều Khoản Dịch Vụ
+                  </a>{' '}
+                  và{' '}
+                  <a href="#" className="text-pink-600 hover:text-pink-700 underline transition-colors">
+                    Chính Sách Bảo Mật
+                  </a>
+                </label>
+              </div>
+              {errors.agreeToTerms && (
+                <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold text-lg hover:from-pink-600 hover:to-purple-700 focus:ring-4 focus:ring-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Đang tạo tài khoản...
+                </div>
+              ) : (
+                'Tạo tài khoản'
+              )}
+            </button>
+          </form>
         </div>
 
         {/* Social Login Options */}
         <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Hoặc tiếp tục với</span>
-            </div>
-          </div>
-
-
+          <SocialLoginButtons />
         </div>
 
         {/* Sign In Link */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Đã có tài khoản?{' '}
-            <a href="/login " className="text-blue-600 hover:text-blue-800 font-medium underline">
-              Đăng nhập
+            <a href="/login" className="text-pink-600 hover:text-pink-700 font-medium underline transition-colors">
+              Đăng nhập ngay
             </a>
           </p>
         </div>
       </div>
     </div>
-
   );
 }
