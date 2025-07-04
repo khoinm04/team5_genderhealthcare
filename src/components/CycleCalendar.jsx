@@ -15,18 +15,16 @@ const getDayLabelFromType = (dayType) => {
 const CycleCalendar = ({ cycleCalendarMonth, changeCycleMonth, getMonthCalendar, getCycleDayType, hasCycleData }) => (
   <div className="mb-6">
     {/* Tiêu đề lịch + nút chuyển tháng */}
-    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
       <button className="rounded-full hover:bg-gray-100 p-1" onClick={() => changeCycleMonth(-1)}>
         <ChevronLeft size={20} />
       </button>
-      Lịch chu kỳ tháng&nbsp;
-      <span className="text-xl font-semibold text-gray-800">
-        {cycleCalendarMonth.month + 1}/{cycleCalendarMonth.year}
-      </span>
+      Lịch chu kỳ tháng {cycleCalendarMonth.month + 1}/{cycleCalendarMonth.year}
       <button className="rounded-full hover:bg-gray-100 p-1" onClick={() => changeCycleMonth(1)}>
         <ChevronRight size={20} />
       </button>
     </h3>
+
 
     {/* Lưới lịch: 7 cột tương ứng CN–T7 */}
     <div className="overflow-x-auto">
@@ -60,7 +58,7 @@ const CycleCalendar = ({ cycleCalendarMonth, changeCycleMonth, getMonthCalendar,
                           : dayType === 'next-period'
                             ? 'bg-red-400 text-white'     // 🟥 Kinh nguyệt kế tiếp
                             : 'bg-gray-100 text-gray-500' // ❔ Ngày thường
-              }`}
+                }`}
             >
               {day}
             </div>

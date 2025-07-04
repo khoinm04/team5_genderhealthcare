@@ -10,7 +10,8 @@ import axios from 'axios';
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import PillConfirmedToast from "../components/PillConfirmedToast";
-import { mockCycleData, mockPillSchedule, mockPillHistory } from '../mocks/handlers';
+import { mockCycleData, mockPillSchedule, mockPillHistory, mockMissedStats } from '../mocks/handlers';
+import { AnimatePresence, motion } from 'framer-motion';
 
 
 const USE_MOCK_DATA = false; // Đổi true để test UI, false để dùng backend
@@ -52,7 +53,7 @@ const ReproductiveHealthApp = () => {
         return { year: d.getFullYear(), month: d.getMonth() };
     });
     // -- QUÊN THUỐC
-    const [missedStats, setMissedStats] = useState(null);
+    const [missedStats, setMissedStats] = useState(USE_MOCK_DATA ? mockMissedStats : null);
 
     // ==================== LẤY DỮ LIỆU THẬT TỪ BE ====================
     useEffect(() => {
@@ -319,31 +320,33 @@ const ReproductiveHealthApp = () => {
     // LỊCH THUỐC: xác định trạng thái ngày
     const getPillDayStatus = (year, month, day) => {
         if (!day || !pillSchedule) return '';
+
         const pillStart = new Date(pillSchedule.startDate);
         pillStart.setHours(0, 0, 0, 0);
+
         const targetDate = new Date(year, month, day);
         targetDate.setHours(0, 0, 0, 0);
 
         const daysDiff = Math.floor((targetDate - pillStart) / (1000 * 60 * 60 * 24));
         const maxDays = pillSchedule.type === '21' ? 21 : 28;
-        if (daysDiff < 0 || daysDiff >= maxDays) return '';
 
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // ✅ Nếu nằm ngoài phạm vi vỉ thuốc, đánh dấu là nghỉ (break)
+        if (daysDiff < 0) {
+            return ''; // Quá khứ trước khi bắt đầu -> không hiển thị
+        } else if (daysDiff >= maxDays) {
+            return 'break'; // Những ngày sau khi hết vỉ -> nghỉ
+        }
+
         if (targetDate < today) {
-            // Ngày trong quá khứ
-            if (pillHistory[dateStr] === true) return 'taken';
-            else return 'missed'; // chưa tick là missed
+            return pillHistory[dateStr] ? 'taken' : 'missed';
         } else if (targetDate.getTime() === today.getTime()) {
-            // Hôm nay
-            if (pillHistory[dateStr] === true) return 'taken';
-            return 'today';
+            return pillHistory[dateStr] ? 'taken' : 'today';
         } else {
-            // Ngày tương lai: không màu
-            return '';
+            return 'scheduled';
         }
     };
 
@@ -495,6 +498,7 @@ const ReproductiveHealthApp = () => {
             toast.error("Không tìm thấy ID lịch thuốc hoặc userId!");
             return;
         }
+        if (!window.confirm("Bạn chắc chắn muốn xóa lịch uống thuốc này?")) return;
 
         const token = localStorage.getItem('token');
 
@@ -595,7 +599,7 @@ const ReproductiveHealthApp = () => {
     />
 
     useEffect(() => {
-        if (activeTab === 'pills') {
+        if (!USE_MOCK_DATA && activeTab === 'pills') {
             const token = localStorage.getItem("token");
             axios.get('/api/contraceptive-schedules/current', {
                 headers: { Authorization: `Bearer ${token}` }
@@ -605,11 +609,11 @@ const ReproductiveHealthApp = () => {
                     setPillHistory(res.data.history || {});
                 })
                 .catch(err => {
-                    // Không có lịch thì giữ nguyên pillSchedule = null
                     console.warn("🟡 Chưa có lịch thuốc:", err?.response?.data?.message);
                 });
         }
-    }, [activeTab]);
+    }, [activeTab], USE_MOCK_DATA);
+
 
 
     const useHome = useNavigate();
@@ -654,128 +658,146 @@ const ReproductiveHealthApp = () => {
 
                 {/* Main content */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
-                    {activeTab === 'cycle' && (
-                        <div>
-                            {/* Nếu chưa có chu kỳ */}
-                            {!hasCycleData ? (
-                                !showCycleForm ? (
-                                    // Hiện nút trước, nhấn vào mới hiện form nhập chu kỳ
-                                    <div className="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">
-                                        <h2 className="text-xl font-bold text-blue-700 mb-4">Bạn chưa nhập chu kỳ kinh nguyệt!</h2>
-                                        <button
-                                            onClick={() => setShowCycleForm(true)}
-                                            className="min-w-[250px] mt-8 px-14 py-4 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl text-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all "
-                                        >
-                                            Theo dõi chu kỳ kinh nguyệt.
-                                        </button>
-                                    </div>
-                                ) : (
-                                    // Khi đã bấm nút thì mới hiện form
-                                    <div className="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">          <CycleForm
-                                        cycleData={cycleData}
-                                        setCycleData={setCycleData}
-                                        handleSaveCycle={(...args) => {
-                                            handleSaveCycle(...args);
-                                            setShowCycleForm(false); // Ẩn form khi lưu xong
-                                        }}
-                                        disabled={false}
-                                    />
-                                    </div>
-                                )
-                            ) : (
-                                // Đã có chu kỳ: cho phép xem lịch, sửa, xóa
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'cycle' && (
+                            <motion.div
+                                key="cycle"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
                                 <div>
-                                    {(isEditingCycle || !hasCycleData) ? (
-                                        <div className="p-6 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">
-                                            <CycleForm
+                                    {/* Nếu chưa có chu kỳ */}
+                                    {!hasCycleData ? (
+                                        !showCycleForm ? (
+                                            // Hiện nút trước, nhấn vào mới hiện form nhập chu kỳ
+                                            <div className="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">
+                                                <h2 className="text-xl font-bold text-blue-700 mb-4">Bạn chưa nhập chu kỳ kinh nguyệt!</h2>
+                                                <button
+                                                    onClick={() => setShowCycleForm(true)}
+                                                    className="min-w-[250px] mt-8 px-14 py-4 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-xl text-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all "
+                                                >
+                                                    Theo dõi chu kỳ kinh nguyệt.
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            // Khi đã bấm nút thì mới hiện form
+                                            <div className="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">          <CycleForm
                                                 cycleData={cycleData}
                                                 setCycleData={setCycleData}
                                                 handleSaveCycle={(...args) => {
                                                     handleSaveCycle(...args);
-                                                    setIsEditingCycle(false);
-                                                    setShowCycleForm(false); // phòng trường hợp tạo mới
+                                                    setShowCycleForm(false); // Ẩn form khi lưu xong
                                                 }}
                                                 disabled={false}
                                             />
-                                        </div>
-                                    ) : (
-                                        <div className="mb-6">
-                                            <CycleForm
-                                                cycleData={cycleData}
-                                                setCycleData={setCycleData}
-                                                handleSaveCycle={handleSaveCycle}
-                                                disabled={true}
-                                            />
-                                            <div className="flex items-center gap-4">
-                                                <button
-                                                    onClick={() => setIsEditingCycle(true)}
-                                                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition-all"
-                                                >
-                                                    Chỉnh sửa chu kỳ
-                                                </button>
-
-                                                <button
-                                                    onClick={handleDeleteCycle}
-                                                    className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition-all"
-                                                >
-                                                    Xóa chu kỳ
-                                                </button>
                                             </div>
+                                        )
+                                    ) : (
+                                        // Đã có chu kỳ: cho phép xem lịch, sửa, xóa
+                                        <div>
+                                            {(isEditingCycle || !hasCycleData) ? (
+                                                <div className="p-6 bg-blue-50 rounded-xl border border-blue-200 shadow mb-6">
+                                                    <CycleForm
+                                                        cycleData={cycleData}
+                                                        setCycleData={setCycleData}
+                                                        handleSaveCycle={(...args) => {
+                                                            handleSaveCycle(...args);
+                                                            setIsEditingCycle(false);
+                                                            setShowCycleForm(false); // phòng trường hợp tạo mới
+                                                        }}
+                                                        disabled={false}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="mb-6">
+                                                    <CycleForm
+                                                        cycleData={cycleData}
+                                                        setCycleData={setCycleData}
+                                                        handleSaveCycle={handleSaveCycle}
+                                                        disabled={true}
+                                                    />
+                                                    <div className="flex items-center gap-4">
+                                                        <button
+                                                            onClick={() => setIsEditingCycle(true)}
+                                                            className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition-all"
+                                                        >
+                                                            Chỉnh sửa chu kỳ
+                                                        </button>
+
+                                                        <button
+                                                            onClick={handleDeleteCycle}
+                                                            className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition-all"
+                                                        >
+                                                            Xóa chu kỳ
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <CycleCalendar
+                                                cycleCalendarMonth={cycleCalendarMonth}
+                                                changeCycleMonth={changeCycleMonth}
+                                                getMonthCalendar={getMonthCalendar}
+                                                getCycleDayType={getCycleDayType}
+                                                hasCycleData={hasCycleData}
+                                            />
                                         </div>
+
                                     )}
-
-                                    <CycleCalendar
-                                        cycleCalendarMonth={cycleCalendarMonth}
-                                        changeCycleMonth={changeCycleMonth}
-                                        getMonthCalendar={getMonthCalendar}
-                                        getCycleDayType={getCycleDayType}
-                                        hasCycleData={hasCycleData}
-                                    />
                                 </div>
-
-                            )}
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
 
 
-                    {activeTab === 'pills' && (
-                        <div>
-                            {/* Nếu chưa có lịch thuốc thì cho user đăng ký */}
-                            {!pillSchedule ? (
-                                <PillScheduleForm onSubmit={createPillSchedule} />
-                            ) : (
+                        {activeTab === 'pills' && (
+                            <motion.div
+                                key="pills"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
                                 <div>
-                                    {missedWarning && (
-                                        <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-800 font-semibold rounded flex items-center gap-2 animate-pulse">
-                                            <span role="img" aria-label="warning">⚠️</span> {missedWarning}
+                                    {/* Nếu chưa có lịch thuốc thì cho user đăng ký */}
+                                    {!pillSchedule ? (
+                                        <PillScheduleForm onSubmit={createPillSchedule} />
+                                    ) : (
+                                        <div>
+                                            {missedWarning && (
+                                                <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-800 font-semibold rounded flex items-center gap-2 animate-pulse">
+                                                    <span role="img" aria-label="warning">⚠️</span> {missedWarning}
+                                                </div>
+                                            )}
+                                            <PillStatusPanel
+                                                pillSchedule={pillSchedule}
+                                                pillHistory={pillHistory || {}}
+                                                handleTakePill={handleTakePill}
+                                                missedWarning={missedWarning}
+                                                missedStats={missedStats}
+                                            />
+                                            <PillCalendar
+                                                pillCalendarMonth={pillCalendarMonth}
+                                                changePillMonth={changePillMonth}
+                                                getMonthCalendar={getMonthCalendar}
+                                                getPillDayStatus={getPillDayStatus}
+                                            />
+                                            <button
+                                                onClick={handleDeletePillSchedule}
+                                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
+                                            >
+                                                Xóa lịch uống thuốc
+                                            </button>
                                         </div>
                                     )}
-                                    <PillStatusPanel
-                                        pillSchedule={pillSchedule}
-                                        pillHistory={pillHistory || {}}
-                                        handleTakePill={handleTakePill}
-                                        missedWarning={missedWarning}
-                                        missedStats={missedStats}
-                                    />
-                                    <PillCalendar
-                                        pillCalendarMonth={pillCalendarMonth}
-                                        changePillMonth={changePillMonth}
-                                        getMonthCalendar={getMonthCalendar}
-                                        getPillDayStatus={getPillDayStatus}
-                                    />
-                                    <button
-                                        onClick={handleDeletePillSchedule}
-                                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-all"
-                                    >
-                                        Xóa lịch uống thuốc
-                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
