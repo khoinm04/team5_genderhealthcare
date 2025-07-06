@@ -3,29 +3,29 @@ import axios from "axios";
 import { format } from 'date-fns';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/Homepage";
-import BlogPage from "./components/BlogPage";
-import LoginPage from "./components/LoginPage";
+import BlogPage from "./components/blog/BlogPage";
+import LoginPage from "./components/auth/LoginPage";
 import { UserContext } from "./UserContext";
-import ConsultationBooking from "./components/ConsultationBooking";
-import Register from "./components/register";
-import AdminDashboard from "./components/AdminDashboard";
-import ForgotPassword from "./components/ForgotPassword";
-import OtpPasswordForm from "./components/OtpPasswordForm";
+import ConsultationBooking from "./components/consultation/ConsultationBooking";
+import Register from "./components/auth/register";
+import AdminDashboard from "./components/admin/AdminDashboard";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import OtpPasswordForm from "./components/auth/OtpPasswordForm";
 import GoogleCallback from "./pages/GoogleCallback";
-import STIsTestPage from "./components/STIsTestPage";
-import PaymentPage from "./components/PaymentPage";
-import StaffDashboard from "./components/StaffDashboard";
-import ManagerDashboard from "./components/ManagerDashboard";
-import ScheduleManagement from './components/ScheduleManagement';
+import STIsTestPage from "./components/STIs/STIsTestPage";
+import StaffDashboard from "./components/staff/StaffDashboard";
+import ManagerDashboard from "./components/manager/ManagerDashboard";
+import ScheduleManagement from './components/manager/ScheduleManagement';
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
-import ConsultantDashboard from "./components/ConsultantDashboard";
+import ConsultantDashboard from "./components/consultant/ConsultantDashboard";
 import UserProfile from "./components/UserProfile";
 import AppointmentHistory from "./components/AppointmentHistory";
 import BookingSuccessWrapper from "./components/BookingSuccessWrapper";
-import PaymentVnpayPage from './components/PaymentVnpayPage';
-
 
 import { usePillReminderSocket } from "./hooks/usePillReminderSocket";
+
+
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -87,7 +87,6 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
           <Route path="/booking/sti" element={<STIsTestPage />} />
-          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/staff" element={<StaffDashboard />} />
@@ -101,7 +100,8 @@ export default function App() {
           <Route path="/user-profile" element={<UserProfile />} />
           <Route path="/orders" element={<AppointmentHistory />} />
           <Route path="/booking-success" element={<BookingSuccessWrapper />} />
-          <Route path="/vnpay-payment" element={<PaymentVnpayPage />} />
+
+          <Route path="/consultant/dashboard" element={<ConsultantDashboard />} />
 
         </Routes>
       </BrowserRouter>

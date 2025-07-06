@@ -74,8 +74,9 @@ public class Booking {
     @Column(name = "CreatedAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-
-
+    public Booking(Long bookingId) {
+        this.bookingId = bookingId;
+    }
 
     // Helper methods
     public void addService(Services service) {

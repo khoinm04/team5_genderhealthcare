@@ -7,6 +7,7 @@ import com.ghsms.service.ConsultationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,13 +57,13 @@ public class ConsultationController {
      * 2. API lấy tất cả lịch hẹn của consultant cụ thể
      */
     @GetMapping("/consultant/{consultantId}/all")
-    @PreAuthorize("hasRole('ROLE_CONSULTANT') or hasRole('ROLE_STAFF') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('CONSULTANT') or hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getAllConsultantConsultations(
             @PathVariable @Positive(message = "Consultant ID phải là số dương") Long consultantId,
             @AuthenticationPrincipal UserPrincipal principal) {
         try {
             // Kiểm tra quyền: Consultant chỉ xem được lịch của mình, Staff/Manager/Admin xem được tất cả
-            if (principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CONSULTANT"))) {
+            if (principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("CONSULTANT"))) {
                 if (!principal.getId().equals(consultantId)) {
                     return ResponseEntity.badRequest().body(Map.of("error", "Bạn chỉ có thể xem lịch hẹn của mình"));
                 }
@@ -215,5 +216,76 @@ public class ConsultationController {
             return ResponseEntity.badRequest().body(Map.of("error", "Lỗi khi lấy tất cả consultation cho Manager getAllConsultationsForManager"));
         }
     }
+
+    @PostMapping("/create-with-meet")
+    @PreAuthorize("hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> createConsultationWithMeetLink(
+            @Valid @RequestBody ConsultationDTO consultationDTO,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            ConsultationDTO created = consultationService.createConsultationWithMeetLink(
+                    consultationDTO,
+                    principal.getId()
+            );
+            return ResponseEntity.ok(Map.of(
+                    "message", "Tạo cuộc tư vấn thành công",
+                    "consultation", created
+            ));
+        } catch (RuntimeException ex) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Đã xảy ra lỗi hệ thống"));
+        }
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('CONSULTANT')")
+    public ResponseEntity<?> completeConsultation(
+            @PathVariable("id") Long consultationId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        try {
+            Long consultantId = principal.getId();
+            ConsultationDTO updated = consultationService.markConsultationComplete(consultationId, consultantId);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Cuộc tư vấn đã được đánh dấu hoàn thành",
+                    "consultation", updated
+            ));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Lỗi hệ thống khi cập nhật trạng thái cuộc tư vấn"));
+        }
+    }
+
+    @PutMapping("/{id}/start")
+    @PreAuthorize("hasRole('CONSULTANT')")
+    public ResponseEntity<?> startConsultation(
+            @PathVariable("id") Long consultationId,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        try {
+            Long consultantId = principal.getId();
+            ConsultationDTO updated = consultationService.startConsultation(consultationId, consultantId);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Bắt đầu cuộc tư vấn thành công",
+                    "consultation", updated
+            ));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Lỗi hệ thống khi bắt đầu tư vấn"));
+        }
+    }
+
+
 
 }

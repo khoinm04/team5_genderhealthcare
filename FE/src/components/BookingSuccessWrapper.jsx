@@ -10,7 +10,7 @@ const BookingSuccessWrapper = () => {
 
   return (
     <BookingSuccess
-      serviceName={state.testName}
+      serviceName={state.serviceName || state.testName}
       date={state.date}
       time={state.time}
       fullName={state.fullName}

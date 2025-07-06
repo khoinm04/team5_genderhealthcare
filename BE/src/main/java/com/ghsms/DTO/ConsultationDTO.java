@@ -62,6 +62,8 @@ public class ConsultationDTO {
     )
     private String timeSlot;
 
+    private String meetLink;
+
     // ✅ THÊM MỚI: Thời gian cập nhật
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;

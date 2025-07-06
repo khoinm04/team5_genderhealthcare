@@ -1,15 +1,15 @@
 // src/pages/ReproductiveHealthApp.jsx
 import React, { useState, useEffect } from 'react';
-import CycleForm from '../components/CycleForm';
-import CycleCalendar from '../components/CycleCalendar';
-import PillScheduleForm from '../components/PillScheduleForm';
-import PillStatusPanel from '../components/PillStatusPanel';
-import PillCalendar from '../components/PillCalendar';
-import PillStatsPanel from '../components/PillStatsPanel';
+import CycleForm from '../components/Pill/CycleForm';
+import CycleCalendar from '../components/Pill/CycleCalendar';
+import PillScheduleForm from "../components/Pill/PillScheduleForm";
+import PillStatusPanel from '../components/Pill/PillStatusPanel';
+import PillCalendar from '../components/Pill/PillCalendar';
+import PillStatsPanel from '../components/Pill/PillStatsPanel';
 import axios from 'axios';
 import { toast } from "react-toastify";
 
-import PillConfirmedToast from "../components/PillConfirmedToast"; // Đường dẫn đúng nhé
+import PillConfirmedToast from "../components/Pill/PillConfirmedToast"; // Đường dẫn đúng nhé
 
 
 

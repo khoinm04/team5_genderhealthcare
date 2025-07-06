@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Client } from "@stomp/stompjs";
 import { toast } from "react-toastify";
-import PillReminderToast from "../components/PillReminderToast";
+import PillReminderToast from "../components/Pill/PillReminderToast";
 
 export const usePillReminderSocket = () => {
     const clientRef = useRef(null);

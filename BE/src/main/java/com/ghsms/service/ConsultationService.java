@@ -4,17 +4,24 @@ import com.ghsms.DTO.ConsultationDTO;
 import com.ghsms.DTO.ConsultationNoteStatusUpdateDTO;
 import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.file_enum.RoleName;
-import com.ghsms.model.Consultation;
-import com.ghsms.model.Services;
-import com.ghsms.model.User;
+import com.ghsms.model.*;
+import com.ghsms.repository.ConsultantDetailsRepository;
 import com.ghsms.repository.ConsultationRepository;
+import com.ghsms.repository.CustomerDetailsRepository;
 import com.ghsms.repository.UserRepository;
+
+import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +32,13 @@ public class ConsultationService {
 
     private final ConsultationRepository consultationRepository;
     private final UserRepository userRepository;
+    private final CustomerDetailsRepository customerDetailsRepository;
+    private final ConsultantDetailsRepository consultantDetailsRepository;
+    private final JavaMailSender mailSender;
+    @Value("${ghsms.default-meet-link}")
+    private String defaultMeetLink;
+
+
 
     /**
      * 1. API lấy tất cả lịch hẹn của customer
@@ -231,6 +245,130 @@ public class ConsultationService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public ConsultationDTO createConsultationWithMeetLink(ConsultationDTO consultationDTO, Long createdBy) {
+        try {
+            // Kiểm tra khách hàng và tư vấn viên
+            CustomerDetails customer = customerDetailsRepository.findById(consultationDTO.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với ID: " + consultationDTO.getCustomerId()));
+            ConsultantDetails consultant = consultantDetailsRepository.findById(consultationDTO.getConsultantId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tư vấn viên với ID: " + consultationDTO.getConsultantId()));
+
+            if (!consultant.getConsultant().getRole().getName().equals(RoleName.ROLE_CONSULTANT)) {
+                throw new RuntimeException("Người dùng không phải là tư vấn viên");
+            }
+
+            if (!consultationDTO.isValidTimeSlot()) {
+                throw new RuntimeException("Khung giờ không hợp lệ: thời gian kết thúc phải sau thời gian bắt đầu");
+            }
+
+            // Tạo thực thể cuộc tư vấn
+            Consultation consultation = new Consultation();
+            consultation.setCustomer(customer);
+            consultation.setConsultant(consultant);
+            consultation.setTopic(consultationDTO.getTopic());
+            consultation.setTimeSlot(consultationDTO.getTimeSlot());
+            consultation.setDateScheduled(consultationDTO.getDateScheduled());
+            consultation.setStatus(ConsultationStatus.SCHEDULED);
+            consultation.setBooking(new Booking(consultationDTO.getBookingId()));
+            consultation.setUpdatedAt(LocalDateTime.now());
+            // Không set meetLink ở đây nữa → để là null
+            consultation.setMeetLink(null);
+            // 🟢 Dùng link cố định
+
+            Consultation saved = consultationRepository.save(consultation);
+
+            sendConsultationEmail(consultationDTO,
+                    customer.getCustomer().getEmail(),
+                    consultant.getConsultant().getEmail(),
+                    "Link sẽ được cập nhật trước buổi tư vấn");
+
+
+            return toDTO(saved);
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo cuộc tư vấn: {}", e.getMessage());
+            throw new RuntimeException("Không thể tạo cuộc tư vấn: " + e.getMessage());
+        }
+    }
+
+    private void sendConsultationEmail(ConsultationDTO consultationDTO, String customerEmail, String consultantEmail, String meetLink) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        message.setFrom(new InternetAddress("anmom8910@gmail.com"));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(customerEmail + "," + consultantEmail));
+        message.setSubject("Cuộc tư vấn đã được lên lịch: " + consultationDTO.getTopic());
+        message.setText(buildEmailContent(consultationDTO, meetLink));
+
+        mailSender.send(message);
+        log.info("Đã gửi email cuộc tư vấn đến {} và {}", customerEmail, consultantEmail);
+    }
+
+    private String buildEmailContent(ConsultationDTO dto, String meetLink) {
+        String linkText = (meetLink == null || meetLink.isBlank())
+                ? "Liên kết sẽ được cập nhật trước giờ tư vấn."
+                : "Liên kết Google Meet: " + meetLink;
+
+        return "Kính gửi " + dto.getCustomerName() + ",\n\n" +
+                "Cuộc tư vấn của bạn đã được lên lịch.\n" +
+                "Chủ đề: " + dto.getTopic() + "\n" +
+                "Ngày: " + dto.getDateScheduled() + "\n" +
+                "Khung giờ: " + dto.getTimeSlot() + "\n" +
+                linkText + "\n\n" +
+                "Trân trọng,\nĐội ngũ GHSMS";
+    }
+
+
+
+    @Transactional
+    public ConsultationDTO markConsultationComplete(Long consultationId, Long consultantId) {
+        Consultation consultation = consultationRepository.findById(consultationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy cuộc tư vấn"));
+
+        if (!consultation.getConsultant().getConsultant().getUserId().equals(consultantId)) {
+            throw new RuntimeException("Bạn không có quyền cập nhật cuộc tư vấn này");
+        }
+
+        if (consultation.getStatus() == ConsultationStatus.COMPLETED) {
+            throw new RuntimeException("Cuộc tư vấn đã hoàn thành trước đó");
+        }
+
+        consultation.setStatus(ConsultationStatus.COMPLETED);
+        consultation.setUpdatedAt(LocalDateTime.now());
+        consultationRepository.save(consultation);
+
+        return toDTO(consultation);
+    }
+
+    @Transactional
+    public ConsultationDTO startConsultation(Long consultationId, Long consultantId) throws Exception {
+        Consultation consultation = consultationRepository.findById(consultationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy cuộc tư vấn"));
+
+        if (!consultation.getConsultant().getConsultant().getUserId().equals(consultantId)) {
+            throw new RuntimeException("Bạn không có quyền bắt đầu cuộc tư vấn này");
+        }
+
+        // Gán link cố định nếu chưa có
+        if (consultation.getMeetLink() == null) {
+            consultation.setMeetLink(defaultMeetLink);
+        }
+
+        consultation.setStatus(ConsultationStatus.ONGOING);
+        consultation.setUpdatedAt(LocalDateTime.now());
+        consultationRepository.save(consultation);
+
+        // Gửi email nếu muốn
+        sendConsultationEmail(
+                toDTO(consultation),
+                consultation.getCustomer().getCustomer().getEmail(),
+                consultation.getConsultant().getConsultant().getEmail(),
+                defaultMeetLink
+        );
+
+        return toDTO(consultation);
+    }
+
+
+
     /**
      * API lấy consultation theo status cho Manager
      */
@@ -319,12 +457,14 @@ public class ConsultationService {
         dto.setRating(consultation.getRating());
         dto.setFeedback(consultation.getFeedback());
 
-        // ✅ THÊM MỚI: Các field mới
+        // 🟢 BỔ SUNG DÒNG NÀY:
+        dto.setMeetLink(consultation.getMeetLink());
+
+        // ✅ Các field bổ sung
         dto.setBookingId(consultation.getBooking().getBookingId());
         dto.setTimeSlot(consultation.getTimeSlot());
         dto.setUpdatedAt(consultation.getUpdatedAt());
 
-        // ✅ THÊM MỚI: Thông tin bổ sung
         dto.setCustomerName(consultation.getCustomer().getFullName());
         dto.setCustomerEmail(consultation.getCustomer().getEmail());
         dto.setCustomerPhone(consultation.getCustomer().getPhoneNumber());
@@ -332,7 +472,6 @@ public class ConsultationService {
         dto.setConsultantEmail(consultation.getConsultant().getConsultant().getEmail());
         dto.setStatusDescription(consultation.getStatus().getDescription());
 
-        // ✅ LẤY DANH SÁCH DỊCH VỤ
         List<String> serviceNames = consultation.getBooking().getServices()
                 .stream()
                 .map(Services::getServiceName)

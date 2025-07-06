@@ -79,8 +79,8 @@ public class Consultation {
     @Column(name = "TimeSlot")
     private String timeSlot;
 
-
-
+    @Column(name = "MeetLink")
+    private String meetLink; // Thêm trường meetLink để lưu trữ liên kết cuộc họp trực tuyến
 
 
 }

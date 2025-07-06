@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import Header from "../components/Header";
-import Services from "../components/Services";
-import UserGroups from "../components/userGroups";
-import Footer from "../components/Footer";
-import ZaloButton from '../components/ZaloButton';
+import Header from "./Header";
+import Services from "./Services";
+import UserGroups from "./userGroups";
+import Footer from "./Footer";
+import ZaloButton from './ZaloButton';
 
 
 
