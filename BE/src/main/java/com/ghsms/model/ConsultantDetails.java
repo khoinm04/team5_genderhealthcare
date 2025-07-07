@@ -2,6 +2,7 @@
 
 package com.ghsms.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ghsms.file_enum.ConsultantSpecialization;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -12,6 +13,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -44,6 +46,8 @@ public class ConsultantDetails implements Serializable {
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
 
-    @OneToMany(mappedBy = "consultant", cascade = CascadeType.ALL)
-    private Set<Certificate> certificates;
+    @Column(columnDefinition = "nvarchar(100)")
+    @OneToMany(mappedBy = "consultant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Certificate> certificates = new HashSet<>();
 }

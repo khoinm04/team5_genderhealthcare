@@ -33,12 +33,14 @@ public class CustomerDetails {
     @Column(name = "fullName",columnDefinition = "nvarchar(100)")
     private String fullName;
 
-    @Column(name = "phoneNumber",nullable = false, unique = true, length = 100)
+    @NotBlank(message = "Số điện thoại không được để trống")
+    @Column(name = "phoneNumber",nullable = false, length = 100)
     private String phoneNumber;
 
     @Column(name = "Age")
     private Integer age;
 
+    @NotBlank(message = "Tuổi không được để trống")
     @Column(name = "Gender", length = 20)
     private String gender; // Có thể là "MALE", "FEMALE", "OTHER"
 
@@ -46,7 +48,7 @@ public class CustomerDetails {
     @NotBlank(message = "Email không được để trống")
     @Email(message = "email không hợp lệ")
     @Size(max = 100, message = "email nên ít hơn 100 ký tự")
-    @Column(name = "Email", nullable = false, unique = true, length = 100)
+    @Column(name = "Email", nullable = false, length = 100)
     private String email;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY,cascade = CascadeType.ALL)

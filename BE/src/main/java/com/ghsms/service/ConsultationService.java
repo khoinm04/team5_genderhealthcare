@@ -6,8 +6,15 @@ import com.ghsms.DTO.ConsultationNoteStatusUpdateDTO;
 import com.ghsms.DTO.ConsultationStatsDTO;
 import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.file_enum.RoleName;
+<<<<<<< HEAD
 import com.ghsms.model.*;
 import com.ghsms.repository.ConsultantDetailsRepository;
+=======
+import com.ghsms.file_enum.ServiceCategoryType;
+import com.ghsms.model.Consultation;
+import com.ghsms.model.Services;
+import com.ghsms.model.User;
+>>>>>>> 8ae5ab8f (create blogpost, edit consultant' schedule, edit feature create account of admin)
 import com.ghsms.repository.ConsultationRepository;
 import com.ghsms.repository.CustomerDetailsRepository;
 import com.ghsms.repository.UserRepository;
@@ -556,7 +563,7 @@ public class ConsultationService {
         dto.setTopic(consultation.getTopic());
         dto.setNote(consultation.getNote());
         dto.setDateScheduled(consultation.getDateScheduled());
-        dto.setStatus(consultation.getStatus());
+        dto.setStatusDescription(getStatusDescription(consultation.getStatus()));
         dto.setRating(consultation.getRating());
         dto.setFeedback(consultation.getFeedback());
 
@@ -573,7 +580,6 @@ public class ConsultationService {
         dto.setCustomerPhone(consultation.getCustomer().getPhoneNumber());
         dto.setConsultantName(consultation.getConsultant().getConsultant().getName());
         dto.setConsultantEmail(consultation.getConsultant().getConsultant().getEmail());
-        dto.setStatusDescription(consultation.getStatus().getDescription());
 
         List<String> serviceNames = consultation.getBooking().getServices()
                 .stream()
@@ -581,7 +587,27 @@ public class ConsultationService {
                 .collect(Collectors.toList());
         dto.setServiceNames(serviceNames);
 
+        // ✅ Map danh sách loại categoryType
+        List<ServiceCategoryType> categoryTypes = consultation.getBooking().getServices().stream()
+                .map(Services::getCategoryType)
+                .distinct()
+                .collect(Collectors.toList());
+
+        dto.setCategoryTypes(categoryTypes);
+
+
         return dto;
+    }
+    private String getStatusDescription(ConsultationStatus status) {
+        return switch (status) {
+            case PENDING -> "Chờ xác nhận";
+            case CONFIRMED -> "Đã xác nhận";
+            case SCHEDULED -> "Đã lên lịch";
+            case ONGOING -> "Đang tư vấn";
+            case COMPLETED -> "Hoàn thành";
+            case CANCELED -> "Đã hủy";
+            case RESCHEDULED -> "Đã đổi lịch";
+        };
     }
 
 

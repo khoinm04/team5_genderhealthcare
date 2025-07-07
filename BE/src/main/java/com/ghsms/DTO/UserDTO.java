@@ -1,6 +1,8 @@
 package com.ghsms.DTO;
 
 import com.ghsms.file_enum.AuthProvider;
+import com.ghsms.file_enum.RoleName;
+import com.ghsms.model.Certificate;
 import com.ghsms.model.User;
 import com.ghsms.util.RoleNameConverter;
 import lombok.Builder;
@@ -10,6 +12,11 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -26,6 +33,8 @@ public class UserDTO implements Serializable {
     private String createdAt;
     private String lastLogin;
     private AuthProvider authProvider;
+
+    private List<CertificateDTO> certificates;
 
     private Boolean isOnline; // ✅ Thêm dòng này
 
@@ -45,6 +54,19 @@ public class UserDTO implements Serializable {
         this.createdAt = user.getCreatedAt() != null ?
                 user.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy, h:mm:ss a")) : null;
         this.authProvider = user.getAuthProvider() != null ? user.getAuthProvider() : AuthProvider.LOCAL;
+
+        if (user.getRole().getName() == RoleName.ROLE_CONSULTANT &&
+                user.getConsultantDetails() != null &&
+                user.getConsultantDetails().getCertificates() != null) {
+
+            this.certificates = user.getConsultantDetails().getCertificates()
+                    .stream()
+                    .map(cert -> new CertificateDTO(cert.getId(), cert.getName()))
+                    .collect(Collectors.toList());
+        } else {
+            this.certificates = Collections.emptyList();
+        }
+
     }
 
     public UserDTO(User user, Boolean isOnline) {

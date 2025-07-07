@@ -13,7 +13,6 @@ public class CustomHandshakeHandler extends DefaultHandshakeHandler {
     protected Principal determineUser(ServerHttpRequest request,
                                       WebSocketHandler wsHandler,
                                       Map<String, Object> attributes) {
-        log.info("👉 [WS] CustomHandshakeHandler.determineUser called");
         Object principal = attributes.get("principal");
         if (principal instanceof Principal p) {
             return p;

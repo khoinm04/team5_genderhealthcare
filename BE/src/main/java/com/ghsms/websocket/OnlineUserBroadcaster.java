@@ -22,7 +22,6 @@ public class OnlineUserBroadcaster {
 
     public void broadcastOnlineUsers() {
         Set<Long> onlineIds = tracker.getOnlineUserIds();
-        log.debug("Broadcasting for online users: {}", onlineIds);
 
         if (onlineIds.isEmpty()) {
             messagingTemplate.convertAndSend("/topic/online-users", List.of());
@@ -37,7 +36,6 @@ public class OnlineUserBroadcaster {
                 })
                 .toList();
 
-        log.debug("Broadcasting users: {}", users);
         messagingTemplate.convertAndSend("/topic/online-users", users);
     }
 }

@@ -16,6 +16,13 @@ import STIsTestPage from "./components/STIs/STIsTestPage";
 import StaffDashboard from "./components/staff/StaffDashboard";
 import ManagerDashboard from "./components/manager/ManagerDashboard";
 import ScheduleManagement from './components/manager/ScheduleManagement';
+import STIsTestPage from "./components/STIsTestPage";
+import PaymentPage from "./components/PaymentPage";
+import StaffDashboard from "./components/StaffDashboard";
+import ManagerDashboard from "./components/ManagerDashboard";
+import ScheduleManagement from './components/ScheduleManagement';
+import ScheduleManagement1 from './components/ScheduleManagement1';
+
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
 import ConsultantDashboard from "./components/consultant/ConsultantDashboard";
 import UserProfile from "./components/UserProfile";
@@ -87,6 +94,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/consultation" element={<ConsultationBooking />} />
           <Route path="/booking/sti" element={<STIsTestPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/staff" element={<StaffDashboard />} />
@@ -102,6 +110,8 @@ export default function App() {
           <Route path="/booking-success" element={<BookingSuccessWrapper />} />
 
           <Route path="/consultant/dashboard" element={<ConsultantDashboard />} />
+          <Route path="/vnpay-payment" element={<PaymentVnpayPage />} />
+          <Route path="/consultant/schedule" element={<ScheduleManagement1 />} />
 
         </Routes>
       </BrowserRouter>

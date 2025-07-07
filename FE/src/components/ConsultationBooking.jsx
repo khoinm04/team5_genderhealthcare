@@ -15,11 +15,13 @@ import { jwtDecode } from 'jwt-decode'; import {
     QrCode,
     Copy,
     Check,
-    Home
+    Home,
+    ArrowLeft
 } from 'lucide-react';
 import PaymentPage from './PaymentPage';
 
 const ConsultationBooking = () => {
+    const [isSubmitted, setIsSubmitted] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedService, setSelectedService] = useState(null);
     const [selectedDate, setSelectedDate] = useState('');
@@ -59,7 +61,7 @@ const ConsultationBooking = () => {
         },
         {
             serviceId: 3,
-            serviceName: 'Tái khám',
+            serviceName: 'Tư vấn tái khám',
             category: 'RE_EXAMINATION',
             price: 150000,
             description: 'Tư vấn tái khám'
@@ -80,12 +82,6 @@ const ConsultationBooking = () => {
         '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00',
     ], []);
 
-    // Placeholder for handleHomeExit function
-    const handleHomeExit = useCallback(() => {
-        // if (window.confirm('Bạn có chắc chắn muốn thoát khỏi hệ thống?')) {
-        window.location.href = '/';
-        // }
-    }, []);
 
     const getMinDate = useCallback(() => {
         const tomorrow = new Date();
@@ -262,7 +258,9 @@ const ConsultationBooking = () => {
 
     // Handle payment confirmation
     const handleConfirmBooking = async () => {
-        const token = localStorage.getItem('token');
+        setIsSubmitted(true);
+
+        const token = localStorage.getItem("token");
         if (!token) {
             setError("Không tìm thấy token đăng nhập. Vui lòng đăng nhập lại.");
             return;
@@ -285,7 +283,8 @@ const ConsultationBooking = () => {
         if (!canProceedToNextStep) return;
 
         setLoading(true);
-        setError('');
+        setError("");
+
         try {
             // 📌 1. Gửi yêu cầu đặt lịch
             const bookingData = {
@@ -301,19 +300,19 @@ const ConsultationBooking = () => {
             };
 
             const bookingResponse = await axios.post(
-                'http://localhost:8080/api/bookings',
+                "http://localhost:8080/api/bookings",
                 bookingData,
                 {
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    }
                 }
             );
 
             const responseData = bookingResponse.data;
 
-            // 📌 2. Lưu lại appointment nếu cần
+            // 📌 2. Lưu lại nếu cần trong state
             const newAppointment = {
                 id: responseData.booking.bookingId,
                 service: selectedService,
@@ -324,53 +323,35 @@ const ConsultationBooking = () => {
                     notes: contactInfo.notes
                 },
                 status: responseData.booking.status,
-                createdAt: new Date().toLocaleString('vi-VN'),
-                paymentCode: responseData.paymentCode,
+                createdAt: new Date().toLocaleString("vi-VN"),
                 customerName: responseData.booking.customerName || contactInfo.fullName
             };
 
-            setAppointments(prev => [...prev, newAppointment]);
+            setAppointments((prev) => [...prev, newAppointment]);
             setLatestBooking(newAppointment);
-            setPaymentCode(responseData.paymentCode);
 
-            // 📌 3. Gọi API tạo thanh toán VNPAY
-            console.log("Gửi sang backend:", {
-  bookingId: responseData.booking.bookingId,
-  amount: selectedService.price
-});
-
-            const paymentRes = await axios.post(
-                'http://localhost:8080/api/payment/create',
-                {
-                    bookingId: responseData.booking.bookingId,
-                    amount: selectedService.price
-
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',        // 🔧 BỔ SUNG DÒNG NÀY
-                        'Authorization': `Bearer ${token}`
-                    }
+            console.log("selectedService = ", selectedService);
+            // 📌 3. Chuyển hướng tới trang thành công
+            navigate("/booking-success", {
+                state: {
+                    serviceName: selectedService.serviceName || selectedService.name || "Không rõ",
+                    date: responseData.booking.bookingDate,
+                    time: responseData.booking.timeSlot,
+                    fullName: responseData.booking.customerName || contactInfo.fullName,
+                    price: selectedService.price,
+                    email: contactInfo.email,
+                    phone: contactInfo.phone
                 }
-            );
-            console.log({
-                bookingId: responseData.booking.bookingId,
-                amount: selectedService.price
             });
-
-
-            // 📌 Redirect tới VNPAY
-           // ✅ Thay vì redirect, dùng navigate
-        window.location.href = paymentRes.data.paymentUrl;
-
-
-
-
         } catch (error) {
-            console.error('Lỗi khi đặt lịch hoặc thanh toán:', error);
+            console.error("Lỗi khi đặt lịch:", error);
             if (error.response) {
-                console.error('Chi tiết:', error.response.data);
-                setError(error.response.data.error || error.response.data.message || 'Có lỗi xảy ra từ server.');
+                console.error("Chi tiết:", error.response.data);
+                setError(
+                    error.response.data.error ||
+                    error.response.data.message ||
+                    "Có lỗi xảy ra từ server."
+                );
             } else {
                 setError(error.message);
             }
@@ -378,7 +359,6 @@ const ConsultationBooking = () => {
             setLoading(false);
         }
     };
-
     // api lay thong tin ngươi dung co san
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -410,6 +390,37 @@ const ConsultationBooking = () => {
     }, []);
 
     const handleUpdateProfile = async () => {
+        setIsSubmitted(true);
+
+        if (!selectedDate) {
+            console.log("⚠️ Thiếu ngày tư vấn"); // 👉 thêm log để test
+            return;
+        }
+
+        if (!selectedTime) {
+            console.log("⚠️ Thiếu giờ tư vấn");
+            return;
+        }
+
+        // ❗ Bắt buộc kiểm tra các trường required trước
+        if (!selectedService || !selectedDate || !selectedTime || !contactInfo.fullName || !contactInfo.age || !contactInfo.gender || !contactInfo.phone || !contactInfo.email) {
+            setError("Vui lòng điền đầy đủ thông tin bắt buộc.");
+            return;
+        }
+
+        const { fullName, age, gender, phone, email } = contactInfo;
+
+        // ✅ Kiểm tra trước khi gửi
+        if (
+            !fullName.trim() ||
+            !age ||
+            !gender ||
+            !phone.trim() ||
+            !email.trim()
+        ) {
+            return; // ⛔ Không gửi API nếu thiếu
+        }
+
         try {
             const token = JSON.parse(localStorage.getItem('user'))?.token;
             await axios.put("/api/bookings/profile", contactInfo, {
@@ -423,449 +434,441 @@ const ConsultationBooking = () => {
     };
 
 
+
     // Memoized input components to prevent re-rendering
-    const PersonalInfoInputs = useMemo(() => {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
-                {/* Left Column */}
-                <div className="space-y-4">
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Họ và tên *
-                        </label>
-                        <input
-                            type="text"
-                            value={contactInfo.fullName}
-                            onChange={(e) => handleContactInfoChange('fullName', e.target.value)}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!contactInfo.fullName ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            placeholder="Nhập họ và tên"
-                            autoComplete="name"
-                            required
-                        />
-                        {!contactInfo.fullName && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
-
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tuổi *
-                        </label>
-                        <input
-                            type="number"
-                            value={contactInfo.age}
-                            onChange={(e) => handleContactInfoChange('age', e.target.value)}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!contactInfo.age ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            placeholder="Nhập tuổi"
-                            min="0"
-                            max="150"
-                            autoComplete="off"
-                            required
-                        />
-                        {!contactInfo.age && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
-
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Giới tính *
-                        </label>
-                        <select
-                            value={contactInfo.gender}
-                            onChange={(e) => handleContactInfoChange('gender', e.target.value)}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!contactInfo.gender ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            required
-                        >
-                            <option value="">-- Chọn giới tính --</option>
-                            <option value="MALE">Nam</option>
-                            <option value="FEMALE">Nữ</option>
-                            <option value="OTHER">Khác</option>
-                        </select>
-                        {!contactInfo.gender && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
+    const PersonalInfoInputs = (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Họ và tên *
+                    </label>
+                    <input
+                        type="text"
+                        value={contactInfo.fullName}
+                        onChange={(e) => handleContactInfoChange('fullName', e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !contactInfo.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        placeholder="Nhập họ và tên"
+                        autoComplete="name"
+                        required
+                    />
+                    {isSubmitted && !contactInfo.fullName && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                    )}
                 </div>
 
-                {/* Right Column */}
-                <div className="space-y-4">
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Số điện thoại *
-                        </label>
-                        <input
-                            type="tel"
-                            value={contactInfo.phone}
-                            onChange={(e) => handleContactInfoChange('phone', e.target.value)}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!contactInfo.phone ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            placeholder="Nhập số điện thoại"
-                            autoComplete="tel"
-                            required
-                        />
-                        {!contactInfo.phone && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tuổi *
+                    </label>
+                    <input
+                        type="number"
+                        value={contactInfo.age}
+                        onChange={(e) => handleContactInfoChange('age', e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !contactInfo.age ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        placeholder="Nhập tuổi"
+                        min="0"
+                        max="150"
+                        autoComplete="off"
+                        required
+                    />
+                    {isSubmitted && !contactInfo.age && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                    )}
+                </div>
 
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Email *
-                        </label>
-                        <input
-                            type="email"
-                            value={contactInfo.email}
-                            onChange={(e) => handleContactInfoChange('email', e.target.value)}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!contactInfo.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            placeholder="Nhập địa chỉ email"
-                            autoComplete="email"
-                            required
-                        />
-                        {!contactInfo.email && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
-
-                    <div className="h-20">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Ngày tư vấn *
-                        </label>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={handleDateChange}
-                            className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${!selectedDate ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                            min={getMinDate()}
-                            required
-                        />
-                        {!selectedDate && (
-                            <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
-                        )}
-                    </div>
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Giới tính *
+                    </label>
+                    <select
+                        value={contactInfo.gender}
+                        onChange={(e) => handleContactInfoChange('gender', e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !contactInfo.gender ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        required
+                    >
+                        <option value="">-- Chọn giới tính --</option>
+                        <option value="MALE">Nam</option>
+                        <option value="FEMALE">Nữ</option>
+                        <option value="OTHER">Khác</option>
+                    </select>
+                    {isSubmitted && !contactInfo.gender && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                    )}
                 </div>
             </div>
-        );
-    }, [contactInfo, selectedDate, handleContactInfoChange, handleDateChange, getMinDate]);
 
-    const ConsultationBooking = useMemo(() => {
-        return (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Service Selection and Form - Fixed width container */}
-                <div className="lg:col-span-2">
-                    {/* Service Selection */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">
-                            Chọn dịch vụ tư vấn *
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {services.map((service) => (
-                                <div
-                                    key={service.serviceId}
-                                    onClick={() => handleServiceSelect(service)}
-                                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.serviceId === service.serviceId
-                                        ? "border-blue-600 bg-blue-50"
-                                        : "border-gray-200 hover:border-blue-300"
-                                        }`}
-                                >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <h3 className="font-semibold text-gray-900">{service.serviceName}</h3>
-                                        <span className="text-blue-600 font-bold">
-                                            {service.price.toLocaleString("vi-VN")} đ
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-2">
-                                        {service.description}
-                                    </p>
-                                    <div className="flex items-center justify-between text-xs text-gray-500">
-                                        <span>⏱ 30 phút</span>
-                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                            {service.category.replace("_", " ")}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {!selectedService && (
-                            <p className="text-red-500 text-sm mt-2">Vui lòng chọn một dịch vụ</p>
-                        )}
-                    </div>
-
-                    {/* Booking Form - Fixed height and stable layout */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">
-                            Thông tin đặt lịch
-                        </h2>
-
-                        {/* Fixed container to prevent layout shifts */}
-                        <div className="w-full" style={{ minHeight: '600px' }}>
-                            {/* Personal Information Grid - Fixed layout */}
-                            {PersonalInfoInputs}
-                            {/* Nút lưu thông tin */}
-                            <div className="flex justify-end mt-4">
-                                <button
-                                    onClick={handleUpdateProfile}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                >
-                                    Lưu thông tin
-                                </button>
-                            </div>
-
-                            {/* Time Selection - Fixed height */}
-                            <div className="mb-6" style={{ minHeight: '120px' }}>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">
-                                    Giờ tư vấn *
-                                </label>
-                                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                                    {timeSlots.map((time) => (
-                                        <button
-                                            key={time}
-                                            onClick={() => handleTimeSelect(time)}
-                                            className={`h-10 text-sm border rounded-lg transition-colors ${selectedTime === time
-                                                ? "border-blue-600 bg-blue-50 text-blue-600"
-                                                : "border-gray-300 hover:border-blue-300"
-                                                }`}
-                                        >
-                                            {time}
-                                        </button>
-                                    ))}
-                                </div>
-                                {!selectedTime && (
-                                    <p className="text-red-500 text-sm mt-2">Vui lòng chọn giờ tư vấn</p>
-                                )}
-                            </div>
-
-                            {/* Notes - Fixed height */}
-                            <div style={{ minHeight: '120px' }}>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Ghi chú (không bắt buộc)
-                                </label>
-                                <textarea
-                                    value={contactInfo.notes}
-                                    onChange={(e) => handleContactInfoChange('notes', e.target.value)}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
-                                    placeholder="Thông tin bổ sung..."
-                                    style={{ height: '80px' }}
-                                />
-                            </div>
-                        </div>
-                    </div>
+            {/* Right Column */}
+            <div className="space-y-4">
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Số điện thoại *
+                    </label>
+                    <input
+                        type="tel"
+                        value={contactInfo.phone}
+                        onChange={(e) => handleContactInfoChange('phone', e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !contactInfo.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        placeholder="Nhập số điện thoại"
+                        autoComplete="tel"
+                        required
+                    />
+                    {isSubmitted && !contactInfo.phone && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                    )}
                 </div>
 
-                {/* Booking Summary - Stable positioning */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-lg shadow-sm p-6 lg:sticky lg:top-24" style={{ height: 'fit-content' }}>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">
-                            Tóm tắt đặt lịch
-                        </h3>
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                    </label>
+                    <input
+                        type="email"
+                        value={contactInfo.email}
+                        onChange={(e) => handleContactInfoChange('email', e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !contactInfo.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        placeholder="Nhập địa chỉ email"
+                        autoComplete="email"
+                        required
+                    />
+                    {isSubmitted && !contactInfo.email && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                    )}
+                </div>
 
-                        {/* Summary content with fixed minimum height */}
-                        <div style={{ minHeight: '200px' }}>
-                            {selectedService ? (
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <p className="font-medium text-gray-900">{selectedService.serviceName}</p>
-                                            <p className="text-sm text-gray-500">30 phút</p>
-                                        </div>
-                                        <span className="font-medium text-blue-600">
-                                            {selectedService.price.toLocaleString("vi-VN")} đ
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-gray-500 mb-6">Chưa chọn dịch vụ nào</p>
-                            )}
-
-                            {selectedService && (
-                                <div className="border-t pt-4 mb-6">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-lg font-bold text-gray-900">
-                                            Tổng cộng:
-                                        </span>
-                                        <span className="text-xl font-bold text-blue-600">
-                                            {selectedService.price.toLocaleString("vi-VN")} đ
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={handleConfirmBooking}
-                            disabled={!canProceedToNextStep || loading}
-                            className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${canProceedToNextStep && !loading
-                                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                }`}
-                        >
-                            {loading ? 'Đang xử lý...' : 'Đặt lịch tư vấn'}
-                        </button>
-
-                        {/* Validation Summary */}
-                        {!canProceedToNextStep && (
-                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <h4 className="font-semibold text-red-800 mb-2 text-sm">
-                                    Vui lòng hoàn thành:
-                                </h4>
-                                <ul className="text-sm text-red-700 space-y-1">
-                                    {!selectedService && <li>• Chọn dịch vụ tư vấn</li>}
-                                    {!selectedDate && <li>• Chọn ngày tư vấn</li>}
-                                    {!selectedTime && <li>• Chọn giờ tư vấn</li>}
-                                    {!contactInfo.fullName && <li>• Nhập họ và tên</li>}
-                                    {!contactInfo.age && <li>• Nhập tuổi</li>}
-                                    {!contactInfo.gender && <li>• Chọn giới tính</li>}
-                                    {!contactInfo.phone && <li>• Nhập số điện thoại</li>}
-                                    {!contactInfo.email && <li>• Nhập địa chỉ email</li>}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Important Notes */}
-                        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <h4 className="font-semibold text-yellow-800 mb-2">
-                                Lưu ý quan trọng:
-                            </h4>
-                            <ul className="text-sm text-yellow-700 space-y-1">
-                                <li>• Mang theo CMND/CCCD khi đến tư vấn</li>
-                                <li>• Đến đúng giờ hẹn để đảm bảo chất lượng dịch vụ</li>
-                                <li>• Thông tin được bảo mật tuyệt đối</li>
-                                <li>• Có thể hủy lịch trước 24h</li>
-                            </ul>
-                        </div>
-                    </div>
+                <div className="h-20">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày tư vấn *
+                    </label>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className={`w-full h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isSubmitted && !selectedDate ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                        min={getMinDate()}
+                    />
+                    {isSubmitted && !selectedDate && (
+                        <p className="text-red-500 text-xs mt-1">Vui lòng chọn ngày tư vấn</p>
+                    )}
                 </div>
             </div>
-        );
-    }, [services, selectedService, handleServiceSelect, PersonalInfoInputs, timeSlots, selectedTime, handleTimeSelect, contactInfo.notes, handleContactInfoChange, canProceedToNextStep, loading, handleConfirmBooking]);
+        </div>
+    );
 
-    const PaymentSection = useMemo(() => {
-        return (
-            <div className="max-w-2xl mx-auto">
-                <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
-                    <QrCode className="w-6 h-6 mr-2" />
-                    Thanh toán QR Code
-                </h2>
+    const ConsultationBooking = (
 
-                <div className="text-center">
-                    <div className="bg-gray-100 p-8 rounded-lg mb-6 inline-block">
-                        <QrCode className="h-32 w-32 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600">QR Code thanh toán</p>
-                    </div>
-
-                    <div className="mb-6">
-                        <p className="text-gray-700 mb-2">Mã thanh toán:</p>
-                        <div className="flex items-center justify-center space-x-2">
-                            <span className="text-pink-600 font-mono text-lg">{paymentCode}</span>
-                            <button
-                                onClick={copyPaymentCode}
-                                className="p-2 text-gray-500 hover:text-gray-700"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Service Selection and Form - Fixed width container */}
+            <div className="lg:col-span-2">
+                {/* Service Selection */}
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        Chọn dịch vụ tư vấn *
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {services.map((service) => (
+                            <div
+                                key={service.serviceId}
+                                onClick={() => handleServiceSelect(service)}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.serviceId === service.serviceId
+                                    ? "border-blue-600 bg-blue-50"
+                                    : "border-gray-200 hover:border-blue-300"
+                                    }`}
                             >
-                                {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                <div className="flex items-start justify-between mb-2">
+                                    <h3 className="font-semibold text-gray-900">{service.serviceName}</h3>
+                                    <span className="text-blue-600 font-bold">
+                                        {service.price.toLocaleString("vi-VN")} đ
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2">
+                                    {service.description}
+                                </p>
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                    <span>⏱ 30 phút</span>
+                                    <span className="bg-gray-100 px-2 py-1 rounded">
+                                        {service.category.replace("_", " ")}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {isSubmitted && !selectedService && (
+                        <p className="text-red-500 text-sm mt-2">Vui lòng chọn một dịch vụ</p>
+                    )}
+
+                </div>
+
+                {/* Booking Form - Fixed height and stable layout */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        Thông tin đặt lịch
+                    </h2>
+
+                    {/* Fixed container to prevent layout shifts */}
+                    <div className="w-full" style={{ minHeight: '600px' }}>
+                        {PersonalInfoInputs}
+                        {/* Nút lưu thông tin */}
+                        <div className="flex justify-end mt-4">
+                            <button
+                                onClick={handleUpdateProfile}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                Lưu thông tin
                             </button>
                         </div>
+
+                        {/* Time Selection - Fixed height */}
+                        <div className="mb-6" style={{ minHeight: '120px' }}>
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Giờ tư vấn *
+                            </label>
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                                {timeSlots.map((time) => (
+                                    <button
+                                        key={time}
+                                        onClick={() => handleTimeSelect(time)}
+                                        className={`h-10 text-sm border rounded-lg transition-colors ${selectedTime === time
+                                            ? "border-blue-600 bg-blue-50 text-blue-600"
+                                            : "border-gray-300 hover:border-blue-300"
+                                            }`}
+                                    >
+                                        {time}
+                                    </button>
+                                ))}
+                            </div>
+                            {isSubmitted && !selectedTime && (
+                                <p className="text-red-500 text-xs mt-1">Vui lòng điền đầy đủ thông tin</p>
+                            )}
+
+                        </div>
+
+                        {/* Notes - Fixed height */}
+                        <div style={{ minHeight: '120px' }}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Ghi chú (không bắt buộc)
+                            </label>
+                            <textarea
+                                value={contactInfo.notes}
+                                onChange={(e) => handleContactInfoChange('notes', e.target.value)}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
+                                placeholder="Thông tin bổ sung..."
+                                style={{ height: '80px' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Booking Summary - Stable positioning */}
+            <div className="lg:col-span-1">
+                <div className="bg-white rounded-lg shadow-sm p-6 lg:sticky lg:top-24" style={{ height: 'fit-content' }}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        Tóm tắt đặt lịch
+                    </h3>
+
+                    {/* Summary content with fixed minimum height */}
+                    <div style={{ minHeight: '200px' }}>
+                        {selectedService ? (
+                            <div className="space-y-3 mb-6">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <p className="font-medium text-gray-900">{selectedService.serviceName}</p>
+                                        <p className="text-sm text-gray-500">30 phút</p>
+                                    </div>
+                                    <span className="font-medium text-blue-600">
+                                        {selectedService.price.toLocaleString("vi-VN")} đ
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-gray-500 mb-6">Chưa chọn dịch vụ nào</p>
+                        )}
+
+                        {selectedService && (
+                            <div className="border-t pt-4 mb-6">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-lg font-bold text-gray-900">
+                                        Tổng cộng:
+                                    </span>
+                                    <span className="text-xl font-bold text-blue-600">
+                                        {selectedService.price.toLocaleString("vi-VN")} đ
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="border-t pt-4 mb-6">
-                        <p className="text-lg">
-                            Số tiền: <span className="text-blue-600 font-bold">{formatPrice(selectedService?.price)}</span>
-                        </p>
-                    </div>
+                    <button
+                        onClick={handleConfirmBooking}
+                        disabled={!canProceedToNextStep || loading}
+                        className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${canProceedToNextStep && !loading
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
+                    >
+                        {loading ? 'Đang xử lý...' : 'Đặt lịch tư vấn'}
+                    </button>
 
-                    <div className="bg-blue-50 p-4 rounded-lg mb-6 text-left">
-                        <h3 className="font-semibold text-gray-900 mb-3">Hướng dẫn thanh toán:</h3>
-                        <ol className="text-sm text-gray-700 space-y-1">
-                            <li>1. Mở ứng dụng ngân hàng hoặc ví điện tử</li>
-                            <li>2. Chọn chức năng quét QR Code</li>
-                            <li>3. Quét mã QR hoặc nhập mã thanh toán</li>
-                            <li>4. Xác nhận số tiền và thực hiện thanh toán</li>
-                            <li>5. Sau khi thanh toán, nhấn "Xác nhận đã thanh toán"</li>
-                        </ol>
-                    </div>
+                    {/* Validation Summary */}
+                    {!canProceedToNextStep && (
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <h4 className="font-semibold text-red-800 mb-2 text-sm">
+                                Vui lòng hoàn thành:
+                            </h4>
+                            <ul className="text-sm text-red-700 space-y-1">
+                                {!selectedService && <li>• Chọn dịch vụ tư vấn</li>}
+                                {!selectedDate && <li>• Chọn ngày tư vấn</li>}
+                                {!selectedTime && <li>• Chọn giờ tư vấn</li>}
+                                {!contactInfo.fullName && <li>• Nhập họ và tên</li>}
+                                {!contactInfo.age && <li>• Nhập tuổi</li>}
+                                {!contactInfo.gender && <li>• Chọn giới tính</li>}
+                                {!contactInfo.phone && <li>• Nhập số điện thoại</li>}
+                                {!contactInfo.email && <li>• Nhập địa chỉ email</li>}
+                            </ul>
+                        </div>
+                    )}
 
-                    {/* Payment Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    {/* Important Notes */}
+                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 className="font-semibold text-yellow-800 mb-2">
+                            Lưu ý quan trọng:
+                        </h4>
+                        <ul className="text-sm text-yellow-700 space-y-1">
+                            <li>• Mang theo CMND/CCCD khi đến tư vấn</li>
+                            <li>• Đến đúng giờ hẹn để đảm bảo chất lượng dịch vụ</li>
+                            <li>• Thông tin được bảo mật tuyệt đối</li>
+                            <li>• Có thể hủy lịch trước 24h</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+
+    const PaymentSection = (
+
+        <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center">
+                <QrCode className="w-6 h-6 mr-2" />
+                Thanh toán QR Code
+            </h2>
+
+            <div className="text-center">
+                <div className="bg-gray-100 p-8 rounded-lg mb-6 inline-block">
+                    <QrCode className="h-32 w-32 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">QR Code thanh toán</p>
+                </div>
+
+                <div className="mb-6">
+                    <p className="text-gray-700 mb-2">Mã thanh toán:</p>
+                    <div className="flex items-center justify-center space-x-2">
+                        <span className="text-pink-600 font-mono text-lg">{paymentCode}</span>
                         <button
-                            onClick={handlePaymentConfirmation}
-                            disabled={loading}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                            onClick={copyPaymentCode}
+                            className="p-2 text-gray-500 hover:text-gray-700"
                         >
-                            {loading ? "Đang xử lý..." : "Xác nhận đã thanh toán"}
-                        </button>
-
-                        <button
-                            onClick={handleCancelPayment}
-                            disabled={loading}
-                            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 px-6 rounded-lg font-semibold transition-colors disabled:opacity-50"
-                        >
-                            Hủy thanh toán
+                            {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </button>
                     </div>
+                </div>
 
-                    <p className="text-xs text-gray-500">
-                        * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
+                <div className="border-t pt-4 mb-6">
+                    <p className="text-lg">
+                        Số tiền: <span className="text-blue-600 font-bold">{formatPrice(selectedService?.price)}</span>
                     </p>
                 </div>
 
-                {/* Appointment Details Section */}
-                <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Lịch hẹn của bạn</h3>
+                <div className="bg-blue-50 p-4 rounded-lg mb-6 text-left">
+                    <h3 className="font-semibold text-gray-900 mb-3">Hướng dẫn thanh toán:</h3>
+                    <ol className="text-sm text-gray-700 space-y-1">
+                        <li>1. Mở ứng dụng ngân hàng hoặc ví điện tử</li>
+                        <li>2. Chọn chức năng quét QR Code</li>
+                        <li>3. Quét mã QR hoặc nhập mã thanh toán</li>
+                        <li>4. Xác nhận số tiền và thực hiện thanh toán</li>
+                        <li>5. Sau khi thanh toán, nhấn "Xác nhận đã thanh toán"</li>
+                    </ol>
+                </div>
 
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h4 className="text-lg font-semibold text-gray-900">{selectedService?.serviceName}</h4>
-                                <p className="text-sm text-gray-600">Mã thanh toán: {paymentCode}</p>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-lg font-bold text-blue-600">{formatPrice(selectedService?.price)}</span>
-                                <p className="text-sm text-gray-600">{formatDate(selectedDate)} | {selectedTime}</p>
-                            </div>
-                        </div>
+                {/* Payment Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <button
+                        onClick={handlePaymentConfirmation}
+                        disabled={loading}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                    >
+                        {loading ? "Đang xử lý..." : "Xác nhận đã thanh toán"}
+                    </button>
 
-                        <div className="border-t pt-4 space-y-2">
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Trạng thái:</span>
-                                <span className="text-orange-600 font-medium"> PENDING_PAYMENT</span>
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Họ tên:</span> {contactInfo.fullName}
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Tuổi:</span> {contactInfo.age}
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Giới tính:</span> {
-                                    contactInfo.gender === 'MALE' ? 'Nam' :
-                                        contactInfo.gender === 'FEMALE' ? 'Nữ' : 'Khác'
-                                }
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Số điện thoại:</span> {contactInfo.phone}
-                            </p>
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Email:</span> {contactInfo.email}
-                            </p>
-                            {contactInfo.notes && (
-                                <p className="text-sm">
-                                    <span className="font-medium text-gray-700">Ghi chú:</span> {contactInfo.notes}
-                                </p>
-                            )}
-                            <p className="text-sm">
-                                <span className="font-medium text-gray-700">Ngày tạo:</span> {new Date().toLocaleString('vi-VN')}
-                            </p>
+                    <button
+                        onClick={handleCancelPayment}
+                        disabled={loading}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 px-6 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                    >
+                        Hủy thanh toán
+                    </button>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                    * Vui lòng chỉ nhấn xác nhận sau khi đã hoàn tất thanh toán
+                </p>
+            </div>
+
+            {/* Appointment Details Section */}
+            <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Lịch hẹn của bạn</h3>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 className="text-lg font-semibold text-gray-900">{selectedService?.serviceName}</h4>
+                            <p className="text-sm text-gray-600">Mã thanh toán: {paymentCode}</p>
                         </div>
+                        <div className="text-right">
+                            <span className="text-lg font-bold text-blue-600">{formatPrice(selectedService?.price)}</span>
+                            <p className="text-sm text-gray-600">{formatDate(selectedDate)} | {selectedTime}</p>
+                        </div>
+                    </div>
+
+                    <div className="border-t pt-4 space-y-2">
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Trạng thái:</span>
+                            <span className="text-orange-600 font-medium"> PENDING_PAYMENT</span>
+                        </p>
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Họ tên:</span> {contactInfo.fullName}
+                        </p>
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Tuổi:</span> {contactInfo.age}
+                        </p>
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Giới tính:</span> {
+                                contactInfo.gender === 'MALE' ? 'Nam' :
+                                    contactInfo.gender === 'FEMALE' ? 'Nữ' : 'Khác'
+                            }
+                        </p>
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Số điện thoại:</span> {contactInfo.phone}
+                        </p>
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Email:</span> {contactInfo.email}
+                        </p>
+                        {contactInfo.notes && (
+                            <p className="text-sm">
+                                <span className="font-medium text-gray-700">Ghi chú:</span> {contactInfo.notes}
+                            </p>
+                        )}
+                        <p className="text-sm">
+                            <span className="font-medium text-gray-700">Ngày tạo:</span> {new Date().toLocaleString('vi-VN')}
+                        </p>
                     </div>
                 </div>
             </div>
-        );
-    }, [paymentCode, copiedCode, copyPaymentCode, formatPrice, selectedService, formatDate, selectedDate, selectedTime, contactInfo, loading, handlePaymentConfirmation, handleCancelPayment]);
+        </div>
+    );
 
     const SuccessSection = useMemo(() => {
         return (
@@ -931,19 +934,19 @@ const ConsultationBooking = () => {
         );
     }, [selectedService, formatDate, selectedDate, selectedTime, contactInfo, formatPrice]);
 
+    const handleBackToHome = useCallback(() => {
+        window.location.href = '/';
+    }, []);
+
     return (
         <div className="min-h-screen bg-gray-50 pt-16">
             {/* Home Button - fixed at top-left, blue, beautiful */}
             <button
-                className="fixed top-6 left-6 z-50 flex items-center bg-blue-600 hover:bg-blue-700 text-white px-16 py-3 rounded-full font-bold text-[24px] shadow-xl"
-                style={{
-                    minWidth: 0,
-                    boxShadow: "0 6px 32px 0 rgba(59, 130, 246, 0.18)",
-                }}
-                onClick={handleHomeExit}
+                onClick={handleBackToHome}
+                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
             >
-                <ChevronLeft className="w-8 h-8 mr-3 text-white" />
-                Trang chủ
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                <span className="text-base font-medium">Trang chủ</span>
             </button>
 
             {/* Header */}

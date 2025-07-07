@@ -28,9 +28,7 @@ import org.springframework.web.socket.config.annotation.*;
 @Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    @Autowired
     private final JwtService jwtService;
-    @Autowired
     private final UserService userService;
 
     @Bean
@@ -44,7 +42,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        log.info("👉 Registering /ws STOMP endpoint");
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("http://localhost:5173"); // Be specific about allowed origin
     }
@@ -73,7 +70,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                     String authHeader = accessor.getFirstNativeHeader("Authorization");
-                    log.info("🧾 CONNECT header Authorization: {}", authHeader); // 👈 THÊM DÒNG NÀY
 
                     if (authHeader != null && authHeader.startsWith("Bearer ")) {
                         String token = authHeader.substring(7); // bỏ "Bearer "
@@ -85,19 +81,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                     User user = userService.getUserById(userId);
                                     if (user != null) {
                                         accessor.setUser(new UserPrincipal(user)); // 👈 Gán Principal
-                                        log.info("✅ [STOMP] Authenticated user: {}", user.getEmail());
+                                        log.info(" [STOMP] Authenticated user: {}", user.getEmail());
                                     } else {
-                                        log.warn("❌ [STOMP] User not found: {}", userId);
+                                        log.warn("[STOMP] User not found: {}", userId);
                                     }
                                 }
                             } else {
-                                log.warn("❌ [STOMP] Invalid token in CONNECT");
+                                log.warn("[STOMP] Invalid token in CONNECT");
                             }
                         } catch (Exception e) {
-                            log.error("❌ [STOMP] Exception when validating token: {}", e.getMessage(), e);
+                            log.error(" [STOMP] Exception when validating token: {}", e.getMessage(), e);
                         }
                     } else {
-                        log.warn("⚠️ [STOMP] No Authorization header in CONNECT");
+                        log.warn("[STOMP] No Authorization header in CONNECT");
                     }
                 }
 

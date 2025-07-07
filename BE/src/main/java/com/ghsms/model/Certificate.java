@@ -1,5 +1,6 @@
 package com.ghsms.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ghsms.file_enum.CertificateStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -24,5 +25,9 @@ public class Certificate {
     private CertificateStatus status;
 
     @ManyToOne
+    @JoinColumn(name = "consultant_id")
+    @JsonBackReference
     private ConsultantDetails consultant;
+
+
 }

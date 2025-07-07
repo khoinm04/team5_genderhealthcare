@@ -78,6 +78,8 @@ public class SecurityConfig {
                         .requestMatchers("/manager/**").hasRole("MANAGER")
                         .requestMatchers("/consultant/**").hasRole("CONSULTANT")
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/uploads/images/**").permitAll()
+                        .requestMatchers("/api/blogposts/public").hasAnyRole("CUSTOMER", "CONSULTANT") // ✅ cả 2 vai trò
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
