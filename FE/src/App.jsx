@@ -17,6 +17,8 @@ import PaymentPage from "./components/PaymentPage";
 import StaffDashboard from "./components/StaffDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
 import ScheduleManagement from './components/ScheduleManagement';
+import ScheduleManagement1 from './components/ScheduleManagement1';
+
 import ReproductiveHealthApp from "./pages/ReproductiveHealthApp";
 import ConsultantDashboard from "./components/ConsultantDashboard";
 import UserProfile from "./components/UserProfile";
@@ -102,6 +104,7 @@ export default function App() {
           <Route path="/orders" element={<AppointmentHistory />} />
           <Route path="/booking-success" element={<BookingSuccessWrapper />} />
           <Route path="/vnpay-payment" element={<PaymentVnpayPage />} />
+          <Route path="/consultant/schedule" element={<ScheduleManagement1 />} />
 
         </Routes>
       </BrowserRouter>

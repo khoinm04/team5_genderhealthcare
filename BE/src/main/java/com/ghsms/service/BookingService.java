@@ -99,7 +99,7 @@ public class BookingService {
         booking.setCustomer(customerDetails);
         booking.setBookingDate(bookingDTO.getBookingDate());
         booking.setTimeSlot(bookingDTO.getTimeSlot());
-        booking.setStatus(BookingStatus.PENDING_PAYMENT);
+        booking.setStatus(BookingStatus.COMPLETED);
         booking.setPaymentCode(paymentCodeGenerator.generatePaymentCode());
 
         for (Long serviceId : bookingDTO.getServiceIds()) {
@@ -113,7 +113,7 @@ public class BookingService {
         // Lưu booking trước
         Booking savedBooking = bookingRepository.save(booking);
 
-        // 🔥 Sau khi tạo Booking xong → tạo Consultation
+        // Sau khi tạo Booking xong → tạo Consultation
         Consultation consultation = new Consultation();
         consultation.setCustomer(customerDetails); // dùng đúng kiểu CustomerDetails
         consultation.setBooking(savedBooking);
@@ -125,6 +125,33 @@ public class BookingService {
 
         // Không set consultant → sẽ null
         consultationRepository.save(consultation);
+
+        // Gửi email xác nhận đặt lịch tư vấn
+        //  Lấy tên các dịch vụ đã chọn
+        String serviceNames = savedBooking.getServices().stream()
+                .map(Services::getServiceName)
+                .collect(Collectors.joining(", "));
+
+// Gửi email xác nhận đặt lịch tư vấn
+        String subject = "Xác nhận đặt lịch tư vấn";
+        String body = String.format(
+                "Chào %s,\n\nBạn đã đặt lịch tư vấn thành công vào ngày %s, khung giờ %s.\n" +
+                        "Mã thanh toán: %s.\n" +
+                        "Dịch vụ đã chọn: %s.\n\n" +
+                        "Chúng tôi sẽ liên hệ với bạn trước khi đến lịch hẹn.\n\nTrân trọng,\nTrung tâm Y tế",
+                customerDetails.getFullName(),
+                booking.getBookingDate(),
+                booking.getTimeSlot(),
+                booking.getPaymentCode(),
+                serviceNames
+        );
+
+        mailService.sendEmail(customerDetails.getEmail(), subject, body);
+
+
+
+        mailService.sendEmail(customerDetails.getEmail(), subject, body);
+
 
         // Trả về booking đã lưu
         return savedBooking;

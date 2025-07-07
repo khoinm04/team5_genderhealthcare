@@ -10,6 +10,8 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "BlogComments")
@@ -33,11 +35,22 @@ public class BlogComment {
 
     @NotBlank(message = "Comment text cannot be blank")
     @Size(max = 1000, message = "Comment text must be less than 1000 characters")
-    @Column(name = "CommentText", length = 1000)
+    @Column(name = "CommentText", columnDefinition = "nvarchar(1000)" )
     private String commentText;
 
     @CreationTimestamp
     @Column(name = "CreatedAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ParentCommentID")
+    private BlogComment parentComment;
+
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogComment> replies = new ArrayList<>();
+
+    private int likes = 0;
+    private int dislikes = 0;
+
 }
 

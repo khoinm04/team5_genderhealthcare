@@ -28,7 +28,7 @@ public class ConsultationController {
      * 1. API lấy tất cả lịch hẹn của customer cụ thể
      */
     @GetMapping("/customer/{customerId}/all")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER') or hasRole('ROLE_STAFF') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getAllCustomerConsultations(
             @PathVariable @Positive(message = "Customer ID phải là số dương") Long customerId,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -56,7 +56,7 @@ public class ConsultationController {
      * 2. API lấy tất cả lịch hẹn của consultant cụ thể
      */
     @GetMapping("/consultant/{consultantId}/all")
-    @PreAuthorize("hasRole('ROLE_CONSULTANT') or hasRole('ROLE_STAFF') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('CONSULTANT') or hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getAllConsultantConsultations(
             @PathVariable @Positive(message = "Consultant ID phải là số dương") Long consultantId,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -84,7 +84,7 @@ public class ConsultationController {
      * 3. API chỉnh sửa note và status của Consultant (giữ nguyên signature cũ)
      */
     @PutMapping("/{consultationId}/consultant/update")
-    @PreAuthorize("hasRole('ROLE_CONSULTANT')")
+    @PreAuthorize("hasRole('CONSULTANT')")
     public ResponseEntity<?> updateConsultantNoteAndStatus(
             @PathVariable Long consultationId,
             @RequestBody @Valid ConsultationNoteStatusUpdateDTO dto,

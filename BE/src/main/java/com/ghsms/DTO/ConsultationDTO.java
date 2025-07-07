@@ -2,6 +2,7 @@ package com.ghsms.DTO;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ghsms.file_enum.ConsultationStatus;
+import com.ghsms.file_enum.ServiceCategoryType;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -74,6 +75,9 @@ public class ConsultationDTO {
     private String statusDescription;
 
     private List<String> serviceNames;
+
+    private List<ServiceCategoryType> categoryTypes;
+
 
 
     // ✅ THÊM MỚI: Validation tùy chỉnh cho time slot

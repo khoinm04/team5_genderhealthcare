@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Calendar, 
-  User, 
-  Tag, 
-  Clock, 
-  Eye, 
-  Star, 
-  Share2, 
-  MessageCircle, 
+import { FaStar, FaRegStar, FaStarHalfAlt } from 'react-icons/fa';
+
+import {
+  Search,
+  Calendar,
+  User,
+  Tag,
+  Clock,
+  Eye,
+  Star,
+  Share2,
+  MessageCircle,
   ChevronRight,
   Filter,
   TrendingUp,
@@ -21,9 +23,12 @@ import {
   ChevronLeft,
   Send,
   ThumbsUp,
-  Reply
+  Reply,
+  ThumbsDown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useBlogUpdatesSocket } from "../hooks/useBlogUpdatesSocket"; // hoặc đúng path bạn đặt
+import { toast } from "react-toastify";
 
 const BlogPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -35,6 +40,42 @@ const BlogPage = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [comments, setComments] = useState(new Map());
+  const [replyingTo, setReplyingTo] = useState(null); // commentId đang được trả lời
+  const [replyText, setReplyText] = useState("");
+  const [postComments, setPostComments] = useState([]);
+
+
+
+
+
+  //api lay danh gia nguoi dung
+  useEffect(() => {
+    if (!selectedPost) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch(`/api/blogposts/${selectedPost.id}/my-rating`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Lỗi lấy đánh giá");
+        return res.json();
+      })
+      .then((rating) => {
+        setUserRatings((prev) => {
+          const updated = new Map(prev);
+          updated.set(selectedPost.id, rating);
+          console.log("✅ Đánh giá đã lấy về:", rating);
+          return updated;
+        });
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi khi lấy đánh giá của bạn:", err);
+      });
+  }, [selectedPost]);
 
   // Handle scroll for header effects
   useEffect(() => {
@@ -49,553 +90,108 @@ const BlogPage = () => {
   // Handle home exit
   const handleHomeExit = () => {
     // if (window.confirm('Bạn có chắc chắn muốn quay về trang chủ?')) {
-      window.location.href = '/';
+    window.location.href = '/';
     // }
   };
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const groupComments = (data) => {
+    const map = new Map();
+    const roots = [];
 
-  // Mock blog data with ratings and comments
-  const blogPosts = [
-    {
-      id: 1,
-      title: "Hướng dẫn chăm sóc sức khỏe sinh sản cho phụ nữ",
-      excerpt: "Tìm hiểu những kiến thức cơ bản về chăm sóc sức khỏe sinh sản, từ vệ sinh cá nhân đến các dấu hiệu cần lưu ý...",
-      content: `
-        <h2>Tầm quan trọng của việc chăm sóc sức khỏe sinh sản</h2>
-        <p>Sức khỏe sinh sản là một phần quan trọng trong cuộc sống của mọi phụ nữ. Việc chăm sóc đúng cách không chỉ giúp phòng ngừa các bệnh lý mà còn nâng cao chất lượng cuộc sống.</p>
-        
-        <h3>1. Vệ sinh cá nhân hàng ngày</h3>
-        <p>Vệ sinh vùng kín đúng cách là bước đầu tiên và quan trọng nhất:</p>
-        <ul>
-          <li>Sử dụng nước sạch và xà phòng pH trung tính</li>
-          <li>Rửa từ trước ra sau để tránh nhiễm khuẩn</li>
-          <li>Thay đồ lót hàng ngày, chọn chất liệu cotton thoáng khí</li>
-          <li>Tránh sử dụng các sản phẩm có hương liệu mạnh</li>
-        </ul>
+    data.forEach((c) => {
+      c.replies = [];
+      map.set(c.commentId, c);
+    });
 
-        <h3>2. Theo dõi chu kỳ kinh nguyệt</h3>
-        <p>Việc theo dõi chu kỳ kinh nguyệt giúp phát hiện sớm các bất thường:</p>
-        <ul>
-          <li>Ghi chép ngày bắt đầu và kết thúc chu kỳ</li>
-          <li>Quan sát lượng kinh và màu sắc</li>
-          <li>Chú ý đến các triệu chứng đau bụng, đau đầu</li>
-          <li>Tham khảo ý kiến bác sĩ nếu có bất thường</li>
-        </ul>
+    data.forEach((c) => {
+      if (c.parentCommentId) {
+        const parent = map.get(c.parentCommentId);
+        if (parent) parent.replies.push(c);
+      } else {
+        roots.push(c);
+      }
+    });
 
-        <h3>3. Dinh dưỡng và lối sống lành mạnh</h3>
-        <p>Chế độ ăn uống và sinh hoạt ảnh hưởng trực tiếp đến sức khỏe sinh sản:</p>
-        <ul>
-          <li>Bổ sung đủ vitamin và khoáng chất</li>
-          <li>Tập thể dục đều đặn</li>
-          <li>Tránh stress và căng thẳng</li>
-          <li>Ngủ đủ giấc và đúng giờ</li>
-        </ul>
+    return roots;
+  };
 
-        <h3>4. Khám sức khỏe định kỳ</h3>
-        <p>Việc khám sức khỏe định kỳ giúp phát hiện và điều trị sớm các vấn đề:</p>
-        <ul>
-          <li>Khám phụ khoa 6 tháng/lần</li>
-          <li>Xét nghiệm tầm soát ung thư cổ tử cung</li>
-          <li>Siêu âm vùng chậu khi cần thiết</li>
-          <li>Tư vấn với chuyên gia khi có thắc mắc</li>
-        </ul>
 
-        <p><strong>Kết luận:</strong> Chăm sóc sức khỏe sinh sản là trách nhiệm của mỗi phụ nữ với chính mình. Hãy luôn chú ý đến cơ thể và không ngần ngại tìm kiếm sự hỗ trợ y tế khi cần thiết.</p>
-      `,
-      category: "women-health",
-      author: "BS. Nguyễn Thị Hương",
-      publishDate: "2024-01-15",
-      readTime: "8 phút đọc",
-      views: 1250,
-      averageRating: 4.5,
-      totalRatings: 89,
-      comments: 23,
-      image: "https://images.pexels.com/photos/4173251/pexels-photo-4173251.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["sức khỏe phụ nữ", "chăm sóc cá nhân", "vệ sinh", "chu kỳ kinh nguyệt"]
-    },
-    {
-      id: 2,
-      title: "Phòng ngừa các bệnh lây truyền qua đường tình dục",
-      excerpt: "Tìm hiểu về các biện pháp phòng ngừa hiệu quả để bảo vệ bản thân khỏi các bệnh lây truyền qua đường tình dục...",
-      content: `
-        <h2>Hiểu về các bệnh lây truyền qua đường tình dục (STDs)</h2>
-        <p>Các bệnh lây truyền qua đường tình dục là những nhiễm trùng có thể lây lan thông qua hoạt động tình dục. Việc hiểu rõ và phòng ngừa là vô cùng quan trọng.</p>
-        
-        <h3>1. Các loại STDs phổ biến</h3>
-        <ul>
-          <li><strong>HIV/AIDS:</strong> Virus gây suy giảm miễn dịch</li>
-          <li><strong>Giang mai:</strong> Nhiễm trùng do vi khuẩn Treponema pallidum</li>
-          <li><strong>Lậu:</strong> Nhiễm trùng do vi khuẩn Neisseria gonorrhoeae</li>
-          <li><strong>Chlamydia:</strong> Nhiễm trùng do vi khuẩn Chlamydia trachomatis</li>
-          <li><strong>Herpes:</strong> Virus herpes simplex (HSV-1, HSV-2)</li>
-        </ul>
+  useBlogUpdatesSocket((newBlogPost) => {
+    setBlogPosts((prev) => {
+      const exists = prev.some(post => post.id === newBlogPost.id);
+      if (exists) return prev;
+      return [newBlogPost, ...prev];
+    });
 
-        <h3>2. Biện pháp phòng ngừa hiệu quả</h3>
-        <p><strong>Sử dụng bao cao su:</strong></p>
-        <ul>
-          <li>Sử dụng bao cao su latex hoặc polyurethane</li>
-          <li>Kiểm tra hạn sử dụng trước khi dùng</li>
-          <li>Sử dụng đúng cách từ đầu đến cuối</li>
-          <li>Không tái sử dụng</li>
-        </ul>
+    toast.success("🎉 Bài viết mới vừa được xuất bản!");
+  });
 
-        <p><strong>Quan hệ tình dục an toàn:</strong></p>
-        <ul>
-          <li>Hạn chế số lượng bạn tình</li>
-          <li>Tìm hiểu tình trạng sức khỏe của bạn tình</li>
-          <li>Tránh quan hệ khi có vết thương hở</li>
-          <li>Không chia sẻ đồ dùng cá nhân</li>
-        </ul>
 
-        <h3>3. Xét nghiệm định kỳ</h3>
-        <p>Xét nghiệm định kỳ giúp phát hiện sớm và điều trị kịp thời:</p>
-        <ul>
-          <li>Xét nghiệm HIV 3-6 tháng/lần</li>
-          <li>Xét nghiệm giang mai, lậu hàng năm</li>
-          <li>Xét nghiệm Chlamydia cho phụ nữ dưới 25 tuổi</li>
-          <li>Tầm soát HPV cho phụ nữ từ 21 tuổi</li>
-        </ul>
+  //       <h3>4. Lịch tiêm chủng theo độ tuổi</h3>
+  //       <p><strong>Tuổi vị thành niên (11-18 tuổi):</strong></p>
+  //       <ul>
+  //         <li>HPV: 2-3 mũi</li>
+  //         <li>Tdap: 1 mũi</li>
+  //         <li>MMR: 2 mũi (nếu chưa tiêm đủ)</li>
+  //         <li>Hepatitis B: 3 mũi (nếu chưa tiêm)</li>
+  //       </ul>
 
-        <h3>4. Nhận biết các triệu chứng</h3>
-        <p>Cần đến gặp bác sĩ ngay khi có các triệu chứng:</p>
-        <ul>
-          <li>Đau rát khi tiểu tiện</li>
-          <li>Dịch tiết bất thường</li>
-          <li>Đau vùng chậu</li>
-          <li>Phát ban, loét vùng sinh dục</li>
-          <li>Sốt không rõ nguyên nhân</li>
-        </ul>
+  //       <p><strong>Tuổi trưởng thành (19-26 tuổi):</strong></p>
+  //       <ul>
+  //         <li>HPV: Bổ sung nếu chưa tiêm đủ</li>
+  //         <li>MMR: Kiểm tra miễn dịch</li>
+  //         <li>Hepatitis B: Cho nhóm nguy cơ cao</li>
+  //         <li>Cúm: Hàng năm</li>
+  //       </ul>
 
-        <p><strong>Lưu ý quan trọng:</strong> Nhiều STDs có thể không có triệu chứng rõ ràng, vì vậy xét nghiệm định kỳ là rất cần thiết.</p>
-      `,
-      category: "prevention",
-      author: "BS. Trần Văn Minh",
-      publishDate: "2024-01-12",
-      readTime: "10 phút đọc",
-      views: 2100,
-      averageRating: 4.8,
-      totalRatings: 156,
-      comments: 45,
-      image: "https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["phòng ngừa", "STDs", "an toàn", "xét nghiệm"]
-    },
-    {
-      id: 3,
-      title: "Tầm quan trọng của việc tư vấn sức khỏe tâm lý",
-      excerpt: "Sức khỏe tâm lý ảnh hưởng trực tiếp đến sức khỏe thể chất và chất lượng cuộc sống. Tìm hiểu về tầm quan trọng của việc chăm sóc sức khỏe tinh thần...",
-      content: `
-        <h2>Sức khỏe tâm lý và tác động đến cuộc sống</h2>
-        <p>Sức khỏe tâm lý không chỉ ảnh hưởng đến cảm xúc mà còn tác động trực tiếp đến sức khỏe thể chất, mối quan hệ xã hội và hiệu suất công việc.</p>
-        
-        <h3>1. Tại sao sức khỏe tâm lý quan trọng?</h3>
-        <ul>
-          <li><strong>Ảnh hưởng đến sức khỏe thể chất:</strong> Stress và lo âu có thể gây ra các vấn đề như đau đầu, mất ngủ, rối loạn tiêu hóa</li>
-          <li><strong>Tác động đến mối quan hệ:</strong> Tình trạng tâm lý không ổn định có thể làm xấu đi các mối quan hệ gia đình, bạn bè</li>
-          <li><strong>Hiệu suất công việc:</strong> Sức khỏe tâm lý tốt giúp tăng khả năng tập trung và sáng tạo</li>
-          <li><strong>Chất lượng cuộc sống:</strong> Cảm thấy hạnh phúc và hài lòng với cuộc sống</li>
-        </ul>
+  //       <p><strong>Phụ nữ mang thai:</strong></p>
+  //       <ul>
+  //         <li>Tdap: Mỗi lần mang thai</li>
+  //         <li>Cúm: Nếu trong mùa cúm</li>
+  //         <li>Tránh vaccine sống độc lực giảm</li>
+  //         <li>Tham khảo bác sĩ trước khi tiêm</li>
+  //       </ul>
 
-        <h3>2. Các dấu hiệu cần chú ý</h3>
-        <p>Cần tìm kiếm sự hỗ trợ chuyên nghiệp khi có các dấu hiệu:</p>
-        <ul>
-          <li>Cảm giác buồn bã, tuyệt vọng kéo dài</li>
-          <li>Lo âu quá mức, hoảng loạn</li>
-          <li>Thay đổi thói quen ăn uống, ngủ nghỉ</li>
-          <li>Khó tập trung, ra quyết định</li>
-          <li>Cô lập bản thân khỏi người khác</li>
-          <li>Sử dụng chất kích thích để đối phó</li>
-        </ul>
+  //       <h3>5. Lưu ý quan trọng</h3>
+  //       <p><strong>Trước khi tiêm:</strong></p>
+  //       <ul>
+  //         <li>Thông báo tình trạng sức khỏe hiện tại</li>
+  //         <li>Báo cáo dị ứng vaccine trước đó</li>
+  //         <li>Thông báo nếu đang mang thai hoặc cho con bú</li>
+  //         <li>Hỏi về tác dụng phụ có thể xảy ra</li>
+  //       </ul>
 
-        <h3>3. Lợi ích của việc tư vấn tâm lý</h3>
-        <p><strong>Không gian an toàn:</strong></p>
-        <ul>
-          <li>Chia sẻ mà không bị phán xét</li>
-          <li>Bảo mật thông tin tuyệt đối</li>
-          <li>Được lắng nghe và thấu hiểu</li>
-        </ul>
+  //       <p><strong>Sau khi tiêm:</strong></p>
+  //       <ul>
+  //         <li>Theo dõi tác dụng phụ trong 15-20 phút</li>
+  //         <li>Đau, sưng tại chỗ tiêm là bình thường</li>
+  //         <li>Sốt nhẹ có thể xảy ra</li>
+  //         <li>Liên hệ bác sĩ nếu có phản ứng nghiêm trọng</li>
+  //       </ul>
 
-        <p><strong>Kỹ năng đối phó:</strong></p>
-        <ul>
-          <li>Học cách quản lý stress</li>
-          <li>Phát triển kỹ năng giao tiếp</li>
-          <li>Xây dựng lòng tự tin</li>
-          <li>Giải quyết xung đột hiệu quả</li>
-        </ul>
+  //       <p><strong>Ghi nhớ:</strong></p>
+  //       <ul>
+  //         <li>Lưu giữ sổ tiêm chủng</li>
+  //         <li>Nhắc nhở tiêm nhắc lại đúng hạn</li>
+  //         <li>Tham khảo bác sĩ về lịch tiêm phù hợp</li>
+  //         <li>Cập nhật thông tin vaccine mới</li>
+  //       </ul>
 
-        <h3>4. Các phương pháp tư vấn phổ biến</h3>
-        <ul>
-          <li><strong>Liệu pháp nhận thức hành vi (CBT):</strong> Thay đổi suy nghĩ và hành vi tiêu cực</li>
-          <li><strong>Liệu pháp tâm lý động lực:</strong> Khám phá các xung đột tiềm thức</li>
-          <li><strong>Liệu pháp nhân văn:</strong> Tập trung vào tiềm năng và sự phát triển cá nhân</li>
-          <li><strong>Liệu pháp gia đình:</strong> Cải thiện mối quan hệ trong gia đình</li>
-        </ul>
-
-        <h3>5. Khi nào nên tìm kiếm sự hỗ trợ?</h3>
-        <p>Đừng chờ đến khi vấn đề trở nên nghiêm trọng. Hãy tìm kiếm sự hỗ trợ khi:</p>
-        <ul>
-          <li>Cảm thấy quá tải với cuộc sống</li>
-          <li>Gặp khó khăn trong mối quan hệ</li>
-          <li>Trải qua những thay đổi lớn trong cuộc sống</li>
-          <li>Muốn phát triển bản thân</li>
-          <li>Cần ai đó lắng nghe và hỗ trợ</li>
-        </ul>
-
-        <p><strong>Nhớ rằng:</strong> Tìm kiếm sự hỗ trợ tâm lý không phải là dấu hiệu của sự yếu đuối, mà là một hành động dũng cảm để chăm sóc bản thân.</p>
-      `,
-      category: "mental-health",
-      author: "ThS. Lê Thị Mai",
-      publishDate: "2024-01-10",
-      readTime: "7 phút đọc",
-      views: 890,
-      averageRating: 4.2,
-      totalRatings: 67,
-      comments: 18,
-      image: "https://images.pexels.com/photos/4101143/pexels-photo-4101143.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["sức khỏe tâm lý", "tư vấn", "stress", "lo âu"]
-    },
-    {
-      id: 4,
-      title: "Dinh dưỡng và sức khỏe sinh sản",
-      excerpt: "Chế độ ăn uống có ảnh hưởng lớn đến sức khỏe sinh sản. Tìm hiểu về những thực phẩm nên và không nên ăn để duy trì sức khỏe tối ưu...",
-      content: `
-        <h2>Mối liên hệ giữa dinh dưỡng và sức khỏe sinh sản</h2>
-        <p>Chế độ ăn uống cân bằng không chỉ giúp duy trì sức khỏe tổng thể mà còn đóng vai trò quan trọng trong việc duy trì chức năng sinh sản khỏe mạnh.</p>
-        
-        <h3>1. Các chất dinh dưỡng quan trọng</h3>
-        <p><strong>Axit folic:</strong></p>
-        <ul>
-          <li>Quan trọng cho phụ nữ chuẩn bị mang thai</li>
-          <li>Giúp phòng ngừa dị tật ống thần kinh</li>
-          <li>Nguồn: rau lá xanh, đậu, cam, ngũ cốc tăng cường</li>
-          <li>Liều khuyến nghị: 400-800 mcg/ngày</li>
-        </ul>
-
-        <p><strong>Sắt:</strong></p>
-        <ul>
-          <li>Phòng ngừa thiếu máu</li>
-          <li>Hỗ trợ chu kỳ kinh nguyệt đều đặn</li>
-          <li>Nguồn: thịt đỏ, gan, rau bina, đậu lăng</li>
-          <li>Kết hợp với vitamin C để tăng hấp thu</li>
-        </ul>
-
-        <p><strong>Omega-3:</strong></p>
-        <ul>
-          <li>Giảm viêm, cân bằng hormone</li>
-          <li>Hỗ trợ phát triển não bộ thai nhi</li>
-          <li>Nguồn: cá hồi, cá thu, hạt chia, quả óc chó</li>
-          <li>Liều khuyến nghị: 250-500mg EPA+DHA/ngày</li>
-        </ul>
-
-        <h3>2. Thực phẩm nên ăn</h3>
-        <p><strong>Rau củ quả:</strong></p>
-        <ul>
-          <li>Cung cấp vitamin, khoáng chất và chất chống oxi hóa</li>
-          <li>Ưu tiên rau lá xanh đậm màu</li>
-          <li>Trái cây giàu vitamin C</li>
-          <li>Mục tiêu: 5-7 khẩu phần/ngày</li>
-        </ul>
-
-        <p><strong>Protein chất lượng cao:</strong></p>
-        <ul>
-          <li>Cá, thịt nạc, trứng, đậu</li>
-          <li>Hỗ trợ sản xuất hormone</li>
-          <li>Duy trì khối lượng cơ</li>
-          <li>Khoảng 0.8-1g/kg thể trọng/ngày</li>
-        </ul>
-
-        <p><strong>Ngũ cốc nguyên hạt:</strong></p>
-        <ul>
-          <li>Cung cấp năng lượng ổn định</li>
-          <li>Giàu vitamin B và chất xơ</li>
-          <li>Giúp cân bằng đường huyết</li>
-          <li>Chọn gạo lứt, yến mạch, quinoa</li>
-        </ul>
-
-        <h3>3. Thực phẩm nên hạn chế</h3>
-        <p><strong>Đường và thực phẩm chế biến:</strong></p>
-        <ul>
-          <li>Gây tăng đường huyết đột ngột</li>
-          <li>Ảnh hưởng đến cân bằng hormone</li>
-          <li>Tăng nguy cơ viêm nhiễm</li>
-          <li>Hạn chế kẹo, bánh ngọt, nước ngọt</li>
-        </ul>
-
-        <p><strong>Chất béo trans:</strong></p>
-        <ul>
-          <li>Tăng nguy cơ vô sinh</li>
-          <li>Gây viêm và rối loạn hormone</li>
-          <li>Tránh thực phẩm chiên rán, bánh quy công nghiệp</li>
-          <li>Đọc nhãn thành phần cẩn thận</li>
-        </ul>
-
-        <p><strong>Caffeine và rượu:</strong></p>
-        <ul>
-          <li>Hạn chế caffeine dưới 200mg/ngày</li>
-          <li>Tránh hoàn toàn rượu khi mang thai</li>
-          <li>Có thể ảnh hưởng đến khả năng thụ thai</li>
-          <li>Thay thế bằng trà thảo mộc, nước lọc</li>
-        </ul>
-
-        <h3>4. Lời khuyên thực tế</h3>
-        <ul>
-          <li><strong>Ăn đa dạng:</strong> Kết hợp nhiều loại thực phẩm khác nhau</li>
-          <li><strong>Uống đủ nước:</strong> 8-10 ly nước/ngày</li>
-          <li><strong>Ăn đều đặn:</strong> 3 bữa chính + 2 bữa phụ</li>
-          <li><strong>Nấu ăn tại nhà:</strong> Kiểm soát được chất lượng và lượng gia vị</li>
-          <li><strong>Bổ sung vitamin:</strong> Tham khảo ý kiến bác sĩ về việc uống vitamin tổng hợp</li>
-        </ul>
-
-        <p><strong>Kết luận:</strong> Một chế độ ăn uống cân bằng và lành mạnh là nền tảng cho sức khỏe sinh sản tốt. Hãy bắt đầu từ những thay đổi nhỏ và duy trì lâu dài.</p>
-      `,
-      category: "nutrition",
-      author: "BS. Phạm Thị Lan",
-      publishDate: "2024-01-08",
-      readTime: "9 phút đọc",
-      views: 1560,
-      averageRating: 4.6,
-      totalRatings: 112,
-      comments: 31,
-      image: "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["dinh dưỡng", "sức khỏe sinh sản", "vitamin", "thực phẩm"]
-    },
-    {
-      id: 5,
-      title: "Cách nhận biết và xử lý các triệu chứng bất thường",
-      excerpt: "Học cách nhận biết các dấu hiệu cảnh báo về sức khỏe sinh sản và biết khi nào cần tìm kiếm sự hỗ trợ y tế...",
-      content: `
-        <h2>Nhận biết các triệu chứng bất thường</h2>
-        <p>Việc nhận biết sớm các triệu chứng bất thường giúp phát hiện và điều trị kịp thời các vấn đề sức khỏe sinh sản.</p>
-        
-        <h3>1. Triệu chứng cần chú ý ở phụ nữ</h3>
-        <p><strong>Rối loạn kinh nguyệt:</strong></p>
-        <ul>
-          <li>Kinh nguyệt không đều, quá nhiều hoặc quá ít</li>
-          <li>Đau bụng dưới nghiêm trọng trong kỳ kinh</li>
-          <li>Chảy máu bất thường giữa các chu kỳ</li>
-          <li>Ngừng kinh đột ngột ở tuổi sinh sản</li>
-        </ul>
-
-        <p><strong>Dịch tiết âm đạo bất thường:</strong></p>
-        <ul>
-          <li>Thay đổi màu sắc: vàng, xanh, xám</li>
-          <li>Mùi hôi khó chịu</li>
-          <li>Ngứa, rát, đau khi tiểu tiện</li>
-          <li>Lượng dịch tiết tăng đột ngột</li>
-        </ul>
-
-        <p><strong>Đau vùng chậu:</strong></p>
-        <ul>
-          <li>Đau liên tục hoặc tái phát</li>
-          <li>Đau khi quan hệ tình dục</li>
-          <li>Đau lan xuống chân</li>
-          <li>Kèm theo sốt, buồn nôn</li>
-        </ul>
-
-        <h3>2. Triệu chứng cần chú ý ở nam giới</h3>
-        <p><strong>Vấn đề tiết niệu:</strong></p>
-        <ul>
-          <li>Đau, rát khi tiểu tiện</li>
-          <li>Tiểu buốt, tiểu gấp</li>
-          <li>Nước tiểu có máu hoặc mủ</li>
-          <li>Khó tiểu hoặc tiểu không hết</li>
-        </ul>
-
-        <p><strong>Dịch tiết bất thường:</strong></p>
-        <ul>
-          <li>Dịch tiết từ dương vật</li>
-          <li>Màu sắc bất thường: vàng, xanh</li>
-          <li>Mùi hôi</li>
-          <li>Kèm theo đau rát</li>
-        </ul>
-
-        <p><strong>Vấn đề vùng sinh dục:</strong></p>
-        <ul>
-          <li>Sưng, đau tinh hoàn</li>
-          <li>Khối u bất thường</li>
-          <li>Phát ban, loét</li>
-          <li>Ngứa, rát vùng bìu</li>
-        </ul>
-
-        <h3>3. Khi nào cần gặp bác sĩ ngay lập tức?</h3>
-        <p><strong>Tình huống khẩn cấp:</strong></p>
-        <ul>
-          <li>Đau bụng dưới dữ dội đột ngột</li>
-          <li>Chảy máu âm đạo nhiều bất thường</li>
-          <li>Sốt cao kèm đau vùng chậu</li>
-          <li>Đau tinh hoàn dữ dội đột ngột</li>
-          <li>Không thể tiểu tiện</li>
-        </ul>
-
-        <p><strong>Cần khám trong vòng 24-48 giờ:</strong></p>
-        <ul>
-          <li>Triệu chứng nhiễm trùng đường tiết niệu</li>
-          <li>Dịch tiết bất thường kèm mùi hôi</li>
-          <li>Đau khi quan hệ tình dục</li>
-          <li>Phát ban, loét vùng sinh dục</li>
-        </ul>
-
-        <h3>4. Cách xử lý ban đầu tại nhà</h3>
-        <p><strong>Biện pháp chăm sóc chung:</strong></p>
-        <ul>
-          <li>Giữ vệ sinh vùng sinh dục sạch sẽ</li>
-          <li>Mặc đồ lót cotton thoáng khí</li>
-          <li>Tránh sử dụng xà phòng có hương liệu</li>
-          <li>Uống nhiều nước</li>
-          <li>Nghỉ ngơi đầy đủ</li>
-        </ul>
-
-        <p><strong>Khi có triệu chứng nhẹ:</strong></p>
-        <ul>
-          <li>Theo dõi triệu chứng trong 1-2 ngày</li>
-          <li>Ghi chép các thay đổi</li>
-          <li>Tránh tự ý dùng thuốc</li>
-          <li>Không quan hệ tình dục cho đến khi khỏi</li>
-        </ul>
-
-        <h3>5. Phòng ngừa các vấn đề sức khỏe</h3>
-        <ul>
-          <li><strong>Khám sức khỏe định kỳ:</strong> 6-12 tháng/lần</li>
-          <li><strong>Vệ sinh cá nhân:</strong> Đúng cách và đều đặn</li>
-          <li><strong>Quan hệ tình dục an toàn:</strong> Sử dụng biện pháp bảo vệ</li>
-          <li><strong>Lối sống lành mạnh:</strong> Ăn uống cân bằng, tập thể dục</li>
-          <li><strong>Quản lý stress:</strong> Thư giãn, nghỉ ngơi đầy đủ</li>
-        </ul>
-
-        <p><strong>Nhớ rằng:</strong> Đừng ngại ngùng khi có triệu chứng bất thường. Việc tìm kiếm sự hỗ trợ y tế sớm sẽ giúp điều trị hiệu quả và tránh biến chứng.</p>
-      `,
-      category: "symptoms",
-      author: "BS. Hoàng Văn Đức",
-      publishDate: "2024-01-05",
-      readTime: "11 phút đọc",
-      views: 1890,
-      averageRating: 4.3,
-      totalRatings: 134,
-      comments: 52,
-      image: "https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["triệu chứng", "chẩn đoán", "khám bệnh", "sức khỏe"]
-    },
-    {
-      id: 6,
-      title: "Tầm quan trọng của việc tiêm chủng phòng bệnh",
-      excerpt: "Tìm hiểu về các loại vaccine quan trọng cho sức khỏe sinh sản và lịch tiêm chủng khuyến nghị cho từng độ tuổi...",
-      content: `
-        <h2>Vaccine và sức khỏe sinh sản</h2>
-        <p>Tiêm chủng là một trong những biện pháp phòng ngừa hiệu quả nhất để bảo vệ sức khỏe sinh sản và phòng ngừa các bệnh lây truyền qua đường tình dục.</p>
-        
-        <h3>1. Vaccine HPV (Human Papillomavirus)</h3>
-        <p><strong>Tầm quan trọng:</strong></p>
-        <ul>
-          <li>Phòng ngừa ung thư cổ tử cung, âm hộ, âm đạo</li>
-          <li>Phòng ngừa ung thư hậu môn, họng</li>
-          <li>Phòng ngừa mụn cóc sinh dục</li>
-          <li>Hiệu quả cao khi tiêm trước khi có quan hệ tình dục</li>
-        </ul>
-
-        <p><strong>Lịch tiêm khuyến nghị:</strong></p>
-        <ul>
-          <li>Tuổi lý tưởng: 11-12 tuổi (có thể từ 9 tuổi)</li>
-          <li>Bổ sung cho người 13-26 tuổi chưa tiêm</li>
-          <li>Cân nhắc cho người 27-45 tuổi</li>
-          <li>Tiêm 2-3 mũi tùy theo tuổi bắt đầu</li>
-        </ul>
-
-        <h3>2. Vaccine Hepatitis B</h3>
-        <p><strong>Tầm quan trọng:</strong></p>
-        <ul>
-          <li>Phòng ngừa viêm gan B</li>
-          <li>Giảm nguy cơ xơ gan, ung thư gan</li>
-          <li>Bảo vệ thai nhi khỏi lây nhiễm từ mẹ</li>
-          <li>Quan trọng cho người có nhiều bạn tình</li>
-        </ul>
-
-        <p><strong>Lịch tiêm:</strong></p>
-        <ul>
-          <li>3 mũi: tháng 0, 1, 6</li>
-          <li>Kiểm tra kháng thể sau tiêm</li>
-          <li>Tiêm bổ sung nếu cần thiết</li>
-          <li>Ưu tiên cho nhóm nguy cơ cao</li>
-        </ul>
-
-        <h3>3. Vaccine phòng ngừa khác</h3>
-        <p><strong>Vaccine MMR (Sởi-Quai bị-Rubella):</strong></p>
-        <ul>
-          <li>Quan trọng cho phụ nữ chuẩn bị mang thai</li>
-          <li>Rubella có thể gây dị tật thai nhi</li>
-          <li>Kiểm tra miễn dịch trước khi mang thai</li>
-          <li>Không tiêm khi đang mang thai</li>
-        </ul>
-
-        <p><strong>Vaccine Tdap (Bạch hầu-Ho gà-Uốn ván):</strong></p>
-        <ul>
-          <li>Tiêm trong thai kỳ (27-36 tuần)</li>
-          <li>Bảo vệ trẻ sơ sinh khỏi ho gà</li>
-          <li>Tiêm nhắc lại mỗi 10 năm</li>
-          <li>Quan trọng cho người chăm sóc trẻ em</li>
-        </ul>
-
-        <h3>4. Lịch tiêm chủng theo độ tuổi</h3>
-        <p><strong>Tuổi vị thành niên (11-18 tuổi):</strong></p>
-        <ul>
-          <li>HPV: 2-3 mũi</li>
-          <li>Tdap: 1 mũi</li>
-          <li>MMR: 2 mũi (nếu chưa tiêm đủ)</li>
-          <li>Hepatitis B: 3 mũi (nếu chưa tiêm)</li>
-        </ul>
-
-        <p><strong>Tuổi trưởng thành (19-26 tuổi):</strong></p>
-        <ul>
-          <li>HPV: Bổ sung nếu chưa tiêm đủ</li>
-          <li>MMR: Kiểm tra miễn dịch</li>
-          <li>Hepatitis B: Cho nhóm nguy cơ cao</li>
-          <li>Cúm: Hàng năm</li>
-        </ul>
-
-        <p><strong>Phụ nữ mang thai:</strong></p>
-        <ul>
-          <li>Tdap: Mỗi lần mang thai</li>
-          <li>Cúm: Nếu trong mùa cúm</li>
-          <li>Tránh vaccine sống độc lực giảm</li>
-          <li>Tham khảo bác sĩ trước khi tiêm</li>
-        </ul>
-
-        <h3>5. Lưu ý quan trọng</h3>
-        <p><strong>Trước khi tiêm:</strong></p>
-        <ul>
-          <li>Thông báo tình trạng sức khỏe hiện tại</li>
-          <li>Báo cáo dị ứng vaccine trước đó</li>
-          <li>Thông báo nếu đang mang thai hoặc cho con bú</li>
-          <li>Hỏi về tác dụng phụ có thể xảy ra</li>
-        </ul>
-
-        <p><strong>Sau khi tiêm:</strong></p>
-        <ul>
-          <li>Theo dõi tác dụng phụ trong 15-20 phút</li>
-          <li>Đau, sưng tại chỗ tiêm là bình thường</li>
-          <li>Sốt nhẹ có thể xảy ra</li>
-          <li>Liên hệ bác sĩ nếu có phản ứng nghiêm trọng</li>
-        </ul>
-
-        <p><strong>Ghi nhớ:</strong></p>
-        <ul>
-          <li>Lưu giữ sổ tiêm chủng</li>
-          <li>Nhắc nhở tiêm nhắc lại đúng hạn</li>
-          <li>Tham khảo bác sĩ về lịch tiêm phù hợp</li>
-          <li>Cập nhật thông tin vaccine mới</li>
-        </ul>
-
-        <p><strong>Kết luận:</strong> Tiêm chủng là khoản đầu tư quan trọng cho sức khỏe dài hạn. Hãy tham khảo ý kiến bác sĩ để có lịch tiêm phù hợp với tình trạng sức khỏe cá nhân.</p>
-      `,
-      category: "prevention",
-      author: "BS. Nguyễn Thị Hoa",
-      publishDate: "2024-01-03",
-      readTime: "8 phút đọc",
-      views: 1120,
-      averageRating: 4.7,
-      totalRatings: 78,
-      comments: 25,
-      image: "https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
-      tags: ["vaccine", "tiêm chủng", "phòng ngừa", "HPV"]
-    }
-  ];
+  //       <p><strong>Kết luận:</strong> Tiêm chủng là khoản đầu tư quan trọng cho sức khỏe dài hạn. Hãy tham khảo ý kiến bác sĩ để có lịch tiêm phù hợp với tình trạng sức khỏe cá nhân.</p>
+  //     `,
+  //     category: "prevention",
+  //     author: "BS. Nguyễn Thị Hoa",
+  //     publishDate: "2024-01-03",
+  //     readTime: "8 phút đọc",
+  //     views: 1120,
+  //     averageRating: 4.7,
+  //     totalRatings: 78,
+  //     comments: 25,
+  //     image: "https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&dpr=1",
+  //     tags: ["vaccine", "tiêm chủng", "phòng ngừa", "HPV"]
+  //   }
+  // ];
 
   // Mock comments data
   const mockComments = new Map([
@@ -677,29 +273,192 @@ const BlogPage = () => {
   useEffect(() => {
     setComments(mockComments);
   }, []);
+  // api lay blog 
+  const fetchPublishedBlogs = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-  const categories = [
-    { id: 'all', name: 'Tất cả', count: blogPosts.length },
-    { id: 'women-health', name: 'Sức khỏe phụ nữ', count: blogPosts.filter(post => post.category === 'women-health').length },
-    { id: 'prevention', name: 'Phòng ngừa', count: blogPosts.filter(post => post.category === 'prevention').length },
-    { id: 'mental-health', name: 'Sức khỏe tâm lý', count: blogPosts.filter(post => post.category === 'mental-health').length },
-    { id: 'nutrition', name: 'Dinh dưỡng', count: blogPosts.filter(post => post.category === 'nutrition').length },
-    { id: 'symptoms', name: 'Triệu chứng', count: blogPosts.filter(post => post.category === 'symptoms').length }
-  ];
+      const res = await fetch('http://localhost:8080/api/blogposts/public', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setBlogPosts(data.content); // ✅ LẤY MẢNG content thôi
+      } else {
+        console.error("Lỗi khi lấy bài viết:", data.message);
+      }
+    } catch (err) {
+      console.error("Lỗi kết nối:", err);
+    }
+  };
+
+  // api lay cate
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem("token"); // hoặc từ sessionStorage
+        const res = await fetch("http://localhost:8080/api/blogposts/category", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          const allCategory = {
+            id: 'all',
+            name: 'Tất cả',
+            count: blogPosts.length
+          };
+
+          const categoriesWithCount = data.map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            count: blogPosts.filter(post => post.categoryId === cat.id).length
+          }));
+
+          setCategories([allCategory, ...categoriesWithCount]);
+        } else {
+          console.error("Lỗi khi lấy danh mục:", data.message);
+        }
+      } catch (err) {
+        console.error("Lỗi kết nối tới API danh mục:", err);
+      }
+    };
+
+    fetchCategories();
+  }, [blogPosts]);
+
+  useEffect(() => {
+    fetchPublishedBlogs(); // ✅ Gọi ngay khi component mount
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPublishedBlogs(); // ✅ Gọi lại mỗi 10s
+    }, 60000); // 60000 ms =60 giây
+
+    return () => clearInterval(interval); // ✅ cleanup khi unmount
+  }, []);
+
+  //api rep comment
+  const handleSendReply = async (parentCommentId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Bạn cần đăng nhập để trả lời.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/blogposts/${selectedPost.id}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          commentText: replyText,
+          parentCommentId: parentCommentId, // 👈 truyền ID bình luận cha
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể gửi phản hồi.");
+      }
+
+      // Reset UI sau khi gửi
+      setReplyText("");
+      setReplyingTo(null);
+
+      // Gọi lại API để cập nhật danh sách bình luận
+      const res = await fetch(`/api/blogposts/${selectedPost.id}/comments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      const grouped = groupComments(data); // ✅ nhóm comment thành dạng cây
+
+      setComments((prev) => new Map(prev.set(selectedPost.id, grouped)));
+    } catch (err) {
+      alert("Lỗi khi gửi phản hồi: " + err.message);
+    }
+  };
+
+
+  //---dislike like
+  const reloadComments = async () => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`/api/blogposts/${selectedPost.id}/comments`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const data = await res.json();
+    const grouped = groupComments(data);
+    setPostComments(grouped);
+  };
+
+  const handleLike = async (commentId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Nội dung thông báo");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/blogposts/${commentId}/like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Không thể like");
+
+      await reloadComments(); // gọi lại danh sách bình luận
+    } catch (err) {
+      alert("Vui lòng đăng nhập để like bình luận");
+    }
+  };
+
+  const handleDislike = async (commentId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Nội dung thông báo");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/blogposts/${commentId}/dislike`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Không thể dislike");
+
+      await reloadComments();
+    } catch (err) {
+      alert("Vui lòng đăng nhập để like bình luận");
+    }
+  };
+
 
   // Filter and sort posts
   const filteredPosts = blogPosts
     .filter(post => {
-      const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === 'all' || post.categoryId === selectedCategory;
       const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        post.excerpt.toLowerCase().includes(searchTerm.toLowerCase())
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case 'latest':
-          return new Date(b.publishDate) - new Date(a.publishDate);
+          return new Date(b.createdAt) - new Date(a.createdAt);
         case 'popular':
           return b.views - a.views;
         case 'highest-rated':
@@ -708,10 +467,63 @@ const BlogPage = () => {
           return 0;
       }
     });
+  //XU LY DANH GIA
+  const handleRating = async (postId, rating) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Bạn cần đăng nhập để đánh giá.");
+      return;
+    }
 
-  const handleRating = (postId, rating) => {
-    setUserRatings(prev => new Map(prev.set(postId, rating)));
+    try {
+      const response = await fetch("/api/blogposts/rate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          blogPostId: postId,
+          rating: rating,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Đánh giá thất bại.");
+      }
+
+      // ✅ Cập nhật rating của người dùng
+      setUserRatings((prev) => {
+        const updated = new Map(prev);
+        updated.set(postId, rating);
+        return updated;
+      });
+
+      // ✅ GỌI LẠI API lấy thông tin bài viết mới nhất (để cập nhật rating trung bình và lượt đánh giá)
+
+      const postRes = await fetch(`/api/blogposts/public/${postId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!postRes.ok) throw new Error("Không thể lấy lại thông tin bài viết.");
+
+      const updatedPost = await postRes.json();
+      setSelectedPost(updatedPost); // ⬅️ cập nhật UI
+
+      alert("🎉 Đánh giá thành công!");
+    } catch (error) {
+      alert("❌ Lỗi: " + error.message);
+    }
   };
+
+
+  useEffect(() => {
+    console.log("📌 userRatings thay đổi:", userRatings);
+  }, [userRatings]);
+
 
   const handleShare = (post) => {
     if (navigator.share) {
@@ -726,28 +538,89 @@ const BlogPage = () => {
     }
   };
 
-  const handleAddComment = (postId) => {
-    if (!newComment.trim()) return;
 
-    const comment = {
-      id: Date.now(),
-      author: "Người dùng",
-      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1",
-      content: newComment,
-      rating: userRatings.get(postId) || 5,
-      date: new Date().toISOString().split('T')[0],
-      likes: 0,
-      replies: []
-    };
+  //api lay binh luan
+  useEffect(() => {
+    if (!selectedPost) return;
 
-    setComments(prev => {
-      const newComments = new Map(prev);
-      const postComments = newComments.get(postId) || [];
-      newComments.set(postId, [comment, ...postComments]);
-      return newComments;
-    });
+    const token = localStorage.getItem("token");
 
-    setNewComment('');
+    fetch(`/api/blogposts/${selectedPost.id}/comments`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const grouped = groupComments(data); // 👈 phân nhóm cha – con
+        setComments((prev) => new Map(prev.set(selectedPost.id, grouped)));
+      });
+  }, [selectedPost]);
+
+  //api them binh luan
+  const handleAddComment = async (postId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Bạn cần đăng nhập để bình luận.");
+      return;
+    }
+
+    try {
+      // 🟢 Gửi bình luận
+      const response = await fetch(`/api/blogposts/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ commentText: newComment }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể thêm bình luận.");
+      }
+
+      setNewComment(""); // ✅ Xoá nội dung sau khi gửi
+
+      // 🟢 Lấy lại bình luận mới nhất
+      const updated = await fetch(`/api/blogposts/${postId}/comments`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const comments = await updated.json();
+      const grouped = groupComments(comments); // 👈 thêm bước nhóm replies
+
+      // 🟢 Cập nhật lại Map
+      setComments((prev) => new Map(prev.set(postId, grouped)));
+    } catch (err) {
+      alert("Lỗi khi gửi bình luận: " + err.message);
+    }
+  };
+
+  const formatCommentDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+    if (diffInMinutes < 1) return 'Vừa xong';
+    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
+
+    // Kiểm tra nếu là hôm qua
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) return 'Hôm qua';
+
+    return date.toLocaleDateString('vi-VN');
   };
 
   const formatDate = (dateString) => {
@@ -759,31 +632,46 @@ const BlogPage = () => {
     });
   };
 
-  const renderStars = (rating, interactive = false, onRate = null) => {
+  const renderStars = (rating, count = 0, interactive = false, onRate = null) => {
+    const safeRating = typeof rating === 'number' ? rating : 0;
+    const safeCount = typeof count === 'number' ? count : 0;
+
     return (
       <div className="flex items-center space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onClick={() => interactive && onRate && onRate(star)}
-            className={`${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform`}
-            disabled={!interactive}
-          >
-            <Star
-              className={`h-4 w-4 ${
-                star <= rating
-                  ? 'text-yellow-400 fill-current'
-                  : 'text-gray-300'
-              }`}
-            />
-          </button>
-        ))}
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isFull = safeRating >= star;
+          const isHalf = safeRating >= star - 0.5 && safeRating < star;
+
+          return (
+            <button
+              key={star}
+              onClick={() => interactive && onRate && onRate(star)}
+              className={`${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform`}
+              disabled={!interactive}
+              style={{ position: 'relative', width: 20, height: 20 }}
+            >
+              {isFull ? (
+                <FaStar className="text-yellow-400 w-full h-full" />
+              ) : isHalf ? (
+                <>
+                  <FaRegStar className="text-gray-300 absolute inset-0 w-full h-full" />
+                  <FaStarHalfAlt className="text-yellow-400 absolute inset-0 w-full h-full" />
+                </>
+              ) : (
+                <FaRegStar className="text-gray-300 w-full h-full" />
+              )}
+            </button>
+          );
+        })}
         <span className="text-sm text-gray-600 ml-2">
-          {rating.toFixed(1)}
+          {safeRating.toFixed(1)} ({safeCount} lượt đánh giá)
         </span>
       </div>
     );
   };
+  //lấy đánh giá người dùng hiện tại
+  const currentUserRating = userRatings.get(selectedPost?.id) || 0;
+
 
   if (showFullPost && selectedPost) {
     const postComments = comments.get(selectedPost.id) || [];
@@ -824,13 +712,16 @@ const BlogPage = () => {
         <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {/* Article Header */}
-            <div className="relative h-64 md:h-80">
+            <div className="relative h-[400px] md:h-[500px] bg-black rounded-t-lg overflow-hidden">
               <img
-                src={selectedPost.image}
+                src={`http://localhost:8080${selectedPost.imageUrl}`}
                 alt={selectedPost.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
+
+
+              {/* Gradient overlay chỉ nằm dưới */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
                 <div className="p-6 text-white">
                   <div className="flex items-center space-x-4 mb-4">
                     <span className="bg-blue-600 px-3 py-1 rounded-full text-sm font-medium">
@@ -838,7 +729,7 @@ const BlogPage = () => {
                     </span>
                     <span className="flex items-center text-sm">
                       <Calendar className="h-4 w-4 mr-1" />
-                      {formatDate(selectedPost.publishDate)}
+                      {formatDate(selectedPost.createdAt)}
                     </span>
                   </div>
                   <h1 className="text-2xl md:text-3xl font-bold mb-2">
@@ -848,13 +739,14 @@ const BlogPage = () => {
               </div>
             </div>
 
+
             {/* Article Meta */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center">
                     <User className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700 font-medium">{selectedPost.author}</span>
+                    <span className="text-gray-700 font-medium">Tác giả: {selectedPost.consultantName}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="h-5 w-5 text-gray-400 mr-2" />
@@ -862,17 +754,24 @@ const BlogPage = () => {
                   </div>
                   <div className="flex items-center">
                     <Eye className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-600">{selectedPost.views.toLocaleString()} lượt xem</span>
+                    <span className="text-gray-600">
+                      {(selectedPost.views || 0).toLocaleString()} lượt xem
+                    </span>
                   </div>
                 </div>
 
                 {/* Social Actions */}
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    {renderStars(selectedPost.averageRating)}
-                    <span className="text-sm text-gray-600">({selectedPost.totalRatings} đánh giá)</span>
+                    {renderStars(
+                      selectedPost.rating,
+                      selectedPost.ratingCount // 👈 thêm lượt đánh giá ở đây
+                    )}
+                    <span className="text-gray-600">
+                      {(selectedPost.views || 0).toLocaleString()} lượt xem
+                    </span>
                   </div>
-                  
+
                   <button
                     onClick={() => handleShare(selectedPost)}
                     className="flex items-center space-x-2 px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -882,41 +781,42 @@ const BlogPage = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                {selectedPost.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700"
-                  >
-                    <Tag className="h-3 w-3 mr-1" />
-                    {tag}
-                  </span>
-                ))}
-              </div>
             </div>
 
             {/* Article Body */}
-            <div className="p-6">
-              <div 
-                className="prose prose-lg max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+            {selectedPost.content && (
+              <div
+                className="prose prose-lg max-w-none px-4
+                  [&_img]:max-w-full
+                  [&_img]:h-auto
+                  [&_img]:opacity-100
+                  [&_img]:filter-none
+                  [&_img]:bg-transparent"
+                dangerouslySetInnerHTML={{
+                  __html: selectedPost.content
+                    .replace(/\n/g, '<br />')
+                    .replace(/src=["'](?:\/)?uploads/g, 'src="http://localhost:8080/uploads')
+
+                }}
                 style={{
                   lineHeight: '1.8',
                   fontSize: '16px'
                 }}
               />
-            </div>
+            )}
 
             {/* Rating Section */}
             <div className="p-6 bg-gray-50 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Đánh giá bài viết</h3>
               <div className="flex items-center space-x-4 mb-4">
                 <span className="text-gray-700">Đánh giá của bạn:</span>
-                {renderStars(userRating, true, (rating) => handleRating(selectedPost.id, rating))}
+                {renderStars(
+                  currentUserRating,                      // ✅ lấy từ Map
+                  selectedPost.ratingCount || 0,          // 👥 số lượt đánh giá
+                  true,                                   // ✅ có thể click
+                  (rating) => handleRating(selectedPost.id, rating) // ⭐ callback khi click
+                )}
               </div>
-              
               {/* Add Comment */}
               <div className="mt-6">
                 <h4 className="text-md font-semibold text-gray-900 mb-3">Viết bình luận</h4>
@@ -951,60 +851,108 @@ const BlogPage = () => {
                 Bình luận ({postComments.length})
               </h3>
             </div>
-
             <div className="divide-y divide-gray-200">
               {postComments.map((comment) => (
-                <div key={comment.id} className="p-6">
+                <div key={comment.commentId} className="p-6">
+                  {/* Hiển thị comment cha */}
                   <div className="flex space-x-4">
                     <img
-                      src={comment.avatar}
-                      alt={comment.author}
+                      src={comment.imageUrl}
+                      alt={comment.commenterName}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
-                          <h4 className="font-semibold text-gray-900">{comment.author}</h4>
-                          {renderStars(comment.rating)}
+                          <h4 className="font-semibold text-gray-900">{comment.commenterName}</h4>
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <span>{formatDate(comment.date)}</span>
+                          <span>{formatCommentDate(comment.createdAt)}</span>
                         </div>
                       </div>
-                      
-                      <p className="text-gray-700 mb-3">{comment.content}</p>
-                      
-                      <div className="flex items-center space-x-4">
-                        <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors">
-                          <ThumbsUp className="h-4 w-4" />
-                          <span>{comment.likes}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors">
-                          <Reply className="h-4 w-4" />
-                          <span>Trả lời</span>
-                        </button>
-                      </div>
+                      <p className="text-gray-700 mb-3">{comment.commentText}</p>
 
-                      {/* Replies */}
+                      {/* Nút Trả lời */}
+                      <button
+                        className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors"
+                        onClick={() => setReplyingTo(comment.commentId)}
+                      >
+                        <Reply className="h-4 w-4" />
+                        <span>Trả lời</span>
+                      </button>
+
+                      {/* Form trả lời nếu đang reply */}
+                      {replyingTo === comment.commentId && (
+                        <div className="mt-4 ml-12">
+                          <textarea
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Nhập phản hồi..."
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
+                          />
+                          <div className="flex justify-end space-x-2 mt-2">
+                            <button
+                              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                              onClick={() => {
+                                setReplyingTo(null);
+                                setReplyText("");
+                              }}
+                            >
+                              Huỷ
+                            </button>
+                            <button
+                              className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                              onClick={() => handleSendReply(comment.commentId)}
+                              disabled={!replyText.trim()}
+                            >
+                              Gửi
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hiển thị các reply con */}
                       {comment.replies && comment.replies.length > 0 && (
                         <div className="mt-4 pl-4 border-l-2 border-gray-200 space-y-4">
                           {comment.replies.map((reply) => (
-                            <div key={reply.id} className="flex space-x-3">
+                            <div key={reply.commentId} className="flex space-x-3">
                               <img
-                                src={reply.avatar}
-                                alt={reply.author}
+                                src={reply.imageUrl}
+                                alt={reply.commenterName}
                                 className="w-8 h-8 rounded-full object-cover"
                               />
                               <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-1">
-                                  <h5 className="font-medium text-gray-900 text-sm">{reply.author}</h5>
-                                  <span className="text-xs text-gray-500">{formatDate(reply.date)}</span>
+                                  <h5 className="font-medium text-gray-900 text-sm">
+                                    {reply.commenterName}
+                                    {reply.author && (
+                                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                        Tác giả
+                                      </span>
+                                    )}
+                                  </h5>
+                                  <span className="text-xs text-gray-500">{formatCommentDate(reply.createdAt)}</span>
                                 </div>
-                                <p className="text-gray-700 text-sm mb-2">{reply.content}</p>
-                                <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors text-xs">
-                                  <ThumbsUp className="h-3 w-3" />
-                                  <span>{reply.likes}</span>
-                                </button>
+                                <p className="text-gray-700 text-sm mb-2">{reply.commentText}</p>
+                                {/* ... nút like nếu có */}
+                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                  <div
+                                    onClick={() => handleLike(reply.commentId)}
+                                    className="flex items-center space-x-1 cursor-pointer hover:text-green-600"
+                                  >
+                                    <ThumbsUp className="w-4 h-4" />
+                                    <span>{reply.likes}</span>
+                                  </div>
+                                  <div
+                                    onClick={() => handleDislike(reply.commentId)}
+                                    className="flex items-center space-x-1 cursor-pointer hover:text-red-600"
+                                  >
+                                    <ThumbsDown className="w-4 h-4" />
+                                    <span>{reply.dislikes}</span>
+                                  </div>
+                                </div>
+
                               </div>
                             </div>
                           ))}
@@ -1014,6 +962,7 @@ const BlogPage = () => {
                   </div>
                 </div>
               ))}
+
 
               {postComments.length === 0 && (
                 <div className="p-8 text-center text-gray-500">
@@ -1027,6 +976,22 @@ const BlogPage = () => {
       </div>
     );
   }
+
+  // dem so luot xem
+  const handleOpenPost = (post) => {
+    const token = localStorage.getItem("token");
+
+    // Cập nhật ngay UI
+    setSelectedPost({ ...post, views: (post.views || 0) + 1 });
+    setShowFullPost(true);
+
+    fetch(`/api/blogposts/${post.id}/view`, {
+      method: "POST",
+      headers: token
+        ? { Authorization: `Bearer ${token}` }
+        : {}, // nếu không có token thì để trống (nếu API không bắt buộc auth)
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1058,9 +1023,8 @@ const BlogPage = () => {
       </div>
 
       {/* Search and Filter Section */}
-      <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
-        isScrolled ? 'shadow-md' : ''
-      }`}>
+      <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${isScrolled ? 'shadow-md' : ''
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* Search */}
@@ -1105,40 +1069,22 @@ const BlogPage = () => {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors ${
-                      selectedCategory === category.id
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors ${selectedCategory === category.id
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     <span className="font-medium">{category.name}</span>
-                    <span className={`text-sm px-2 py-1 rounded-full ${
-                      selectedCategory === category.id
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span className={`text-sm px-2 py-1 rounded-full ${selectedCategory === category.id
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}>
                       {category.count}
                     </span>
                   </button>
                 ))}
               </div>
 
-              {/* Popular Tags */}
-              <div className="mt-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Thẻ phổ biến</h3>
-                <div className="flex flex-wrap gap-2">
-                  {['sức khỏe phụ nữ', 'phòng ngừa', 'dinh dưỡng', 'tư vấn', 'xét nghiệm'].map((tag, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSearchTerm(tag)}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                    >
-                      <Tag className="h-3 w-3 mr-1" />
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Stats */}
               <div className="mt-8 p-4 bg-blue-50 rounded-lg">
@@ -1157,7 +1103,7 @@ const BlogPage = () => {
                   <div className="flex justify-between">
                     <span className="text-blue-700">Đánh giá TB:</span>
                     <span className="font-medium text-blue-900">
-                      {(blogPosts.reduce((sum, post) => sum + post.averageRating, 0) / blogPosts.length).toFixed(1)}⭐
+                      {(blogPosts.reduce((sum, post) => sum + post.rating, 0) / blogPosts.length).toFixed(1)}⭐
                     </span>
                   </div>
                 </div>
@@ -1170,13 +1116,13 @@ const BlogPage = () => {
             {/* Featured Post */}
             {filteredPosts.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-md">
-                <div className="relative h-64 md:h-80">
+                <div className="relative h-[400px] md:h-[500px] bg-black rounded-t-lg overflow-hidden">
                   <img
-                    src={filteredPosts[0].image}
+                    src={`http://localhost:8080${filteredPosts[0].imageUrl}`}
                     alt={filteredPosts[0].title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
                     <div className="p-6 text-white">
                       <div className="flex items-center space-x-4 mb-4">
                         <span className="bg-red-600 px-3 py-1 rounded-full text-sm font-medium flex items-center">
@@ -1185,10 +1131,10 @@ const BlogPage = () => {
                         </span>
                         <span className="flex items-center text-sm">
                           <Calendar className="h-4 w-4 mr-1" />
-                          {formatDate(filteredPosts[0].publishDate)}
+                          {formatDate(filteredPosts[0].createdAt)}
                         </span>
                         <div className="flex items-center">
-                          {renderStars(filteredPosts[0].averageRating)}
+                          {renderStars(filteredPosts[0].rating, filteredPosts[0].ratingCount)}
                         </div>
                       </div>
                       <h2 className="text-2xl md:text-3xl font-bold mb-2">
@@ -1197,19 +1143,20 @@ const BlogPage = () => {
                       <p className="text-gray-200 mb-4">
                         {filteredPosts[0].excerpt}
                       </p>
-                      <button
-                        onClick={() => {
-                          setSelectedPost(filteredPosts[0]);
-                          setShowFullPost(true);
-                        }}
-                        className="inline-flex items-center bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                      >
-                        Đọc tiếp
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </button>
+                      <div className="mt-3">
+                        <button
+                          onClick={() => handleOpenPost(filteredPosts[0])}
+                          className="w-24 inline-flex items-center bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                        >
+                          <div className='pl-4'>Đọc tiếp</div>
+                          <ChevronRight className="h-10 w-4 ml-0" />
+                        </button>
+
+                      </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             )}
 
@@ -1219,7 +1166,7 @@ const BlogPage = () => {
                 <article key={post.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
                   <div className="relative h-48">
                     <img
-                      src={post.image}
+                      src={`http://localhost:8080${post.imageUrl}`}
                       alt={post.title}
                       className="w-full h-full object-cover"
                     />
@@ -1234,11 +1181,11 @@ const BlogPage = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                       <div className="flex items-center">
                         <User className="h-4 w-4 mr-1" />
-                        {post.author}
+                        Tác giả: {post.consultantName}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {formatDate(post.publishDate)}
+                        {formatDate(post.createdAt)}
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-1" />
@@ -1254,24 +1201,10 @@ const BlogPage = () => {
                       {post.excerpt}
                     </p>
 
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {post.tags.slice(0, 3).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600"
-                        >
-                          <Tag className="h-3 w-3 mr-1" />
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
 
                     <div className="flex items-center justify-between">
                       <button
-                        onClick={() => {
-                          setSelectedPost(post);
-                          setShowFullPost(true);
-                        }}
+                        onClick={() => handleOpenPost(post)}
                         className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                       >
                         <BookOpen className="h-4 w-4 mr-2" />
@@ -1279,13 +1212,14 @@ const BlogPage = () => {
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </button>
 
+
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Eye className="h-4 w-4" />
-                          <span>{post.views.toLocaleString()}</span>
+                          <span>{(post.views || 0).toLocaleString()}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          {renderStars(post.averageRating)}
+                          {renderStars(post.rating, post.ratingCount)}
                           <span>({post.totalRatings})</span>
                         </div>
                         <div className="flex items-center space-x-1">

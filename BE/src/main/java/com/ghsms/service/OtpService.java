@@ -49,7 +49,9 @@ public class OtpService {
         String body = String.format("Mã OTP của bạn là: %s\nMã có hiệu lực trong %d phút.",
                 otp, OTP_VALID_DURATION);
 
-        return mailService.sendEmail(email, subject, body);
+        mailService.sendEmail(email, subject, body);
+        return true; // ✅ Trả về thành công
+// ✅ Gọi không cần return
     }
 
     private String generateOtp() {

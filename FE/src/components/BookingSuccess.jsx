@@ -1,7 +1,10 @@
 // src/components/BookingSuccess.jsx
 import { CheckCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const BookingSuccess = ({ serviceName, date, time, fullName, price, email, phone }) => {
+
+const BookingSuccess = ({ serviceName, date, time, fullName, price, email, phone, bookingType }) => {
+  const navigate = useNavigate();
   return (
     <div className="text-center max-w-2xl mx-auto py-12 px-4">
       <div className="mb-8">
@@ -56,8 +59,7 @@ const BookingSuccess = ({ serviceName, date, time, fullName, price, email, phone
           Về trang chủ
         </button>
         <button
-          onClick={() => window.location.href = '/booking/sti'}
-          className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-semibold transition-colors"
+          onClick={() => navigate(`/booking/${bookingType}`)} className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-semibold transition-colors"
         >
           Đặt lịch khác
         </button>

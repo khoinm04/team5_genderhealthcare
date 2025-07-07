@@ -14,7 +14,6 @@ import { useStatsSocket } from "../hooks/useStatsSocket";
 const AdminDashboard = () => {
 
 
-
   const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -216,19 +215,6 @@ const AdminDashboard = () => {
   });
 
 
-
-  const messages = [
-    // { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
-    // { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
-    // { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
-  ];
-
-  const [notifications, setNotifications] = useState([
-    // { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
-    // { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
-    // { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
-  ]);
-
   const stats = {
     totalUsers: users.length,
     onlineUsers: onlineUsers.length,
@@ -240,13 +226,6 @@ const AdminDashboard = () => {
     messagesReceived: 1756
   };
 
-  const filteredUsers = users.filter(user =>
-    userFilter === 'all' || user.roleName === userFilter
-  );
-
-  const filteredMessages = messages.filter(message =>
-    messageFilter === 'all' || message.type === messageFilter
-  );
 
   const DashboardOverview = () => (
     <div className="space-y-6">
@@ -332,9 +311,51 @@ const AdminDashboard = () => {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       phone: "",
-      role: "Khách hàng"
+      roleName: "",
+      certificates: [],
     });
+
+    const [editForm, setEditForm] = useState({
+      certificates: []
+    });
+
+    useEffect(() => {
+      if (selectedUser) {
+        setEditForm({
+          name: selectedUser.name || "",
+          email: selectedUser.email || "",
+          roleName: selectedUser.roleName === "Tư vấn viên" ? "ROLE_CONSULTANT" : (
+            selectedUser.roleName === "Khách hàng" ? "ROLE_CUSTOMER" :
+              selectedUser.roleName === "Nhân viên" ? "ROLE_STAFF" :
+                selectedUser.roleName === "Quản trị viên" ? "ROLE_ADMIN" :
+                  selectedUser.roleName === "Quản lý" ? "ROLE_MANAGER" : ""
+          ),
+          certificates: selectedUser.certificates || [],
+        });
+      }
+    }, [selectedUser]);
+
+
+    useEffect(() => {
+      if (selectedUser) {
+        setFormData({
+          name: selectedUser.name || "",
+          email: selectedUser.email || "",
+          roleName: selectedUser.roleName === "Tư vấn viên" ? "ROLE_CONSULTANT" : (
+            selectedUser.roleName === "Khách hàng" ? "ROLE_CUSTOMER" :
+              selectedUser.roleName === "Nhân viên" ? "ROLE_STAFF" :
+                selectedUser.roleName === "Quản trị viên" ? "ROLE_ADMIN" :
+                  selectedUser.roleName === "Quản lý" ? "ROLE_MANAGER" :
+                    ""
+          ),
+          certificates: selectedUser.certificates || [],
+        });
+      }
+    }, [selectedUser]);
+
+
 
     useEffect(() => {
       fetchUsers();
@@ -362,13 +383,60 @@ const AdminDashboard = () => {
 
     const handleChange = (e) => {
       setFormData({ ...formData, [e.target.name]: e.target.value });
+
+      // ✅ Xóa lỗi khi người dùng thay đổi trường liên quan
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [e.target.name]: "", // Xóa lỗi của field đang nhập
+      }));
     };
 
+    const validateForm = () => {
+      const newErrors = {};
+
+      if (!formData.name?.trim()) {
+        newErrors.name = "Vui lòng nhập họ tên";
+      }
+
+      if (!formData.email?.trim()) {
+        newErrors.email = "Vui lòng nhập email";
+      }
+
+      if (!formData.password) {
+        newErrors.password = "Vui lòng nhập mật khẩu";
+      }
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+      }
+
+      if (!formData.phoneNumber?.trim()) {
+        newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
+      }
+
+      if (!formData.role?.trim()) {
+        newErrors.role = "Vui lòng chọn vai trò";
+      }
+
+      return newErrors;
+    };
+
+
     const handleCreateUser = async () => {
+      const errorsFound = validateForm();
+      if (Object.keys(errorsFound).length > 0) {
+        setErrors(errorsFound);
+        return;
+      }
+
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        await axios.post("/api/admin/users/create-user", formData, {
-          headers: { Authorization: `Bearer ${token}` }
+        const { confirmPassword, ...dataToSend } = formData;
+
+        await axios.post("/api/admin/users/create-user", dataToSend, {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         alert("Tạo tài khoản thành công");
@@ -377,37 +445,53 @@ const AdminDashboard = () => {
           name: "",
           email: "",
           password: "",
+          confirmPassword: "",
           phoneNumber: "",
-          role: "Khách hàng",
-          certificates: [], // ✅ thêm dòng này
+          role: "",
+          certificates: [],
         });
+
         setErrors({});
         setShowCreateForm(false);
         fetchUsers();
-
       } catch (error) {
         const message = error.response?.data?.error || "";
-
-        console.log("Lỗi từ backend:", message);
-
-        if (typeof message === "string" && message.includes("Email đã tồn tại")) {
+        if (message.includes("Email đã tồn tại")) {
           setErrors({ email: "Email đã tồn tại" });
         } else {
           alert("Lỗi khi tạo tài khoản");
         }
       }
-
-
     };
 
 
 
-const handleEditUser = (user) => {
-    setSelectedUser({
-      ...user,
-      isActive: Boolean(user.isActive) // Ensure it's a boolean
-    });
-  };    const handleDeleteUser = async (user) => {
+    const handleEditUser = (user) => {
+      const normalizedCertificates = (user.certificates || []).map((cert) => {
+        if (typeof cert === "string") {
+          return { id: null, name: cert.trim() };
+        } else if (typeof cert === "object" && cert !== null) {
+          return {
+            id: cert.id ?? null,
+            name: cert.name?.trim() ?? "",
+          };
+        }
+        return { id: null, name: "" };
+      });
+
+      setEditForm({
+        ...user,
+        certificates: normalizedCertificates
+      });
+
+      setSelectedUser(user);
+    };
+
+
+
+
+
+    const handleDeleteUser = async (user) => {
       const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
       if (!confirmed) return;
 
@@ -433,68 +517,78 @@ const handleEditUser = (user) => {
         const msg = error.response?.data?.message || "Không thể xóa người dùng.";
         alert(msg);
       }
-    }; 
-const handleCheckboxChange = (e) => {
-    setSelectedUser(prev => ({
-      ...prev,
-      isActive: e.target.checked
-    }));
-  };
-const handleSaveChanges = async () => {
-    const userId = selectedUser?.userId;
-
-    if (!userId) {
-      alert("Thiếu thông tin người dùng để cập nhật");
-      return;
-    }
-
-    const form = document.getElementById("editUserForm");
-    const formData = new FormData(form);
-
-    const updateData = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      roleName: formData.get("roleName"),
-      isActive: selectedUser.isActive
     };
-    try {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      const token = storedUser?.token;
+    const handleCheckboxChange = (e) => {
+      setSelectedUser(prev => ({
+        ...prev,
+        isActive: e.target.checked
+      }));
+    };
+    const handleSaveChanges = async () => {
+      const userId = selectedUser?.userId;
 
-      if (!token) {
-        alert("Token không tồn tại, vui lòng đăng nhập lại.");
+      if (!userId) {
+        alert("Thiếu thông tin người dùng để cập nhật");
         return;
       }
 
-      await axios.put(
-        `/api/admin/users/${userId}`,
-        updateData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
+      const form = document.getElementById("editUserForm");
+      const formData = new FormData(form);
+
+
+
+      const updateData = {
+        name: formData.get("name"),
+        email: formData.get("email"),
+        roleName: formData.get("roleName"),
+        isActive: selectedUser.isActive,
+        certificates: editForm.certificates || [] // ✅ Dữ liệu người dùng nhập thực sự
+      };
+
+      console.log("updateData gửi lên:", updateData);
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        const token = storedUser?.token;
+
+        if (!token) {
+          alert("Token không tồn tại, vui lòng đăng nhập lại.");
+          return;
         }
-      );
 
-      alert("Cập nhật thành công!");
-      setSelectedUser(null);
-    } catch (error) {
-      console.error("Lỗi khi cập nhật:", error);
+        await axios.put(
+          `/api/admin/users/${userId}`,
+          updateData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
 
-      const status = error.response?.status;
-      const message = error.response?.data;
+        alert("Cập nhật thành công!");
+        fetchUsers();
 
-      if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
-        alert("Bạn không thể chỉnh sửa chính mình.");
-      } else {
-        const fallbackMessage =
-          message?.message || error.message || "Cập nhật thất bại";
-        alert("Lỗi khi cập nhật: " + fallbackMessage);
+        setSelectedUser(null);
+      } catch (error) {
+        console.error("Lỗi khi cập nhật:", error);
+
+        const status = error.response?.status;
+        const message = error.response?.data;
+
+        if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
+          alert("Bạn không thể chỉnh sửa chính mình.");
+        } else {
+          const fallbackMessage =
+            message?.message || error.message || "Cập nhật thất bại";
+          alert("Lỗi khi cập nhật: " + fallbackMessage);
+        }
       }
-    }
+    };
 
-  };
+    //ham để goin lại trang
+
+
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -528,6 +622,9 @@ const handleSaveChanges = async () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Họ tên */}
               <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Họ tên
+                </label>
                 <input
                   name="name"
                   placeholder="Họ tên"
@@ -535,10 +632,15 @@ const handleSaveChanges = async () => {
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
                 />
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                )}
               </div>
-
               {/* Email + Lỗi */}
               <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
                 <input
                   name="email"
                   placeholder="Email"
@@ -553,6 +655,9 @@ const handleSaveChanges = async () => {
 
               {/* Mật khẩu */}
               <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mật khẩu
+                </label>
                 <input
                   type="password"
                   name="password"
@@ -561,10 +666,35 @@ const handleSaveChanges = async () => {
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
                 />
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+              {/* Xác nhận mật khẩu */}
+              <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Xác nhận mật khẩu
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Nhập lại mật khẩu"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                )}
               </div>
 
+
+              {/* Số điện thoại */}
               {/* Số điện thoại */}
               <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Số điện thoại
+                </label>
                 <input
                   name="phoneNumber"
                   placeholder="Số điện thoại"
@@ -572,20 +702,36 @@ const handleSaveChanges = async () => {
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
                 />
+                {errors.phoneNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
+                )}
+              </div>
+
+              {/* Vai trò */}
+              <div className="col-span-1 w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vai trò
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">-- Chọn vai trò --</option>
+                  <option value="Khách hàng">Khách hàng</option>
+                  <option value="Tư vấn viên">Tư vấn viên</option>
+                  <option value="Nhân viên">Nhân viên</option>
+                  <option value="Quản lý">Quản lý</option>
+                  <option value="Quản trị viên">Quản trị viên</option>
+                </select>
+                {errors.role && (
+                  <p className="text-red-500 text-sm mt-1">{errors.role}</p>
+                )}
               </div>
 
 
-
-
-              <select name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded md:col-span-2">
-                <option value="Khách hàng">Khách hàng</option>
-                <option value="Tư vấn viên">Tư vấn viên</option>
-                <option value="Nhân viên">Nhân viên</option>
-                <option value="Quản lý">Quản lý</option>
-                <option value="Quản trị viên">Quản trị viên</option>
-              </select>
             </div>
-
             {formData.role === "Tư vấn viên" && (
               <>
                 <label className="block text-sm font-medium text-gray-700 mt-2">
@@ -607,9 +753,6 @@ const handleSaveChanges = async () => {
 
               </>
             )}
-
-
-
             <div className="flex justify-end space-x-2 pt-4">
               <button onClick={() => setShowCreateForm(false)} className="px-4 py-2 bg-gray-300 rounded-lg">Hủy</button>
               <button onClick={handleCreateUser} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Tạo</button>
@@ -736,15 +879,53 @@ const handleSaveChanges = async () => {
                     <label className="block text-sm font-medium text-gray-700">Vai trò</label>
                     <select
                       name="roleName"
-                      defaultValue={selectedUser.roleName}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      value={editForm.roleName}
+                      onChange={(e) => {
+                        const role = e.target.value;
+                        setEditForm((prev) => ({
+                          ...prev,
+                          roleName: role,
+                          certificates: role === "ROLE_CONSULTANT" ? prev.certificates : []
+                        }));
+                      }}
+                      className="w-full p-2 border rounded"
                     >
                       <option value="ROLE_CUSTOMER">Khách hàng</option>
                       <option value="ROLE_CONSULTANT">Tư vấn viên</option>
-                      <option value="ROLE_ADMIN">Quản trị viên</option>
-                      <option value="ROLE_MANAGER">Quản lý</option>
                       <option value="ROLE_STAFF">Nhân viên</option>
+                      <option value="ROLE_MANAGER">Quản lý</option>
+                      <option value="ROLE_ADMIN">Quản trị viên</option>
                     </select>
+                    {editForm.roleName === "ROLE_CONSULTANT" && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Chứng chỉ (mỗi dòng là một chứng chỉ)
+                        </label>
+                        <textarea
+                          name="certificates"
+                          placeholder={`VD:\nChứng chỉ tư vấn tâm lý\nChứng chỉ chăm sóc sức khỏe`}
+                          value={editForm.certificates?.map(c => c.name).join("\n") || ""}
+                          onChange={(e) => {
+                            const lines = e.target.value.split("\n");
+
+                            const updatedCertificates = lines.map((line, index) => {
+                              const existing = editForm.certificates?.[index];
+                              return {
+                                id: existing?.id || null,
+                                name: line // ❌ KHÔNG trim hay filter ở đây
+                              };
+                            });
+
+                            setEditForm((prev) => ({
+                              ...prev,
+                              certificates: updatedCertificates
+                            }));
+                          }}
+                          rows={4}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <input
@@ -1031,7 +1212,7 @@ const handleSaveChanges = async () => {
   };
 
 
-  
+
 
 
 

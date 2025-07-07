@@ -53,10 +53,8 @@ public class JwtService {
             } else if (userId instanceof Long) {
                 return (Long) userId;
             }
-            log.warn("❌ userId is not a number: {}", userId);
             return null;
         } catch (Exception e) {
-            log.error("❌ Failed to extract userId: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -73,10 +71,8 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            log.info("✅ Token is valid, expiration: {}", claims.getExpiration());
             return claims.getExpiration().after(new Date());
         } catch (JwtException | IllegalArgumentException e) {
-            log.error("❌ Invalid JWT: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -102,10 +98,8 @@ public class JwtService {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-            log.info("🔍 Extracted claims: {}", claims);
             return claims;
         } catch (JwtException e) {
-            log.error("❌ Failed to parse JWT: {}", e.getMessage(), e);
             throw e;
         }
     }

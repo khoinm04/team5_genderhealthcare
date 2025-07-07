@@ -1,9 +1,12 @@
 package com.ghsms.DTO;
 
 import jakarta.validation.constraints.Pattern;
+import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
+@Data
 public class UserUpdateDTO implements Serializable {
     private String name;
     private String email;
@@ -15,7 +18,7 @@ public class UserUpdateDTO implements Serializable {
     private String roleName;
     private Boolean isActive;
 
-
+    private List<CertificateDTO> certificates;
     public UserUpdateDTO() {
     }
 
@@ -27,35 +30,4 @@ public class UserUpdateDTO implements Serializable {
 
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
 }

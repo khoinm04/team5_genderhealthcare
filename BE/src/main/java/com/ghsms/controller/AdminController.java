@@ -21,8 +21,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
 import java.util.List;
@@ -75,49 +77,22 @@ public class AdminController {
 
     // Cập nhật user (không cập nhật password)
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO dto) {
+    public ResponseEntity<?> updateUser(
+            @PathVariable Long id,
+            @RequestBody UserUpdateDTO dto,
+            @AuthenticationPrincipal UserPrincipal currentUser // 👈 nếu bạn dùng Spring Security
+    ) {
         try {
-            User existingUser = userService.getUserById(id);
-            if (existingUser == null) {
-                throw new RuntimeException("User not found with id: " + id);
-            }
-
-            // 🔒 Không cho phép admin tự chỉnh sửa chính mình
-            String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-            User currentUser = userService.findByEmail(currentUserEmail);
-
-            if (currentUser.getUserId().equals(id) && currentUser.getRole().getName() == RoleName.ROLE_ADMIN) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "Admin không được phép chỉnh sửa chính mình"));
-            }
-
-
-            // ... cập nhật bình thường
-            if (dto.getName() != null) {
-                existingUser.setName(dto.getName());
-            }
-            if (dto.getEmail() != null) {
-                existingUser.setEmail(dto.getEmail());
-            }
-            existingUser.setIsActive(dto.getIsActive());
-
-            if (dto.getRoleName() != null && !dto.getRoleName().isEmpty()) {
-                try {
-                    RoleName roleName = RoleName.valueOf(dto.getRoleName());
-                    Role role = roleService.findByName(roleName);
-                    existingUser.setRole(role);
-                } catch (IllegalArgumentException e) {
-                    return ResponseEntity.badRequest().body("Role không hợp lệ");
-                }
-            }
-
-            User savedUser = userService.updateUser(existingUser);
-            return ResponseEntity.ok(new UserDTO(savedUser));
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            User updatedUser = userService.updateUserInfo(id, dto, currentUser.getEmail());
+            return ResponseEntity.ok().body(updatedUser);
+        } catch (IllegalArgumentException | ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Lỗi hệ thống: " + e.getMessage()));
         }
     }
+
 
     // Xóa user theo id
     @DeleteMapping("/{id}")
@@ -130,10 +105,6 @@ public class AdminController {
         }
     }
 
-//    @GetMapping("/online/count")
-//    public ResponseEntity<Integer> getOnlineUserCount() {
-//        return ResponseEntity.ok(onlineUserTracker.countOnlineUsers());
-//    }
 
     @MessageMapping("/online")
     public void handle(Principal principal) {

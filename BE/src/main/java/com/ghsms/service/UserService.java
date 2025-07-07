@@ -1,11 +1,14 @@
 package com.ghsms.service;
 
+import com.ghsms.DTO.CertificateDTO;
 import com.ghsms.DTO.CreateUserRequest;
 import com.ghsms.DTO.UserDTO;
+import com.ghsms.DTO.UserUpdateDTO;
 import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.file_enum.CertificateStatus;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.*;
+import com.ghsms.repository.CertificateRepository;
 import com.ghsms.repository.ConsultantDetailsRepository;
 import com.ghsms.repository.RoleRepository;
 import com.ghsms.repository.UserRepository;
@@ -19,9 +22,7 @@ import com.ghsms.mapper.UserMapper;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,9 +31,77 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserMapper userMapper;
     private final RoleRepository roleRepository;
     private final ConsultantDetailsRepository consultantDetailsRepository;
+    private final CertificateRepository certificateRepository;
+
+    //service cap nhat thong tin actor boi admin
+    public User updateUserInfo(Long id, UserUpdateDTO dto, String currentUserEmail) {
+        User existingUser = getUserById(id);
+        if (existingUser == null) {
+            throw new RuntimeException("Không tìm thấy người dùng với id: " + id);
+        }
+
+        User currentUser = findByEmail(currentUserEmail);
+        if (currentUser.getUserId().equals(id) && currentUser.getRole().getName() == RoleName.ROLE_ADMIN) {
+            throw new IllegalArgumentException("Admin không được phép chỉnh sửa chính mình");
+        }
+
+        if (dto.getName() != null) existingUser.setName(dto.getName());
+        if (dto.getEmail() != null) existingUser.setEmail(dto.getEmail());
+        if (dto.getIsActive() != null) existingUser.setIsActive(dto.getIsActive());
+
+        // Cập nhật role
+        if (dto.getRoleName() != null && !dto.getRoleName().isEmpty()) {
+            Role role = roleRepository.findByName(RoleName.valueOf(dto.getRoleName()))
+                    .orElseThrow(() -> new IllegalArgumentException("Role không tồn tại"));
+            existingUser.setRole(role);
+
+            // Nếu là tư vấn viên
+            if (role.getName() == RoleName.ROLE_CONSULTANT) {
+                ConsultantDetails consultantDetails = existingUser.getConsultantDetails();
+                if (consultantDetails == null) {
+                    consultantDetails = new ConsultantDetails();
+                    consultantDetails.setConsultant(existingUser);
+                    consultantDetails.setCertificates(new HashSet<>());
+                    existingUser.setConsultantDetails(consultantDetails);
+                }
+
+                Set<Certificate> existingCerts = consultantDetails.getCertificates();
+                Map<Long, Certificate> existingCertMap = existingCerts.stream()
+                        .filter(c -> c.getId() != null)
+                        .collect(Collectors.toMap(Certificate::getId, c -> c));
+
+                // Chuẩn bị danh sách ID chứng chỉ được giữ lại
+                Set<Long> incomingIds = dto.getCertificates().stream()
+                        .filter(c -> c.getId() != null)
+                        .map(CertificateDTO::getId)
+                        .collect(Collectors.toSet());
+
+                // XÓA các chứng chỉ cũ không còn trong DTO
+                existingCerts.removeIf(cert -> cert.getId() != null && !incomingIds.contains(cert.getId()));
+
+                // CẬP NHẬT hoặc THÊM MỚI chứng chỉ
+                for (CertificateDTO certDto : dto.getCertificates()) {
+                    Certificate cert;
+                    if (certDto.getId() != null && existingCertMap.containsKey(certDto.getId())) {
+                        cert = existingCertMap.get(certDto.getId());
+                    } else {
+                        cert = new Certificate();
+                        cert.setConsultant(consultantDetails);
+                        existingCerts.add(cert);
+                    }
+
+                    cert.setName(certDto.getName());
+                    cert.setStatus(CertificateStatus.APPROVED);
+                }
+            }
+        }
+
+        return userRepository.save(existingUser);
+    }
+
+
 
 
 
@@ -108,11 +177,11 @@ public class UserService {
     }
 
 
-
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
     }
+
     public Optional<User> findOptionalById(Long userId) {
         return userRepository.findById(userId);
     }
@@ -131,6 +200,7 @@ public class UserService {
     public Optional<User> findByName(String name) {
         return userRepository.findByEmail(name);
     }
+
     public boolean existsByEmail(String email) {
         return userRepository.findByEmail(email).isPresent();
     }
@@ -156,7 +226,7 @@ public class UserService {
     }
 
     //Các chức năng dành cho admin
-    public List<User> getAllActiveUsers(){
+    public List<User> getAllActiveUsers() {
         return userRepository.findAll();
     }
 
@@ -213,7 +283,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public Optional<User> findById(Long customerId){
+    public Optional<User> findById(Long customerId) {
         return userRepository.findById(customerId);
     }
 }

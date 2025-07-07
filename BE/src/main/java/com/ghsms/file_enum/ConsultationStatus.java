@@ -1,5 +1,8 @@
 package com.ghsms.file_enum;
 
+import lombok.Getter;
+
+@Getter
 public enum ConsultationStatus {
     PENDING("Chờ xác nhận"),           // Đang chờ staff assign consultant
     CONFIRMED("Đã xác nhận"),         // Staff đã assign consultant
@@ -13,10 +16,6 @@ public enum ConsultationStatus {
 
     ConsultationStatus(String description) {
         this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
 

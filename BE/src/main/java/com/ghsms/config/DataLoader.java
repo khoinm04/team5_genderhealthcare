@@ -1,8 +1,10 @@
 package com.ghsms.config;
 
 import com.ghsms.file_enum.*;
+import com.ghsms.model.CategoryBlog;
 import com.ghsms.model.Role;
 import com.ghsms.model.User;
+import com.ghsms.repository.CategoryBlogRepository;
 import com.ghsms.repository.RoleRepository;
 import com.ghsms.repository.ServiceRepository;
 import com.ghsms.repository.UserRepository;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.ghsms.model.Services;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Configuration
@@ -141,4 +144,25 @@ public class DataLoader {
             }
         };
     }
+
+    @Bean
+    CommandLineRunner initCategories(CategoryBlogRepository categoryBlogRepository) {
+        return args -> {
+            List<String> categories = List.of(
+                    "Sức khỏe sinh sản",
+                    "Xét nghiệm STI",
+                    "Tư vấn sức khoẻ",
+                    "Chu kỳ kinh nguyệt",
+                    "Thai kỳ và sinh nở",
+                    "Sức khỏe tâm lý"
+            );
+
+            for (String name : categories) {
+                if (!categoryBlogRepository.existsByName(name)) {
+                    categoryBlogRepository.save(new CategoryBlog(null, name));
+                }
+            }
+        };
+    }
+
 }
