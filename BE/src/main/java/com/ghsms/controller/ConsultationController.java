@@ -1,8 +1,8 @@
 package com.ghsms.controller;
 
-import com.ghsms.DTO.ConsultationDTO;
-import com.ghsms.DTO.ConsultationNoteStatusUpdateDTO;
+import com.ghsms.DTO.*;
 import com.ghsms.config.UserPrincipal;
+import com.ghsms.model.Consultation;
 import com.ghsms.service.ConsultationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -285,6 +285,80 @@ public class ConsultationController {
                     .body(Map.of("error", "Lỗi hệ thống khi bắt đầu tư vấn"));
         }
     }
+
+    @GetMapping("/stats/today")
+    public ResponseEntity<?> getTodayStatsForConsultant(@AuthenticationPrincipal UserPrincipal principal) {
+        Long consultantId = principal.getUser().getUserId(); // 👈 lấy ID từ token giải mã sẵn
+        ConsultationStatsDTO stats = consultationService.getTodayStats(consultantId);
+        return ResponseEntity.ok(stats);
+    }
+
+    @PostMapping("/{id}/feedback")
+    public ResponseEntity<?> submitFeedback(
+            @PathVariable("id") Long consultationId,
+            @RequestBody FeedbackRequest request,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        ConsultationDTO dto = consultationService.submitFeedback(
+                consultationId, user.getId(), request.getRating(), request.getFeedback());
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{id}/notes")
+    public ResponseEntity<?> updateConsultationNote(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> requestBody,
+            @AuthenticationPrincipal UserPrincipal currentUser
+    ) {
+        String note = requestBody.get("note");
+
+        try {
+            Consultation consultation = consultationService.getConsultationById(id);
+
+            if (consultation == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Consultation not found");
+            }
+
+            // ✅ Kiểm tra user hiện tại có phải là tư vấn viên của consultation không
+            Long consultantUserId = consultation.getConsultant().getConsultant().getUserId();
+            if (!consultantUserId.equals(currentUser.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền chỉnh sửa ghi chú này.");
+            }
+
+            // ✅ Gọi service để update ghi chú
+            consultationService.updateNoteOnly(id, note);
+
+            return ResponseEntity.ok(Map.of("message", "Ghi chú đã được cập nhật"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi cập nhật ghi chú: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<?> getConsultationDetails(
+            @PathVariable("id") Long consultationId,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        System.out.println("📥 [GET] /consultations/" + consultationId + "/details");
+        System.out.println("👤 User ID: " + user.getId());
+
+        try {
+            ConsultationDetailsResponse res = consultationService.getConsultationDetails(consultationId, user.getId());
+            System.out.println("✅ Trả về dữ liệu thành công.");
+            return ResponseEntity.ok(res);
+        } catch (RuntimeException e) {
+            System.err.println("❌ Lỗi xảy ra trong getConsultationDetails:");
+            e.printStackTrace(); // In chi tiết stack trace
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception ex) {
+            System.err.println("🔥 Lỗi không xác định:");
+            ex.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi server nội bộ.");
+        }
+    }
+
+
 
 
 

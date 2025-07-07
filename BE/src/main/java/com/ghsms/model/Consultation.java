@@ -82,6 +82,12 @@ public class Consultation {
     @Column(name = "MeetLink")
     private String meetLink; // Thêm trường meetLink để lưu trữ liên kết cuộc họp trực tuyến
 
+    @Column(name = "StartTime")
+    private LocalDateTime startTime;
+
+    @Column(name = "EndTime")
+    private LocalDateTime endTime;
+
 
 }
 
