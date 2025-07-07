@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Getter
@@ -68,12 +69,21 @@ public class ConsultationDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime startTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime endTime;
+
+
     // ✅ THÊM MỚI: Thông tin bổ sung cho frontend (không cần validation)
     private String customerName;
     private String customerEmail;
     private String consultantName;
     private String consultantEmail;
     private String statusDescription;
+
+
 
     private List<String> serviceNames;
 
@@ -104,5 +114,12 @@ public class ConsultationDTO {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public Long getDurationMinutes() {
+        if (startTime != null && endTime != null) {
+            return ChronoUnit.MINUTES.between(startTime, endTime);
+        }
+        return null;
     }
 }

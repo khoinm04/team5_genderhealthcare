@@ -1,30 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  Phone,
-  Settings,
-  Users,
-  MessageSquare,
-  Share,
-  Monitor,
-  Clock,
-  User,
-} from "lucide-react";
+import { Video, VideoOff, Clock } from "lucide-react";
 
 const OnlineConsultation = () => {
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isAudioOn, setIsAudioOn] = useState(true);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [consultationTime, setConsultationTime] = useState(0);
   const [isInCall, setIsInCall] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [chatMessage, setChatMessage] = useState("");
   const [consultations, setConsultations] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [consultationNote, setConsultationNote] = useState("");
+  const [consultationTime, setConsultationTime] = useState(0);
 
   useEffect(() => {
     const fetchConsultations = async () => {
@@ -62,6 +46,18 @@ const OnlineConsultation = () => {
     fetchConsultations();
   }, []);
 
+  useEffect(() => {
+    let interval;
+
+    if (isInCall) {
+      interval = setInterval(() => {
+        setConsultationTime((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => clearInterval(interval); // 👈 cleanup khi component unmount hoặc isInCall = false
+  }, [isInCall]);
+
   // Helper: Lấy ký tự viết tắt tên
   const getAvatarText = (name) => {
     if (!name) return "";
@@ -83,11 +79,9 @@ const OnlineConsultation = () => {
         return;
       }
 
-      const response = await axios.put(
-        "/api/consultations/complete",
-        {
-          consultationId: currentSession.consultationId,
-        },
+      const response = await axios.post(
+        `/api/consultations/${currentSession.consultationId}/complete`,
+        null, // Không cần body
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -95,23 +89,21 @@ const OnlineConsultation = () => {
         }
       );
 
-      console.log("✅ Cập nhật trạng thái thành COMPLETED:", response.data);
+      const updated = response.data.consultation;
+      console.log("✅ Cập nhật trạng thái thành COMPLETED:", updated);
       alert("Buổi tư vấn đã được đánh dấu là hoàn thành!");
 
+      // Cập nhật UI
       setIsInCall(false);
       setConsultationTime(0);
-
-      // 🔄 Reload lại danh sách tư vấn
       setConsultations((prev) =>
         prev.map((c) =>
-          c.consultationId === currentSession.consultationId
-            ? { ...c, status: "COMPLETED" }
-            : c
+          c.consultationId === updated.consultationId ? updated : c
         )
       );
     } catch (err) {
       console.error(
-        "❌ Không thể cập nhật trạng thái:",
+        "❌ Không thể đánh dấu hoàn thành:",
         err.response?.data || err.message
       );
       alert("Không thể đánh dấu hoàn thành. Vui lòng thử lại.");
@@ -125,6 +117,15 @@ const OnlineConsultation = () => {
     const date = new Date(dateStr);
     const formattedDate = date.toLocaleDateString("vi-VN", options);
     return `${formattedDate}, ${start} - ${end}`;
+  };
+
+  // Helper: Định dạng thời gian từ giây => mm:ss
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (seconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
   };
 
   const startConsultation = async (session) => {
@@ -182,24 +183,71 @@ const OnlineConsultation = () => {
     }
   };
 
-  const endConsultation = () => {
-    if (
-      window.confirm(
-        "Bạn có chắc muốn kết thúc và đánh dấu hoàn thành buổi tư vấn?"
-      )
-    ) {
-      completeConsultation(); // ✅ gọi API cập nhật
-    } else {
-      console.log("⛔ Huỷ kết thúc");
+  const endConsultation = async () => {
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn kết thúc buổi tư vấn? Bạn sẽ được nhập ghi chú để gửi cho khách hàng."
+    );
+    if (!confirmed) return;
+
+    // 👉 Mở modal để nhập ghi chú
+    setShowNoteModal(true);
+  };
+
+  const submitNoteAndComplete = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !currentSession) {
+        alert("Không xác định được phiên tư vấn hoặc token");
+        return;
+      }
+
+      // Gửi ghi chú
+      await axios.put(
+        `/api/consultations/${currentSession.consultationId}/notes`,
+        { note: consultationNote },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Đánh dấu hoàn thành
+      await completeConsultation();
+
+      // Reset UI
+      setShowNoteModal(false);
+      setConsultationNote("");
+      setCurrentSession(null);
+      setIsInCall(false);
+    } catch (err) {
+      console.error("❌ Lỗi khi gửi ghi chú:", err.response?.data || err.message, err);
+
+      alert("Không thể gửi ghi chú hoặc hoàn thành buổi tư vấn.");
     }
   };
 
-  const sendChatMessage = () => {
-    if (chatMessage.trim()) {
-      console.log("Gửi tin nhắn chat:", chatMessage);
-      setChatMessage("");
-    }
-  };
+  const [stats, setStats] = useState({
+    totalSessions: 0,
+    totalMinutes: 0,
+    averageMinutes: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("/api/consultations/stats/today", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats(res.data);
+      } catch (err) {
+        console.error("Không thể lấy thống kê", err);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const mapStatus = (status) => {
     switch (status) {
@@ -281,22 +329,28 @@ const OnlineConsultation = () => {
                       </span>
 
                       {/* Nút tham gia tùy theo trạng thái */}
-                      <button
-                        onClick={() => startConsultation(session)}
-                        className={`inline-flex items-center px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg ${
-                          session.status === "PENDING" ||
-                          session.status === "ONGOING"
-                            ? "bg-gradient-to-r from-green-500 to-teal-500 text-white hover:from-green-600 hover:to-teal-600"
-                            : "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
-                      >
-                        <Video className="w-4 h-4 mr-2" />
-                        {session.status === "ONGOING"
-                          ? "Tiếp tục tư vấn"
-                          : session.status === "PENDING"
-                          ? "Tham gia cuộc gọi"
-                          : "Bắt đầu sớm"}
-                      </button>
+                      {session.status === "PENDING" ||
+                      session.status === "ONGOING" ? (
+                        <button
+                          onClick={() => startConsultation(session)}
+                          className="inline-flex items-center px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg bg-gradient-to-r from-green-500 to-teal-500 text-white hover:from-green-600 hover:to-teal-600"
+                        >
+                          <Video className="w-4 h-4 mr-2" />
+                          {session.status === "ONGOING"
+                            ? "Tiếp tục tư vấn"
+                            : "Tham gia cuộc gọi"}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
+                        >
+                          <VideoOff className="w-4 h-4 mr-2" />
+                          {session.status === "COMPLETED"
+                            ? "Đã hoàn thành"
+                            : "Không khả dụng"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -308,36 +362,22 @@ const OnlineConsultation = () => {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Thao tác nhanh
-              </h3>
-              <div className="space-y-3">
-                <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                  <Video className="w-4 h-4 mr-2" />
-                  Kiểm tra Video & Âm thanh
-                </button>
-                <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Cài đặt
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Thống kê hôm nay
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Phiên hôm nay</span>
-                  <span className="font-medium">3</span>
+                  <span className="font-medium">{stats.totalSessions}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tổng thời gian</span>
-                  <span className="font-medium">2 giờ 45 phút</span>
+                  <span className="font-medium">{stats.totalMinutes} phút</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Thời lượng trung bình</span>
-                  <span className="font-medium">55 phút</span>
+                  <span className="font-medium">
+                    {Math.round(stats.averageMinutes)} phút
+                  </span>
                 </div>
               </div>
             </div>
@@ -352,166 +392,48 @@ const OnlineConsultation = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
-          {/* Video Call Area */}
-          <div className="lg:col-span-3 bg-gray-900 rounded-xl overflow-hidden relative">
-            {/* Client Video (Main) */}
-            <div className="h-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <User className="w-12 h-12" />
-                </div>
-                <h3 className="text-xl font-semibold">Nguyễn Thị Hoa</h3>
-                <p className="text-blue-100">Khách hàng</p>
-              </div>
-            </div>
-
-            {/* Your Video (Picture-in-Picture) */}
-            <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden border-2 border-white shadow-lg">
-              {isVideoOn ? (
-                <div className="h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-2 mx-auto">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm">Bạn</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full bg-gray-800 flex items-center justify-center">
-                  <VideoOff className="w-8 h-8 text-gray-400" />
-                </div>
-              )}
-            </div>
-
-            {/* Call Info */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded-lg">
-              <div className="flex items-center space-x-2 text-sm">
-                <Clock className="w-4 h-4" />
-                <span>{formatTime(consultationTime)}</span>
-              </div>
-            </div>
-
-            {/* Call Controls */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="flex items-center space-x-4 bg-black bg-opacity-50 px-6 py-3 rounded-full">
-                <button
-                  onClick={() => setIsAudioOn(!isAudioOn)}
-                  className={`p-3 rounded-full transition-colors ${
-                    isAudioOn
-                      ? "bg-gray-600 hover:bg-gray-700"
-                      : "bg-red-600 hover:bg-red-700"
-                  }`}
-                >
-                  {isAudioOn ? (
-                    <Mic className="w-5 h-5 text-white" />
-                  ) : (
-                    <MicOff className="w-5 h-5 text-white" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setIsVideoOn(!isVideoOn)}
-                  className={`p-3 rounded-full transition-colors ${
-                    isVideoOn
-                      ? "bg-gray-600 hover:bg-gray-700"
-                      : "bg-red-600 hover:bg-red-700"
-                  }`}
-                >
-                  {isVideoOn ? (
-                    <Video className="w-5 h-5 text-white" />
-                  ) : (
-                    <VideoOff className="w-5 h-5 text-white" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setIsScreenSharing(!isScreenSharing)}
-                  className={`p-3 rounded-full transition-colors ${
-                    isScreenSharing
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : "bg-gray-600 hover:bg-gray-700"
-                  }`}
-                >
-                  <Monitor className="w-5 h-5 text-white" />
-                </button>
-
-                <button
-                  onClick={() => setShowChat(!showChat)}
-                  className="p-3 bg-gray-600 hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <MessageSquare className="w-5 h-5 text-white" />
-                </button>
-
-                <button
-                  onClick={endConsultation}
-                  className="p-3 bg-red-600 hover:bg-red-700 rounded-full transition-colors"
-                >
-                  <Phone className="w-5 h-5 text-white" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Chat Panel */}
-          <div
-            className={`bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col ${
-              showChat ? "block" : "hidden lg:flex"
-            }`}
+        <div className="text-center text-gray-600 p-10">
+          Buổi tư vấn đang diễn ra.
+          <br />
+          Khi kết thúc, nhấn <strong>Hoàn thành</strong> để cập nhật trạng thái.
+          <br />
+          <br />
+          <button
+            onClick={endConsultation}
+            className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
           >
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">Chat</h3>
-            </div>
+            Kết thúc & Hoàn thành
+          </button>
+        </div>
+      )}
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.sender === "consultant"
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-xs ${
-                      msg.sender === "consultant"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 text-gray-900"
-                    } rounded-lg p-3`}
-                  >
-                    <p className="text-sm">{msg.message}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.sender === "consultant"
-                          ? "text-blue-100"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {msg.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Nhập tin nhắn..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  onKeyPress={(e) => e.key === "Enter" && sendChatMessage()}
-                />
-                <button
-                  onClick={sendChatMessage}
-                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                </button>
-              </div>
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">
+              Ghi chú buổi tư vấn
+            </h2>
+            <textarea
+              className="w-full border px-3 py-2 rounded mb-4"
+              rows={5}
+              placeholder="Nhập ghi chú bạn muốn gửi cho khách hàng"
+              value={consultationNote}
+              onChange={(e) => setConsultationNote(e.target.value)}
+              maxLength={1000}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                onClick={() => setShowNoteModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                onClick={submitNoteAndComplete}
+              >
+                Gửi và Hoàn tất
+              </button>
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.ConsultationDTO;
+import com.ghsms.DTO.ConsultationDetailsResponse;
 import com.ghsms.DTO.ConsultationNoteStatusUpdateDTO;
+import com.ghsms.DTO.ConsultationStatsDTO;
 import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.*;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -323,9 +326,14 @@ public class ConsultationService {
         Consultation consultation = consultationRepository.findById(consultationId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy cuộc tư vấn"));
 
+        log.info("🔍 Kiểm tra quyền sở hữu của consultantId = {} với consultationId = {}", consultantId, consultationId);
+
         if (!consultation.getConsultant().getConsultant().getUserId().equals(consultantId)) {
+            log.warn("⛔️ Quyền truy cập không hợp lệ: User {} không sở hữu consultation {}", consultantId, consultationId);
             throw new RuntimeException("Bạn không có quyền cập nhật cuộc tư vấn này");
         }
+
+        log.info("✅ Cập nhật trạng thái consultationId = {} thành COMPLETED", consultationId);
 
         if (consultation.getStatus() == ConsultationStatus.COMPLETED) {
             throw new RuntimeException("Cuộc tư vấn đã hoàn thành trước đó");
@@ -366,6 +374,101 @@ public class ConsultationService {
 
         return toDTO(consultation);
     }
+
+    public ConsultationStatsDTO getTodayStats(Long consultantId) {
+        try {
+            List<Consultation> completedToday = consultationRepository.findTodayCompletedByConsultant(consultantId);
+
+            int totalSessions = completedToday.size();
+            long totalMinutes = 0;
+
+            for (Consultation c : completedToday) {
+                if (c.getStartTime() != null && c.getEndTime() != null) {
+                    long duration = ChronoUnit.MINUTES.between(c.getStartTime(), c.getEndTime());
+                    totalMinutes += duration;
+                }
+            }
+
+            double average = totalSessions > 0 ? (double) totalMinutes / totalSessions : 0;
+
+            return new ConsultationStatsDTO(totalSessions, totalMinutes, average);
+        } catch (Exception e) {
+            e.printStackTrace(); // log chi tiết lỗi
+            return new ConsultationStatsDTO(0, 0, 0); // fallback tránh 500
+        }
+    }
+
+
+    @Transactional
+    public ConsultationDTO submitFeedback(Long consultationId, Long userId, int rating, String feedback) {
+        Consultation consultation = consultationRepository.findById(consultationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy cuộc tư vấn"));
+
+        // ✅ Kiểm tra quyền người dùng (userId phải là chủ cuộc tư vấn)
+        if (!consultation.getCustomer().getCustomer().getUserId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền đánh giá cuộc tư vấn này");
+        }
+
+        if (consultation.getStatus() != ConsultationStatus.COMPLETED) {
+            throw new RuntimeException("Chỉ được đánh giá cuộc tư vấn đã hoàn thành");
+        }
+
+        // ✅ Cập nhật feedback và rating
+        consultation.setRating(rating);
+        consultation.setFeedback(feedback);
+        consultation.setUpdatedAt(LocalDateTime.now());
+
+        Consultation saved = consultationRepository.save(consultation);
+        return toDTO(saved);
+    }
+
+    public Consultation getConsultationById(Long id) {
+        return consultationRepository.findWithConsultantById(id).orElse(null);
+    }
+
+    @Transactional
+    public void updateNoteOnly(Long id, String note) {
+        consultationRepository.updateNoteById(id, note);
+    }
+
+    public ConsultationDetailsResponse getConsultationDetails(Long consultationId, Long userId) {
+        System.out.println("🔍 Đang tìm consultationId = " + consultationId + " cho userId = " + userId);
+
+        Consultation consultation = consultationRepository.findById(consultationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi tư vấn"));
+
+        if (!consultation.getBooking().getCustomer().getCustomerId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền xem buổi tư vấn này.");
+        }
+
+        System.out.println("✅ Đã xác thực quyền truy cập buổi tư vấn.");
+
+        // Optional: kiểm tra quyền truy cập nếu cần
+
+        CustomerDetails customer = consultation.getCustomer();
+        ConsultantDetails consultant = consultation.getConsultant();
+
+        return new ConsultationDetailsResponse(
+                consultation.getConsultationId(),
+                customer.getFullName(),
+                customer.getCustomer().getEmail(),
+                customer.getCustomer().getPhoneNumber(),
+                customer.getCustomer().getCustomerDetails().getGender(),
+
+                consultant.getConsultant().getName(),
+                consultant.getSpecialization().toString(),
+
+                consultation.getDateScheduled(),
+                consultation.getTimeSlot(),
+                consultation.getNote(),
+
+                consultation.getFeedback(),
+                consultation.getRating()
+        );
+    }
+
+
+
 
 
 
