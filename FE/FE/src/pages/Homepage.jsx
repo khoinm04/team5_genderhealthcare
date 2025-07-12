@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import Header from "./Header";
-import Services from "./Services";
-import UserGroups from "./userGroups";
-import Footer from "./Footer";
-import ZaloButton from './ZaloButton';
+import Header from "../components/Header";
+import Services from "../components/Services";
+import UserGroups from "../components/userGroups";
+import Footer from "../components/Footer";
+import ZaloButton from '../components/ZaloButton';
 
 
 
@@ -14,7 +14,7 @@ const slides = [
     description:
       "Theo dõi chu kỳ sinh sản và nhận tư vấn y tế ngay trên ứng dụng.",
     bgImage:
-      "url('https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1470&q=80')",
+      "url('https://media.istockphoto.com/id/1437830105/vi/anh/%E1%BA%A3nh-c%E1%BA%AFt-x%C3%A9n-c%E1%BB%A7a-m%E1%BB%99t-n%E1%BB%AF-y-t%C3%A1-n%E1%BA%AFm-tay-b%E1%BB%87nh-nh%C3%A2n-cao-c%E1%BA%A5p-c%E1%BB%A7a-c%C3%B4-%E1%BA%A5y-h%E1%BB%97-tr%E1%BB%A3-b%C3%A1c-s%C4%A9-gi%C3%BAp-%C4%91%E1%BB%A1-b%E1%BB%87nh-nh%C3%A2n.jpg?s=612x612&w=0&k=20&c=PCXy2LlpWOiUwmMKiXUbPaLcw5hrxo4koQ4RaK_lwhI=')",
   },
   {
     id: 2,
@@ -30,7 +30,7 @@ const slides = [
     description:
       "Đặt lịch nhanh chóng, tiện lợi ngay trên ứng dụng của chúng tôi.",
     bgImage:
-      "url('https://images.unsplash.com/photo-1497493292307-31c376b6e479?auto=format&fit=crop&w=1470&q=80')",
+      "url('https://png.pngtree.com/thumb_back/fh260/background/20240912/pngtree-doctor-holding-clipboard-in-hospital-corridor-medical-stock-photo-image_16150320.jpg')",
   },
 ];
 
