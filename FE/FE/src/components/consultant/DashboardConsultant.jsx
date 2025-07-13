@@ -8,7 +8,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-const DashboardConsultant = ({ setActiveTab }) => {
+const Dashboard = ({ setActiveTab }) => {
   const stats = [
     {
       title: 'Tổng khách hàng',
@@ -121,24 +121,29 @@ const DashboardConsultant = ({ setActiveTab }) => {
         {/* Quick Actions */}
         <div className="lg:col-span-2">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
-                <button
+                <div
                   key={index}
-                  onClick={action.action}
-                  className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 text-left group"
+                  className="relative bg-white rounded-[2rem] shadow-md border border-gray-100 flex flex-col items-start p-8 transition-all hover:shadow-lg group"
                 >
-                  <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-5 h-5 text-white" />
+                  {/* Icon Badge */}
+                  <div className={`absolute -top-5 left-6 rounded-xl p-2 ${action.color} shadow-md flex items-center justify-center`}>
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{action.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{action.description}</p>
-                  <div className="flex items-center text-blue-600 text-sm font-medium">
-                    Bắt đầu <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-6">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{action.title}</h3>
+                    <p className="text-gray-600 text-base mb-6">{action.description}</p>
                   </div>
-                </button>
+                  <button
+                    onClick={action.action}
+                    className="mt-auto text-blue-600 font-semibold flex items-center gap-1 hover:underline focus:outline-none"
+                  >
+                    Bắt đầu <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
               );
             })}
           </div>
