@@ -603,18 +603,7 @@ const BlogPage = () => {
 
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Home Button */}
-        <button
-          className="fixed top-6 left-6 z-50 flex items-center bg-blue-600 hover:bg-blue-700 text-white px-16 py-3 rounded-full font-bold text-[24px] shadow-xl transition-all duration-300"
-          style={{
-            minWidth: 0,
-            boxShadow: "0 6px 32px 0 rgba(59, 130, 246, 0.18)",
-          }}
-          onClick={handleHomeExit}
-        >
-          <ChevronLeft className="w-8 h-8 mr-3 text-white" />
-          Trang chủ
-        </button>
+       
 
         {/* Back Button */}
         <div className="bg-white border-b border-gray-200 pt-20">
@@ -919,33 +908,35 @@ const BlogPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
+
       {/* Header */}
-      <div className="bg-blue-600 text-white py-6 pt-8">
+      <div className="bg-blue-600 text-white py-16 pt-24 relative">
+        {/* Nút Trang chủ nằm cố định trong header */}
+        {!showFullPost && (
+          <button
+            className="absolute top-6 left-6 z-50 flex items-center text-white px-6 py-2 rounded font-semibold text-base shadow transition-all"
+            style={{
+              minWidth: 0,
+              boxShadow: "0 6px 32px 0 rgba(65, 36, 36, 0.18)",
+            }}
+            onClick={handleHomeExit}
+          >
+            <ChevronLeft className="w-5 h-5 mr-2 text-white" />
+            Trang chủ
+          </button>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-start justify-between">
-            <button
-              className="flex items-center bg-white text-blue-600 hover:bg-blue-700 hover:text-white min-w-[120px] px-6 py-3 rounded-xl font-bold text-lg shadow-md transition-all duration-300"
-              onClick={handleHomeExit}
-            >
-              <ChevronLeft className="w-6 h-6 mr-2" />
-              Trang chủ
-            </button>
-
-
-
-            <div></div>
-          </div>
-          <div className="text-center mt-2">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Blog Sức Khỏe
             </h1>
-            <p className="text-lg text-blue-100 max-w-3xl mx-auto">
+            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
               Khám phá những kiến thức hữu ích về sức khỏe sinh sản và chăm sóc bản thân
             </p>
           </div>
         </div>
       </div>
-
 
       {/* Search and Filter Section */}
       <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${isScrolled ? 'shadow-md' : ''
@@ -1022,7 +1013,7 @@ const BlogPage = () => {
                   <div className="flex justify-between">
                     <span className="text-blue-700">Lượt xem:</span>
                     <span className="font-medium text-blue-900">
-                      {totalViews?.toLocaleString?.() ?? '0'}                    </span>
+{totalViews?.toLocaleString?.() ?? '0'}                    </span>
 
                   </div>
                   <div className="flex justify-between">
@@ -1185,19 +1176,15 @@ const BlogPage = () => {
             {/* No Results */}
             {filteredPosts.length === 0 && (
               <div className="text-center py-12">
-                <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   Không tìm thấy bài viết nào
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Thử thay đổi từ khóa tìm kiếm hoặc danh mục để xem thêm bài viết
+                </h2>
+                <p className="text-gray-600 mb-8">
+                  Rất tiếc, chúng tôi không thể tìm thấy bài viết nào phù hợp với tiêu chí tìm kiếm của bạn.
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedCategory('all');
-                  }}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => window.location.href = '/'} // Quay về trang chủ
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Xem tất cả bài viết
                 </button>

@@ -1017,20 +1017,6 @@ const StaffDashboard = () => {
                     />
                   </div>
                 </div>
-                <div className="sm:w-48">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
-                  >
-                    <option value="all">Tất Cả Trạng Thái</option>
-                    <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-                    <option value="CONFIRMED">Đã xác nhận</option>
-                    <option value="COMPLETED">Đã hoàn thành</option>
-                    <option value="CANCELED">Đã hủy</option>
-                  </select>
-
-                </div>
               </div>
             </div>
 

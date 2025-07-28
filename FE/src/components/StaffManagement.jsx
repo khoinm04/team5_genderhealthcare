@@ -328,7 +328,7 @@ const StaffManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Chuyên môn</label>
-                    <p className="mt-1 text-sm text-gray-900">{translateSpecialty(selectedStaff.specialization) || 'Chưa xác định'}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedStaff.specialization || 'Chưa xác định'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
