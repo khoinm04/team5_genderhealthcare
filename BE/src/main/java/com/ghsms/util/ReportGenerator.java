@@ -1,13 +1,15 @@
 package com.ghsms.util;
 
 import com.ghsms.file_enum.ReportFormat;
+import com.ghsms.model.CustomerDetails;
 import com.ghsms.model.TestResult;
 import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
-import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
@@ -18,10 +20,8 @@ import com.itextpdf.layout.element.Text;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -48,15 +48,10 @@ public class ReportGenerator {
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document document = new Document(pdfDoc);
 
-        // Load Roboto font
-        // Replace this
-
-// With this
         InputStream fontStream = getClass().getClassLoader().getResourceAsStream(FONT_PATH);
         byte[] fontBytes = fontStream.readAllBytes();
         PdfFont robotoFont = PdfFontFactory.createFont(fontBytes, PdfEncodings.IDENTITY_H, PdfFontFactory.EmbeddingStrategy.FORCE_EMBEDDED);
 
-        // Add main title
         Paragraph mainTitle = new Paragraph("KẾT QUẢ KHÁM SỨC KHỎE")
                 .setFont(robotoFont)
                 .setFontSize(24)
@@ -70,10 +65,8 @@ public class ReportGenerator {
                 .setTextAlignment(TextAlignment.CENTER);
         document.add(subtitle);
 
-        // Add spacing
         document.add(new Paragraph("\n"));
 
-        // Add introduction
         Paragraph intro = new Paragraph()
                 .add(new Text("Mẫu giấy kết quả có thể có các nội dung khác nhau tùy theo mục đích sử dụng. ")
                         .setFont(robotoFont)
@@ -85,30 +78,34 @@ public class ReportGenerator {
 
         document.add(new Paragraph("\n"));
 
-        // Phần I: Thông tin cá nhân
         addSectionTitle(document, "PHẦN I: THÔNG TIN CÁ NHÂN", robotoFont);
 
-        Paragraph personalInfo = new Paragraph()
-                .add(new Text("Trong phần này, người khám sức khỏe cần cung cấp đầy đủ thông tin nhận diện cá nhân, bao gồm:\n\n")
-                        .setFont(robotoFont)
-                        .setFontSize(11))
-                .add(new Text("• Họ và tên: ").setFont(robotoFont).setBold().setFontSize(11))
-                .add(new Text("Phải viết in hoa, không dấu.\n").setFont(robotoFont).setFontSize(11))
-                .add(new Text("• Giới tính: ").setFont(robotoFont).setBold().setFontSize(11))
-                .add(new Text("Ghi rõ Nam/Nữ.\n").setFont(robotoFont).setFontSize(11))
-                .add(new Text("• Ngày tháng năm sinh: ").setFont(robotoFont).setBold().setFontSize(11))
-                .add(new Text("Theo định dạng ngày/tháng/năm.\n").setFont(robotoFont).setFontSize(11))
-                .add(new Text("• Số CCCD: ").setFont(robotoFont).setBold().setFontSize(11))
-                .add(new Text("Ghi rõ số, ngày cấp, nơi cấp.\n").setFont(robotoFont).setFontSize(11))
-                .add(new Text("• Chỗ ở hiện tại: ").setFont(robotoFont).setBold().setFontSize(11))
-                .add(new Text("Ghi theo sổ hộ khẩu hoặc nơi cư trú thực tế.\n\n").setFont(robotoFont).setFontSize(11))
-                .add(new Text("Những thông tin trên là bắt buộc nhằm xác định danh tính người khám, giúp quá trình theo dõi sức khỏe thuận tiện hơn.")
-                        .setFont(robotoFont).setFontSize(11).setItalic());
-        document.add(personalInfo);
+        TestResult testResult = results.getFirst();
+        CustomerDetails customer = testResult.getBooking().getCustomer();
 
+        Paragraph personalInfo = new Paragraph()
+                .add(new Text("• Họ và tên: ").setFont(robotoFont).setBold().setFontSize(11))
+                .add(new Text(customer.getFullName() + "\n").setFont(robotoFont).setFontSize(11))
+
+                .add(new Text("• Giới tính: ").setFont(robotoFont).setBold().setFontSize(11))
+                .add(new Text(
+                        customer.getGender().equalsIgnoreCase("MALE") ? "Nam\n" :
+                                customer.getGender().equalsIgnoreCase("FEMALE") ? "Nữ\n" : "Khác\n"
+                ).setFont(robotoFont).setFontSize(11))
+
+                .add(new Text("• Tuổi: ").setFont(robotoFont).setBold().setFontSize(11))
+                .add(new Text(customer.getAge() + " tuổi\n").setFont(robotoFont).setFontSize(11))
+
+                .add(new Text("• Số điện thoại: ").setFont(robotoFont).setBold().setFontSize(11))
+                .add(new Text(customer.getPhoneNumber() + "\n").setFont(robotoFont).setFontSize(11))
+
+                .add(new Text("• Email: ").setFont(robotoFont).setBold().setFontSize(11))
+                .add(new Text(customer.getEmail() + "\n").setFont(robotoFont).setFontSize(11));
+
+
+        document.add(personalInfo);
         document.add(new Paragraph("\n"));
 
-        // Phần II: Tiền sử bệnh
         addSectionTitle(document, "PHẦN II: TIỀN SỬ BỆNH CỦA ĐỐI TƯỢNG KHÁM SỨC KHỎE", robotoFont);
 
         Paragraph medicalHistory = new Paragraph()
@@ -127,7 +124,6 @@ public class ReportGenerator {
 
         document.add(new Paragraph("\n"));
 
-        // Phần III: Nội dung khám sức khỏe
         addSectionTitle(document, "PHẦN III: NỘI DUNG KHÁM SỨC KHỎE", robotoFont);
 
         Paragraph examContent = new Paragraph()
@@ -147,30 +143,63 @@ public class ReportGenerator {
 
         document.add(new Paragraph("\n"));
 
-        // Add test results section
         addSectionTitle(document, "KẾT QUẢ XÉT NGHIỆM STI", robotoFont);
 
-        // Create table for test results
-        Table table = new Table(UnitValue.createPercentArray(new float[]{3, 2, 2, 3}));
-        table.setWidth(UnitValue.createPercentValue(100));
+        Table table = new Table(UnitValue.createPercentArray(new float[]{3, 2, 2, 3}))
+                .setWidth(UnitValue.createPercentValue(100));
 
-        // Add headers
-        table.addHeaderCell(new Cell().add(new Paragraph("Tên xét nghiệm").setFont(robotoFont).setBold().setFontSize(11)));
-        table.addHeaderCell(new Cell().add(new Paragraph("Kết quả").setFont(robotoFont).setBold().setFontSize(11)));
-        table.addHeaderCell(new Cell().add(new Paragraph("Trạng thái").setFont(robotoFont).setBold().setFontSize(11)));
-        table.addHeaderCell(new Cell().add(new Paragraph("Thời gian").setFont(robotoFont).setBold().setFontSize(11)));
+        java.util.function.Function<String, Cell> headerCell = text ->
+                new Cell()
+                        .add(new Paragraph(text)
+                                .setFont(robotoFont)
+                                .setBold()
+                                .setFontSize(11)
+                                .setFontColor(ColorConstants.WHITE))
+                        .setBackgroundColor(new DeviceRgb(107, 114, 128)); // xám #6B7280
 
-        // Add data rows
+        table.addHeaderCell(headerCell.apply("Tên xét nghiệm"));
+        table.addHeaderCell(headerCell.apply("Kết quả"));
+        table.addHeaderCell(headerCell.apply("Trạng thái"));
+        table.addHeaderCell(headerCell.apply("Thời gian"));
+
         for (TestResult result : results) {
-            table.addCell(new Cell().add(new Paragraph(result.getTestName()).setFont(robotoFont).setFontSize(10)));
-            table.addCell(new Cell().add(new Paragraph(result.getResult()).setFont(robotoFont).setFontSize(10)));
-            table.addCell(new Cell().add(new Paragraph(result.getStatus().name()).setFont(robotoFont).setFontSize(10)));
-            table.addCell(new Cell().add(new Paragraph(result.getGeneratedAt().format(DATE_FORMATTER)).setFont(robotoFont).setFontSize(10)));
+
+            table.addCell(new Cell().add(
+                    new Paragraph(result.getTestName()).setFont(robotoFont).setFontSize(10)));
+
+            String resText = result.getResult();
+            DeviceRgb resColor = "Âm tính".equalsIgnoreCase(resText)
+                    ? new DeviceRgb(34, 197, 94)
+                    : new DeviceRgb(239, 68, 68);
+
+            Paragraph colored = new Paragraph(resText)
+                    .setFont(robotoFont).setFontSize(10).setFontColor(resColor);
+
+            table.addCell(new Cell().add(colored));
+
+            table.addCell(new Cell().add(
+                    new Paragraph(result.getStatus().name()).setFont(robotoFont).setFontSize(10)));
+
+            table.addCell(new Cell().add(
+                    new Paragraph(result.getGeneratedAt().format(DATE_FORMATTER))
+                            .setFont(robotoFont).setFontSize(10)));
         }
 
         document.add(table);
 
-        // Add footer
+        for (TestResult result : results) {
+            if (result.getNotes() != null && !result.getNotes().trim().isEmpty()) {
+                Paragraph note = new Paragraph()
+                        .add(new Text("Ghi chú bác sĩ cho xét nghiệm \""
+                                + result.getTestName() + "\":\n")
+                                .setFont(robotoFont).setBold().setFontSize(11))
+                        .add(new Text(result.getNotes())
+                                .setFont(robotoFont).setFontSize(11));
+                document.add(note);
+                document.add(new Paragraph("\n"));
+            }
+        }
+
         document.add(new Paragraph("\n"));
         Paragraph footer = new Paragraph()
                 .add(new Text("Ghi chú: ").setFont(robotoFont).setBold().setFontSize(11))
@@ -196,7 +225,6 @@ public class ReportGenerator {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("STI Test Results");
 
-        // Create header style
         CellStyle headerStyle = workbook.createCellStyle();
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
@@ -204,7 +232,6 @@ public class ReportGenerator {
         headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-        // Create title
         Row titleRow = sheet.createRow(0);
         Cell titleCell = (Cell) titleRow.createCell(0);
         ((org.apache.poi.ss.usermodel.Cell) titleCell).setCellValue("KẾT QUẢ KHÁM SỨC KHỎE - XÉT NGHIỆM STI");
@@ -215,10 +242,8 @@ public class ReportGenerator {
         titleStyle.setFont(titleFont);
         ((org.apache.poi.ss.usermodel.Cell) titleCell).setCellStyle(titleStyle);
 
-        // Add empty row
         sheet.createRow(1);
 
-        // Create headers
         String[] headers = {"Tên xét nghiệm", "Kết quả", "Trạng thái", "Thời gian tạo"};
         Row headerRow = sheet.createRow(2);
         for (int i = 0; i < headers.length; i++) {
@@ -227,7 +252,6 @@ public class ReportGenerator {
             ((org.apache.poi.ss.usermodel.Cell) cell).setCellStyle(headerStyle);
         }
 
-        // Add data rows
         int rowNum = 3;
         for (TestResult result : results) {
             Row row = sheet.createRow(rowNum++);
@@ -237,7 +261,6 @@ public class ReportGenerator {
             row.createCell(3).setCellValue(result.getGeneratedAt().format(DATE_FORMATTER));
         }
 
-        // Add note
         Row noteRow = sheet.createRow(rowNum + 1);
         Cell noteCell = (Cell) noteRow.createCell(0);
         ((org.apache.poi.ss.usermodel.Cell) noteCell).setCellValue("Ghi chú: Kết quả xét nghiệm này chỉ có giá trị trong thời gian quy định và cần được bảo quản cẩn thận.");
@@ -247,12 +270,10 @@ public class ReportGenerator {
         noteStyle.setFont(noteFont);
         ((org.apache.poi.ss.usermodel.Cell) noteCell).setCellStyle(noteStyle);
 
-        // Auto-size columns
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
         }
 
-        // Merge title cells
         sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 3));
         sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum + 1, rowNum + 1, 0, 3));
 

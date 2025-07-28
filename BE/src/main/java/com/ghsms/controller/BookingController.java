@@ -1,22 +1,18 @@
 package com.ghsms.controller;
 
-import com.ghsms.DTO.BookingDTO;
-import com.ghsms.DTO.BookingResponseHistoryDTO;
+import com.ghsms.DTO.*;
+import com.ghsms.file_enum.*;
 import com.ghsms.mapper.UserMapper;
-import com.ghsms.DTO.TestResultDTO;
-import com.ghsms.DTO.UserInfoDTO;
-import com.ghsms.file_enum.BookingStatus;
-import com.ghsms.file_enum.ReportFormat;
-import com.ghsms.file_enum.ServiceBookingCategory;
-import com.ghsms.file_enum.TestStatus;
 import com.ghsms.model.*;
 import com.ghsms.service.BookingService;
 import com.ghsms.service.CustomUserDetailsService;
+import com.ghsms.service.ServiceService;
 import com.ghsms.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,15 +38,14 @@ public class BookingController {
     private final BookingService bookingService;
     private final UserService userService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final ServiceService serviceService;
 
     @PostMapping
-    @Operation(summary = "Create a new booking")
     public ResponseEntity<?> createBooking(
             @Valid @RequestBody BookingDTO bookingDTO,
             @AuthenticationPrincipal UserPrincipal user
     ) {
         try {
-            // Gán userId từ token vào DTO thay vì nhận từ client
             bookingDTO.setUserId(user.getId());
 
             Booking booking = bookingService.createBooking(bookingDTO);
@@ -59,8 +54,7 @@ public class BookingController {
             return ResponseEntity.ok()
                     .body(Map.of(
                             "message", "Booking created successfully",
-                            "booking", response,
-                            "paymentCode", booking.getPaymentCode()
+                            "booking", response
                     ));
 
         } catch (ResponseStatusException e) {
@@ -78,7 +72,6 @@ public class BookingController {
         try {
             Booking booking = bookingService.findByPaymentCode(paymentCode);
 
-            // 🔐 Kiểm tra quyền truy cập (nếu không phải chủ booking và không phải admin thì từ chối)
             if (!booking.getCustomer().getCustomerId().equals(user.getId()) &&
                     !user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -93,22 +86,23 @@ public class BookingController {
     }
 
 
-
-
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Get all bookings for a user")
-    public ResponseEntity<List<BookingDTO>> getUserBookings(@PathVariable Long userId) {
-        List<Booking> bookings = bookingService.getUserBookings(userId);
-        List<BookingDTO> bookingDTOs = bookings.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(bookingDTOs);
+    @Operation(summary = "Get all bookings for a user (paged)")
+    public ResponseEntity<Page<Booking>> getUserBookings(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Booking> bookingPage = bookingService.getUserBookings(userId, pageable);
+        return ResponseEntity.ok(bookingPage);
     }
+
 
     @GetMapping("/category/{category}")
     @Operation(summary = "Get bookings by service category")
     public ResponseEntity<List<BookingDTO>> getBookingsByCategory(
-            @PathVariable ServiceBookingCategory category,
+            @PathVariable String category,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String date) {
         List<Booking> bookings = date != null ?
                 bookingService.getBookingsByCategoryAndDate(category, date) :
@@ -153,7 +147,6 @@ public class BookingController {
     public ResponseEntity<?> createStiBooking(@Valid @RequestBody BookingDTO bookingDTO,
                                               @AuthenticationPrincipal UserPrincipal user) {
         try {
-            //  Gán userId từ JWT
             Long userId = user.getId();
             bookingDTO.setUserId(userId);
 
@@ -162,16 +155,16 @@ public class BookingController {
             BookingDTO response = convertToDTO(booking);
             List<TestResultDTO> testResults = booking.getTestResults().stream()
                     .map(this::convertToTestResultDTO)
-                    .collect(Collectors.toList());
+                    .toList();
 
             return ResponseEntity.ok()
                     .body(Map.of(
                             "message", "STI booking created successfully",
                             "booking", response,
-                            "paymentCode", booking.getPaymentCode(),
                             "testResults", testResults
                     ));
         } catch (ResponseStatusException e) {
+            assert e.getReason() != null;
             return ResponseEntity.status(e.getStatusCode())
                     .body(Map.of("error", e.getReason()));
         }
@@ -179,29 +172,36 @@ public class BookingController {
 
     @GetMapping("/user")
     @Operation(summary = "Get STI bookings for current user")
-    public ResponseEntity<?> getUserStiBookings(@AuthenticationPrincipal UserPrincipal user) {
+    public ResponseEntity<?> getUserStiBookings(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
         try {
             Long userId = user.getId();
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-            // Lấy tất cả booking của user
-            List<Booking> allBookings = bookingService.getUserBookings(userId);
+            Page<Booking> allBookingsPage = bookingService.getUserBookings(userId, pageable);
 
-            // Lọc ra các booking có dịch vụ thuộc nhóm STI
-            List<Booking> stiBookings = allBookings.stream()
-                    .filter(booking -> booking.getServices().stream().allMatch(service ->
-                            service.getCategory() == ServiceBookingCategory.STI_HIV ||
-                                    service.getCategory() == ServiceBookingCategory.STI_Syphilis ||
-                                    service.getCategory() == ServiceBookingCategory.STI_Gonorrhea ||
-                                    service.getCategory() == ServiceBookingCategory.STI_Chlamydia
-                    ))
-                    .toList();
-
-            // Chuyển sang DTO nếu cần
-            List<BookingDTO> bookingDTOs = stiBookings.stream()
+            List<BookingDTO> filtered = allBookingsPage.getContent().stream()
+                    .filter(booking -> booking.getServices().stream().allMatch(service -> {
+                        String category = service.getCategory();
+                        return "STI_HIV".equals(category) ||
+                                "STI_Syphilis".equals(category) ||
+                                "STI_Gonorrhea".equals(category) ||
+                                "STI_Chlamydia".equals(category);
+                    }))
                     .map(this::convertToDTO)
                     .toList();
 
-            return ResponseEntity.ok(Map.of("bookings", bookingDTOs));
+            return ResponseEntity.ok(Map.of(
+                    "content", filtered,
+                    "page", allBookingsPage.getNumber(),
+                    "size", allBookingsPage.getSize(),
+                    "totalElements", allBookingsPage.getTotalElements(),
+                    "totalPages", allBookingsPage.getTotalPages()
+            ));
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Lỗi khi lấy danh sách lịch hẹn STI"));
@@ -306,7 +306,6 @@ public class BookingController {
         BookingDTO dto = new BookingDTO();
         dto.setBookingId(booking.getBookingId());
 
-        // Fix customer related fields
         if (booking.getCustomer() != null) {
             dto.setUserId(
                     booking.getCustomer().getCustomer() != null
@@ -315,22 +314,25 @@ public class BookingController {
             );
             dto.setCustomerName(booking.getCustomer().getFullName());
             dto.setCustomerPhone(booking.getCustomer().getPhoneNumber());
-            dto.setCustomerEmail(booking.getCustomer().getEmail());  // ✅ Thêm nếu cần
-            dto.setCustomerAge(booking.getCustomer().getAge());      // ✅ Tuổi
-            dto.setCustomerGender(booking.getCustomer().getGender()); // ✅ Giới tính
+            dto.setCustomerEmail(booking.getCustomer().getEmail());
+            dto.setCustomerAge(booking.getCustomer().getAge());
+            dto.setCustomerGender(booking.getCustomer().getGender());
         }
 
-        // Fix staff related fields
         if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
             dto.setStaffId(booking.getStaff().getId());
+            dto.setStaffName(booking.getStaff().getStaff().getName());
         }
+
+        if (booking.getConsultant() != null && booking.getConsultant().getConsultant() != null) {
+            dto.setConsultantId(booking.getConsultant().getId());
+            dto.setConsultantName(booking.getConsultant().getConsultant().getName()); // 👈 Thêm dòng này
+        }
+
 
         dto.setBookingDate(booking.getBookingDate());
         dto.setTimeSlot(booking.getTimeSlot());
         dto.setPaymentCode(booking.getPaymentCode());
-        dto.setStatus(booking.getStatus());
-
-        // Map services
         if (booking.getServices() != null && !booking.getServices().isEmpty()) {
             List<Long> serviceIds = booking.getServices().stream()
                     .map(Services::getServiceId)
@@ -339,31 +341,72 @@ public class BookingController {
         }
 
         if (booking.getServices() != null && !booking.getServices().isEmpty()) {
-            List<Long> serviceIds = booking.getServices().stream()
-                    .map(Services::getServiceId)
-                    .toList();
-            dto.setServiceIds(serviceIds);
 
-            // ✅ Gộp tên dịch vụ (VD: "HIV, Giang mai")
-            String serviceNames = booking.getServices().stream()
-                    .map(Services::getServiceName)
-                    .collect(Collectors.joining(", "));
-            dto.setServiceName(serviceNames);
+            dto.setServiceIds(
+                    booking.getServices().stream()
+                            .map(Services::getServiceId)
+                            .toList()
+            );
 
-            // ✅ Tổng tiền các dịch vụ
+
+            dto.setServiceName(
+                    booking.getServices().stream()
+                            .map(Services::getServiceName)
+                            .collect(Collectors.joining(", "))
+            );
+
+
             int totalAmount = booking.getServices().stream()
-                    .map(Services::getPrice)             // BigDecimal
-                    .mapToInt(BigDecimal::intValue)     // chuyển sang int
+                    .map(Services::getPrice)
+                    .mapToInt(BigDecimal::intValue)
                     .sum();
             dto.setAmount(totalAmount);
 
+            dto.setCategoryType(
+                    booking.getServices().stream()
+                            .findFirst()
+                            .map(service -> service.getCategoryType().name())
+                            .orElse(null)
+            );
         }
 
+        ServiceCategoryType categoryType = booking.getServices().stream()
+                .findFirst()
+                .map(Services::getCategoryType)
+                .orElse(null);
+
+        dto.setCategoryType(categoryType != null ? categoryType.name() : null);
+
+        if (categoryType == ServiceCategoryType.CONSULTATION && booking.getConsultation() != null) {
+            dto.setConsultationStatus(booking.getConsultation().getStatus());
+            dto.setNote(booking.getConsultation().getNote());
+
+
+            dto.setFeedback(booking.getConsultation().getFeedback());
+            dto.setRating(booking.getConsultation().getRating());
+        }
+        else if (categoryType == ServiceCategoryType.TEST && booking.getTestResults() != null && !booking.getTestResults().isEmpty()) {
+            TestResult firstResult = booking.getTestResults().iterator().next();
+            dto.setTestStatus(firstResult.getStatus());
+            dto.setNote(firstResult.getNotes());
+        }
+
+        if (booking.getConsultation() != null) {
+            dto.setConsultationId(booking.getConsultation().getConsultationId());
+            dto.setConsultationStatus(booking.getConsultation().getStatus());
+            dto.setNote(booking.getConsultation().getNote());
+        }
+
+        if (booking.getTestResults() != null && !booking.getTestResults().isEmpty()) {
+            TestResult firstResult = booking.getTestResults().iterator().next();
+            dto.setTestResultId(firstResult.getTestResultId());
+            dto.setTestStatus(firstResult.getStatus());
+            dto.setNote(firstResult.getNotes());
+        }
 
         return dto;
     }
 
-    //api này giup chuyen trang xac nhan thanh toan thanh cong cua paymentStiSuccess
     @GetMapping("/{bookingId}")
     @Operation(summary = "Get booking by ID")
     public ResponseEntity<?> getBookingById(
@@ -373,7 +416,7 @@ public class BookingController {
         try {
             Booking booking = bookingService.findBookingById(bookingId);
 
-            // Chỉ cho phép chủ sở hữu hoặc admin truy cập
+
             if (!booking.getCustomer().getCustomerId().equals(user.getId()) &&
                     user.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -411,7 +454,6 @@ public class BookingController {
         dto.setNotes(testResult.getNotes());
         dto.setFormat(testResult.getFormat());
 
-        // ✅ Thêm đầy đủ thông tin khách hàng
         CustomerDetails customer = testResult.getBooking().getCustomer();
         if (customer != null) {
             dto.setCustomerName(customer.getFullName());
@@ -421,31 +463,26 @@ public class BookingController {
             dto.setCustomerEmail(customer.getEmail());
         }
 
-        // Staff info mapping
-        // ✅ Thêm thông tin nhân viên xét nghiệm (Staff)
         StaffDetails staffDetails = testResult.getBooking().getStaff();
         if (staffDetails != null) {
-            User staffUser = staffDetails.getStaff(); // chính là User
+            User staffUser = staffDetails.getStaff();
             if (staffUser != null) {
-                dto.setStaffName(staffUser.getName()); // hoặc getName() tùy theo entity User
+                dto.setStaffName(staffUser.getName());
             }
 
             if (staffDetails.getSpecialization() != null) {
-                dto.setStaffSpecialty(staffDetails.getSpecialization().name()); // nếu là enum
+                dto.setStaffSpecialty(staffDetails.getSpecialization());
             }
         }
 
-
-        // ✅ Thêm thông tin dịch vụ
         if (!testResult.getBooking().getServices().isEmpty()) {
             Services service = testResult.getBooking().getServices().iterator().next();
-            dto.setServiceCategory(service.getCategory().name());
+            dto.setServiceCategory(service.getCategory());
         }
 
         return dto;
     }
 
-    //lay thong tin nguoi dung co san hien len don xet nghiem
     @GetMapping("/profile")
     public UserInfoDTO getUserProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         Long userId = userPrincipal.getId(); // 👈 Lấy từ UserPrincipal
@@ -459,20 +496,55 @@ public class BookingController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@AuthenticationPrincipal UserPrincipal userPrincipal,
                                            @RequestBody UserInfoDTO dto) {
-        Long userId = userPrincipal.getId(); // 👈 Lấy từ UserPrincipal
+        Long userId = userPrincipal.getId();
         customUserDetailsService.updateCustomerDetails(userId, dto);
         return ResponseEntity.ok("Cập nhật thành công");
     }
 
-    //lich su
     @GetMapping("/history")
-    public ResponseEntity<List<BookingResponseHistoryDTO>> getBookingHistory(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<Page<BookingDTO>> getBookingHistory(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String type) {
 
-        Long customerId = userPrincipal.getId();
-        List<BookingResponseHistoryDTO> dtoList = bookingService.getBookingsByUserId(customerId);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        return ResponseEntity.ok(dtoList);
+        Page<Booking> bookingPage = bookingService.getUserBookings(user.getId(), pageable, type);
+
+        Page<BookingDTO> dtoPage = bookingPage.map(this::convertToDTO);
+
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/user/sti-count")
+    @Operation(summary = "Đếm tổng số booking xét nghiệm STI của người dùng hiện tại")
+    public ResponseEntity<?> getTotalStiBookings(
+            @AuthenticationPrincipal UserPrincipal user) {
+        try {
+            long total = bookingService.countStiBookingsByUserId(user.getId());
+            return ResponseEntity.ok(Map.of("total", total));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Không thể đếm lịch xét nghiệm"));
+        }
+    }
+
+    @GetMapping("/api/services/sti-tests")
+    public ResponseEntity<List<ServiceDTO>> getAvailableStiTests() {
+        List<ServiceDTO> services = serviceService.getAvailableStiTests();
+        return ResponseEntity.ok(services);
+    }
+
+    @GetMapping("/api/services/consultations")
+    public ResponseEntity<List<ServiceDTO>> getAvailableConsultations() {
+        List<ServiceDTO> services = serviceService.getAvailableConsultations();
+        return ResponseEntity.ok(services);
+    }
+
+    @GetMapping("/test-services")
+    public ResponseEntity<?> getTestServices() {
+        return ResponseEntity.ok(serviceService.getTestServicesForSTI());
     }
 
 

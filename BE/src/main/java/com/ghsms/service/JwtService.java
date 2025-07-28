@@ -27,13 +27,13 @@ public class JwtService {
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getUserId()); // 👈 thêm userId vào claims
+        claims.put("userId", user.getUserId());
         claims.put("email", user.getEmail());
         claims.put("role", user.getRole().getName());
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.getEmail()) // 👈 hoặc setSubject(user.getUserId().toString())
+                .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -41,7 +41,7 @@ public class JwtService {
     }
 
     public String extractEmail(String token) {
-        return extractClaim(token, Claims::getSubject); // trả về email nếu subject là email
+        return extractClaim(token, Claims::getSubject);
     }
 
     public Long extractUserId(String token) {
@@ -59,15 +59,6 @@ public class JwtService {
         }
     }
 
-    public String extractRole(String token) {
-        try {
-            Claims claims = extractAllClaims(token);
-            return claims.get("role", String.class);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     public boolean isTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
@@ -75,15 +66,6 @@ public class JwtService {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
-    }
-
-
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

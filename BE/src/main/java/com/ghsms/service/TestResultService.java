@@ -16,11 +16,9 @@ import java.time.LocalDateTime;
 @Service
 public class TestResultService {
     private final TestResultRepository testResultRepository;
-    private final UserRepository userRepository;
 
-    public TestResultService(TestResultRepository testResultRepository, UserRepository userRepository) {
+    public TestResultService(TestResultRepository testResultRepository) {
         this.testResultRepository = testResultRepository;
-        this.userRepository = userRepository;
     }
 
     public long countInProgressPatients() {
@@ -31,12 +29,58 @@ public class TestResultService {
         TestResult testResult = testResultRepository.findById(testResultId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kết quả xét nghiệm"));
 
-        // Cập nhật kết quả xét nghiệm
         testResult.setResult(dto.getResult());
+        testResult.setNotes(dto.getNotes());
         testResult.setStatus(TestStatus.COMPLETED);
         testResult.setLastUpdated(LocalDateTime.now());
 
+
         return testResultRepository.save(testResult);
+    }
+
+    public TestResultDTO getTestResultDetailsById(Long testResultId) {
+        try {
+            TestResult testResult = testResultRepository.findById(testResultId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kết quả xét nghiệm"));
+
+            Booking booking = testResult.getBooking();
+            if (booking == null) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "TestResult không có booking liên kết");
+            }
+
+            TestResultDTO dto = new TestResultDTO();
+            dto.setTestResultId(testResultId);
+            dto.setBookingId(booking.getBookingId());
+            dto.setTestName(testResult.getTestName());
+            dto.setResult(testResult.getResult());
+            dto.setStatus(testResult.getStatus());
+            dto.setScheduledTime(testResult.getScheduledTime());
+            dto.setGeneratedAt(testResult.getGeneratedAt());
+            dto.setEstimatedCompletionTime(testResult.getEstimatedCompletionTime());
+            dto.setCurrentPhase(testResult.getCurrentPhase());
+            dto.setProgressPercentage(testResult.getProgressPercentage());
+            dto.setLastUpdated(testResult.getLastUpdated());
+            dto.setNotes(testResult.getNotes());
+
+            if (booking.getCustomer() != null) {
+                dto.setCustomerName(booking.getCustomer().getFullName());
+                dto.setCustomerEmail(booking.getCustomer().getEmail());
+                dto.setCustomerPhone(booking.getCustomer().getPhoneNumber());
+                dto.setCustomerAge(booking.getCustomer().getAge());
+                dto.setCustomerGender(booking.getCustomer().getGender());
+            }
+
+            if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
+                dto.setStaffName(booking.getStaff().getStaff().getName());
+            }
+
+            dto.setTimeSlot(booking.getTimeSlot());
+            return dto;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi xử lý dữ liệu kết quả xét nghiệm");
+        }
     }
 
 

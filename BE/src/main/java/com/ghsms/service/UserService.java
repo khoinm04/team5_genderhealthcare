@@ -15,6 +15,8 @@ import com.ghsms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,6 @@ public class UserService {
     private final ConsultantDetailsRepository consultantDetailsRepository;
     private final CertificateRepository certificateRepository;
 
-    //service cap nhat thong tin actor boi admin
     public User updateUserInfo(Long id, UserUpdateDTO dto, String currentUserEmail) {
         User existingUser = getUserById(id);
         if (existingUser == null) {
@@ -51,13 +52,11 @@ public class UserService {
         if (dto.getEmail() != null) existingUser.setEmail(dto.getEmail());
         if (dto.getIsActive() != null) existingUser.setIsActive(dto.getIsActive());
 
-        // Cập nhật role
         if (dto.getRoleName() != null && !dto.getRoleName().isEmpty()) {
             Role role = roleRepository.findByName(RoleName.valueOf(dto.getRoleName()))
                     .orElseThrow(() -> new IllegalArgumentException("Role không tồn tại"));
             existingUser.setRole(role);
 
-            // Nếu là tư vấn viên
             if (role.getName() == RoleName.ROLE_CONSULTANT) {
                 ConsultantDetails consultantDetails = existingUser.getConsultantDetails();
                 if (consultantDetails == null) {
@@ -72,16 +71,13 @@ public class UserService {
                         .filter(c -> c.getId() != null)
                         .collect(Collectors.toMap(Certificate::getId, c -> c));
 
-                // Chuẩn bị danh sách ID chứng chỉ được giữ lại
                 Set<Long> incomingIds = dto.getCertificates().stream()
                         .filter(c -> c.getId() != null)
                         .map(CertificateDTO::getId)
                         .collect(Collectors.toSet());
 
-                // XÓA các chứng chỉ cũ không còn trong DTO
                 existingCerts.removeIf(cert -> cert.getId() != null && !incomingIds.contains(cert.getId()));
 
-                // CẬP NHẬT hoặc THÊM MỚI chứng chỉ
                 for (CertificateDTO certDto : dto.getCertificates()) {
                     Certificate cert;
                     if (certDto.getId() != null && existingCertMap.containsKey(certDto.getId())) {
@@ -125,12 +121,10 @@ public class UserService {
 
         userRepository.save(user);
 
-        // Nếu là tư vấn viên thì tạo ConsultantDetails
         if (RoleName.ROLE_CONSULTANT.name().equals(role.getName().name())) {
             ConsultantDetails details = new ConsultantDetails();
             details.setConsultant(user);
 
-            // ❗ Giao cho manager gán sau
             details.setSpecialization(null);
             details.setHireDate(null);
             details.setYearsOfExperience(null);
@@ -191,12 +185,6 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
-    public boolean checkAdminCredentials(String email, String password) {
-        return userRepository.findByEmail(email)
-                .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
-                .orElse(false);
-    }
-
     public Optional<User> findByName(String name) {
         return userRepository.findByEmail(name);
     }
@@ -210,11 +198,8 @@ public class UserService {
     }
 
     public User saveUser(User user) {
-        // If the password hash is different from what's in the database,
-        // it means it's a new plain password that needs encoding
         Optional<User> existingUser = userRepository.findById(user.getUserId());
 
-        // Check if both password hashes exist before comparing them
         if (existingUser.isPresent() &&
                 existingUser.get().getPasswordHash() != null &&
                 user.getPasswordHash() != null &&
@@ -225,16 +210,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    //Các chức năng dành cho admin
-    public List<User> getAllActiveUsers() {
-        return userRepository.findAll();
+    public Page<User> getAllActiveUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
-
-    public User updateUser(User user) {
-        return userRepository.save(user);
+    public long getTotalUsers() {
+        return userRepository.count();
     }
-
 
     public void deleteUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -244,19 +226,19 @@ public class UserService {
             throw new RuntimeException("User is already inactive");
         }
 
-        user.setIsActive(false); // hoặc user.setActive(false); tùy theo tên trường
+        user.setIsActive(false);
         userRepository.save(user);
     }
 
-    public List<User> findByRoleName(RoleName roleName) {
-        return userRepository.findByRole_Name(roleName);
+    public Page<User> findByRoleName(RoleName roleName, Pageable pageable) {
+        return userRepository.findByRole_Name(roleName, pageable);
     }
+
 
     public long countByRoleName(RoleName roleName) {
         return userRepository.countByRole_Name(roleName);
     }
 
-    //de chinh sua profile
     public UserDTO updateProfile(Long userId, UserDTO updateData) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

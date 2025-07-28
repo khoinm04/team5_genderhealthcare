@@ -9,10 +9,7 @@ import com.ghsms.model.BlogPost;
 import com.ghsms.model.CategoryBlog;
 import com.ghsms.model.Rating;
 import com.ghsms.model.User;
-import com.ghsms.repository.BlogPostRepository;
-import com.ghsms.repository.CategoryBlogRepository;
-import com.ghsms.repository.RatingRepository;
-import com.ghsms.repository.UserRepository;
+import com.ghsms.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +27,7 @@ public class BlogPostService {
     private final CategoryBlogRepository categoryBlogRepository;
     private final RatingRepository ratingRepository;
     private final UserRepository userRepository;
+    private final BlogCommentRepository blogCommentRepository;
 
 
     public BlogPost createBlogPost(BlogPostRequestDTO request, User author) {
@@ -47,7 +44,6 @@ public class BlogPostService {
         blogPost.setAuthor(author);
         blogPost.setCreatedAt(LocalDateTime.now());
 
-        // Xử lý thời gian xuất bản nếu là lên lịch
         if (blogPost.getStatus() == BlogStatus.SCHEDULED) {
             if (request.getPublishTime().isBefore(LocalDateTime.now())) {
                 throw new IllegalArgumentException("Thời gian xuất bản phải lớn hơn thời điểm hiện tại.");
@@ -55,20 +51,21 @@ public class BlogPostService {
 
             blogPost.setPublishTime(request.getPublishTime());
         } else {
-            blogPost.setPublishTime(null); // Các trạng thái khác thì không cần
+            blogPost.setPublishTime(null);
         }
 
         return blogPostRepository.save(blogPost);
     }
 
-    //lay tat cả blogpost
-    public List<BlogPostResponseDTO> getAllPosts() {
-        List<BlogPost> posts = blogPostRepository.findAll();
+    public Page<BlogPostResponseDTO> getAllPosts(Pageable pageable) {
+        Page<BlogPost> postsPage = blogPostRepository.findAll(pageable);
 
-        return posts.stream()
-                .map(BlogPostResponseDTO::new)
-                .collect(Collectors.toList());
+        return postsPage.map(post -> {
+            long count = blogCommentRepository.countByBlogPost_BlogId(post.getBlogId());
+            return new BlogPostResponseDTO(post, count);
+        });
     }
+
 
 
     public BlogStatus parseStatus(String input) {
@@ -80,7 +77,6 @@ public class BlogPostService {
         };
     }
 
-    //service cap nhat blog
     @Transactional
     public BlogPost updateBlogPost(Long id, BlogPostUpdateDTO request) {
         try {
@@ -110,18 +106,19 @@ public class BlogPostService {
             return blogPostRepository.save(post);
 
         } catch (Exception e) {
-            e.printStackTrace(); // ⚠️ BẮT BUỘC để thấy lỗi thật trong console
+            e.printStackTrace();
             throw new RuntimeException("Lỗi khi cập nhật bài viết: " + e.getMessage());
         }
     }
 
-//lay danh sach ca bai viet da xuat ban
     public Page<BlogPostResponseDTO> getPublishedPosts(Pageable pageable) {
         return blogPostRepository.findByStatus(BlogStatus.PUBLISHED, pageable)
-                .map(BlogPostResponseDTO::new);
+                .map(post -> {
+                    long commentCount = blogCommentRepository.countByBlogPost_BlogId(post.getBlogId());
+                    return new BlogPostResponseDTO(post, commentCount);
+                });
     }
 
-    //danh gia
     public void rateBlogPost(Long userId, RatingRequestDTO request) {
         if (request.getRating() < 1 || request.getRating() > 5) {
             throw new IllegalArgumentException("Giá trị đánh giá phải từ 1 đến 5 sao.");
@@ -155,21 +152,24 @@ public class BlogPostService {
     }
 
 
-    //lay danh gia hien tai cua nguoi dung
     public int getMyRating(User user, Long postId) {
         BlogPost post = blogPostRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
 
         return ratingRepository.findByUserAndBlogPost(user, post)
                 .map(Rating::getRating)
-                .orElse(0); // chưa từng đánh giá
+                .orElse(0);
     }
 
     public BlogPostResponseDTO getPostDtoById(Long id) {
         BlogPost post = blogPostRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
-        return new BlogPostResponseDTO(post);
+
+        long commentCount = blogCommentRepository.countByBlogPost_BlogId(id);
+
+        return new BlogPostResponseDTO(post, commentCount);
     }
+
 
     public void increasePostViews(Long postId) {
         BlogPost post = blogPostRepository.findById(postId)
@@ -181,9 +181,18 @@ public class BlogPostService {
         blogPostRepository.save(post);
     }
 
+    public long countAllPosts() {
+        return blogPostRepository.count();
+    }
 
+    public long sumAllViews() {
+        return blogPostRepository.sumTotalViews();
+    }
 
-
+    public double getAverageRating() {
+        Double avg = ratingRepository.getAverageRating();
+        return avg != null ? avg : 0.0;
+    }
 
 
 }

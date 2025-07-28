@@ -14,6 +14,6 @@ public class BlogCommentRequestDTO {
     @Size(max = 1000)
     private String commentText;
 
-    private Long parentCommentId; // 👈 Thêm field này để xác định phản hồi
+    private Long parentCommentId;
 
 }

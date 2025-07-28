@@ -3,9 +3,7 @@
 package com.ghsms.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.ghsms.file_enum.ConsultantSpecialization;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,9 +34,8 @@ public class ConsultantDetails implements Serializable {
     @OneToMany(mappedBy = "consultant", fetch = FetchType.LAZY)
     private Set<Booking> bookings;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "specialization", length = 100)
-    private ConsultantSpecialization specialization;
+    @Column(name = "specialization", columnDefinition = "nvarchar(100)")
+    private String specialization;
 
     @Column(name = "hire_date")
     private LocalDate hireDate;

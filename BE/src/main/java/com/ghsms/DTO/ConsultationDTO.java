@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Getter
@@ -20,6 +19,8 @@ import java.util.List;
 public class ConsultationDTO {
 
     private Long consultationId;
+
+    private List<CertificateDTO> certificates;
 
     @NotNull(message = "ID khách hàng không được để trống")
     @Positive(message = "ID khách hàng phải là số dương")
@@ -52,21 +53,16 @@ public class ConsultationDTO {
     @Size(max = 500, message = "Phản hồi không được vượt quá 500 ký tự")
     private String feedback;
 
-    // ✅ THÊM MỚI: Booking ID (quan hệ one-to-one)
     @NotNull(message = "Booking ID không được để trống")
     @Positive(message = "Booking ID phải là số dương")
     private Long bookingId;
 
-    // ✅ THÊM MỚI: Time slot với validation pattern
     @Pattern(
             regexp = "^\\d{2}:\\d{2}-\\d{2}:\\d{2}$",
             message = "Time slot phải đúng định dạng HH:mm-HH:mm (ví dụ: 10:00-11:00)"
     )
     private String timeSlot;
 
-    private String meetLink;
-
-    // ✅ THÊM MỚI: Thời gian cập nhật
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
 
@@ -76,27 +72,22 @@ public class ConsultationDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
-
-    // ✅ THÊM MỚI: Thông tin bổ sung cho frontend (không cần validation)
     private String customerName;
     private String customerEmail;
     private String consultantName;
     private String consultantEmail;
     private String statusDescription;
 
-
-
     private List<String> serviceNames;
 
     private List<ServiceCategoryType> categoryTypes;
 
+    private String meetLink;
 
-
-    // ✅ THÊM MỚI: Validation tùy chỉnh cho time slot
     @AssertTrue(message = "Time slot phải có thời gian kết thúc sau thời gian bắt đầu")
     public boolean isValidTimeSlot() {
         if (timeSlot == null || timeSlot.trim().isEmpty()) {
-            return true; // Cho phép null, @Pattern sẽ xử lý
+            return true;
         }
 
         try {
@@ -120,10 +111,4 @@ public class ConsultationDTO {
         }
     }
 
-    public Long getDurationMinutes() {
-        if (startTime != null && endTime != null) {
-            return ChronoUnit.MINUTES.between(startTime, endTime);
-        }
-        return null;
-    }
 }

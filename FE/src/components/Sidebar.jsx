@@ -9,7 +9,6 @@ import {
   Wrench,
   BarChart3,
   Calendar,
-  Settings,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -26,7 +25,6 @@ const Sidebar = ({
     { id: 'consultants', label: 'Quản lý tư vấn viên', icon: UserCheck },
     { id: 'services', label: 'Quản lý dịch vụ', icon: Wrench },
     { id: 'schedules', label: 'Lịch làm việc', icon: Calendar },
-    { id: 'settings', label: 'Cài đặt', icon: Settings },
   ];
     const { deactivateClient } = useOnlineUsersSocket(() => {});
   

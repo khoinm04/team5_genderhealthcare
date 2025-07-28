@@ -31,45 +31,15 @@ public class TestResultDTO implements Serializable {
     private String customerPhone;
     private String customerEmail;
 
-    //booking
     private String timeSlot;
 
-
-    // Additional fields for better tracking
     private String customerName;
     private String serviceCategory;
     private LocalDateTime estimatedCollectionTime;
     private LocalDateTime estimatedProcessingTime;
 
-    //staff information
     private String staffName;
     private String staffSpecialty;
 
 
-    // Optional: For showing time remaining
-    public Long getEstimatedMinutesRemaining() {
-        if (status == TestStatus.COMPLETED || status == TestStatus.CANCELED) {
-            return 0L;
-        }
-        if (estimatedCompletionTime == null) {
-            return null;
-        }
-        LocalDateTime now = LocalDateTime.now();
-        return java.time.Duration.between(now, estimatedCompletionTime).toMinutes();
-    }
-
-    // Optional: For showing progress phase description
-    public String getPhaseDescription() {
-        if (status == TestStatus.CANCELED) {
-            return "Test canceled";
-        }
-        return switch (currentPhase) {
-            case "Scheduled" -> "Waiting for appointment";
-            case "Collection" -> "Sample collection in progress";
-            case "Processing" -> "Laboratory processing";
-            case "Review" -> "Results under review";
-            case "Completed" -> "Test completed";
-            default -> currentPhase;
-        };
-    }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Users, MessageSquare, Bell, BarChart3, Calendar, Trash, Settings, Search, Filter, Edit, Eye, Ban, Check, X, Send, Plus, UserCheck, Clock, Wifi, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useOnlineUsersSocket } from '../hooks/useOnlineUsersSocket';
@@ -14,7 +14,6 @@ import { useStatsSocket } from "../hooks/useStatsSocket";
 const AdminDashboard = () => {
 
 
-
   const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -22,9 +21,13 @@ const AdminDashboard = () => {
   const [userFilter, setUserFilter] = useState('all');
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [totalBookings, setTotalBookings] = useState(0);
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
+  const [totalUsers, setTotalUsers] = useState(0);
+
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     content: '',
@@ -33,17 +36,43 @@ const AdminDashboard = () => {
 
   const { deactivateClient } = useOnlineUsersSocket(() => { });
 
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [pageInfo, setPageInfo] = useState({
+    totalPages: 0,
+    totalElements: 0
+  });
 
 
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUser) return;
+
+    let token;
+    try {
+      token = JSON.parse(storedUser)?.token;
+    } catch (e) {
+      console.error("Lỗi parse user:", e);
+      return;
+    }
+
+    if (!token) return;
+
+    axios.get("http://localhost:8080/api/admin/users/total", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        setTotalUsers(res.data.totalUsers); // ✅ Gán vào state
+      })
+      .catch(err => {
+        console.error("Lỗi khi lấy tổng số người dùng:", err);
+      });
+  }, []);
 
 
-  // const [formData, setFormData] = useState({
-  //   name: "",
-  //   email: "",
-  //   roleName: "",
-  //   isActive: false,
-  // });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // Thêm state này
 
@@ -73,33 +102,22 @@ const AdminDashboard = () => {
       return;
     }
 
-    // 🔄 Gọi đồng thời cả hai API: /users và /bookings/count
     const headers = {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     };
 
-    const fetchUsers = axios.get("http://localhost:8080/api/admin/users", { headers });
-    const fetchTotalBookings = axios.get("http://localhost:8080/api/admin/users/stats/bookings/count", { headers });
-
-    Promise.all([fetchUsers, fetchTotalBookings])
-      .then(([usersRes, bookingsRes]) => {
-        // ✅ Gán danh sách người dùng
-        const fetchedUsers = usersRes.data;
-        if (Array.isArray(fetchedUsers)) {
-          setUsers(fetchedUsers);
-        } else {
-          console.error("API /users trả về không phải mảng:", fetchedUsers);
-        }
-
-        // ✅ Gán tổng số lượt đặt lịch
-        setTotalBookings(bookingsRes.data);
+    axios
+      .get("http://localhost:8080/api/admin/users/stats/bookings/count", { headers })
+      .then((res) => {
+        setTotalBookings(res.data);
       })
       .catch((err) => {
         console.error("Lỗi khi gọi API thống kê:", err);
       });
 
   }, []);
+
 
   //userEffect này để làm bảng thống kê
   // nhớ tải  npm install echarts echarts-for-react
@@ -184,8 +202,6 @@ const AdminDashboard = () => {
     })
       .then(res => {
         const data = res.data;
-        console.log("📊 Dữ liệu biểu đồ:", data);
-        console.log("🔢 Số ngày:", data.length);
 
         data.forEach(item => {
           console.log(`📅 ${item.date} → 🧑 ${item.totalUsers} user | 📆 ${item.totalBookings} booking`);
@@ -200,53 +216,75 @@ const AdminDashboard = () => {
   // lay thong ke websoket
   // lay danh sach user online
   useOnlineUsersSocket((realtimeOnlineUsers) => {
-    console.log("🟢 Danh sách online từ socket:", realtimeOnlineUsers);
     setOnlineUsers(realtimeOnlineUsers);
 
-    // Cập nhật lại trạng thái online cho mỗi user trong danh sách
     setUsers((prevUsers) => {
-      const updated = prevUsers.map((u) => ({
-        ...u,
-        isOnline: realtimeOnlineUsers.some((ou) => ou.userId === u.userId),
-      }));
-      console.log("📌 User sau khi cập nhật online:", updated);
-      return updated;
-    });
+      const updated = prevUsers.map((u) => {
+        const isNowOnline = realtimeOnlineUsers.some((ou) => ou.userId === u.userId);
+        if (u.isOnline === isNowOnline) return u;
+        return { ...u, isOnline: isNowOnline };
+      });
 
+      const hasChanged = updated.some((u, i) => u !== prevUsers[i]);
+      return hasChanged ? updated : prevUsers;
+    });
   });
 
+  const [realStats, setRealStats] = useState({
+    ongoingConsultations: 0,
+    completedConsultations: 0
+  });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+
+    let token;
+    try {
+      token = JSON.parse(storedUser).token;
+    } catch (e) {
+      console.error("❌ Lỗi khi parse user:", e);
+      return;
+    }
+
+    axios.get("http://localhost:8080/api/admin/users/consultations/statistics", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        const data = res.data;
+
+        console.log("📦 Dữ liệu thống kê theo trạng thái:", data);
+
+        const ongoing = data["ONGOING"] || 0;
+        const completed = data["COMPLETED"] || 0;
+
+        console.log(`📊 ONGOING: ${ongoing} | ✅ COMPLETED: ${completed}`);
+
+        setRealStats({
+          ongoingConsultations: ongoing,
+          completedConsultations: completed
+        });
+      })
+      .catch(err => {
+        console.error("❌ Lỗi khi lấy dữ liệu tư vấn:", err);
+      });
+  }, []);
 
 
-  const messages = [
-    // { id: 1, sender: 'John Doe', recipient: 'Jane Smith', content: 'Tôi cần hỗ trợ về việc đặt lịch của mình', timestamp: '2024-06-03 10:30', type: 'booking' },
-    // { id: 2, sender: 'Alice Brown', recipient: 'Hỗ trợ', content: 'Khi nào thì buổi tư vấn của tôi?', timestamp: '2024-06-03 09:15', type: 'consultation' },
-    // { id: 3, sender: 'Hệ thống', recipient: 'Tất cả người dùng', content: 'Bảo trì hệ thống được lên lịch tối nay', timestamp: '2024-06-02 16:00', type: 'notification' },
-  ];
-
-  const [notifications, setNotifications] = useState([
-    // { id: 1, title: 'Bảo trì hệ thống', content: 'Bảo trì theo lịch trình tối nay từ 23:00 đến 01:00 sáng', status: 'active', created: '2024-06-02', lastSent: '2024-06-02 16:00' },
-    // { id: 2, title: 'Ra mắt tính năng mới', content: 'Hãy xem các tính năng hệ thống đặt lịch mới của chúng tôi', status: 'hidden', created: '2024-06-01', lastSent: null },
-    // { id: 3, title: 'Giờ làm việc ngày lễ', content: 'Cập nhật giờ làm việc cho cuối tuần lễ sắp tới', status: 'active', created: '2024-05-30', lastSent: '2024-05-30 10:00' },
-  ]);
 
   const stats = {
-    totalUsers: users.length,
+    totalUsers: totalUsers, // hoặc viết gọn: totalUsers,
     onlineUsers: onlineUsers.length,
-    ongoingConsultations: 23,
-    completedConsultations: 156,
+    ongoingConsultations: realStats.ongoingConsultations,
+    completedConsultations: realStats.completedConsultations,
     totalBookings: totalBookings,
     activeServices: 8,
     messagesSent: 1834,
     messagesReceived: 1756
   };
 
-  const filteredUsers = users.filter(user =>
-    userFilter === 'all' || user.roleName === userFilter
-  );
-
-  const filteredMessages = messages.filter(message =>
-    messageFilter === 'all' || message.type === messageFilter
-  );
 
   const DashboardOverview = () => (
     <div className="space-y-6">
@@ -294,8 +332,9 @@ const AdminDashboard = () => {
             <Calendar className="h-8 w-8 text-purple-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Tư vấn đang diễn ra</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.ongoingConsultations}</p>
-            </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.ongoingConsultations ?? 0}
+              </p>            </div>
           </div>
         </div>
 
@@ -304,7 +343,9 @@ const AdminDashboard = () => {
             <CheckCircle className="h-8 w-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Tư vấn đã hoàn thành</p>
-              <p className="text-2xl font-bold text-green-700">{stats.completedConsultations}</p>
+              <p className="text-2xl font-bold text-green-700">
+                {stats.completedConsultations ?? 0}
+              </p>
             </div>
           </div>
         </div>
@@ -321,54 +362,178 @@ const AdminDashboard = () => {
 
 
 
-  const UserManagement = () => {
+  const UserManagement = ({
+    users,
+    setUsers,
+    page,
+    setPage,
+    size,
+    setSize,
+    pageInfo,
+    setPageInfo
+  }) => {
     const [userFilter, setUserFilter] = useState("all");
-    const [users, setUsers] = useState([]);
     const [errors, setErrors] = useState({});
-    const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [formData, setFormData] = useState({
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       phone: "",
-      role: "Khách hàng"
+      roleName: "",
+      certificates: [],
+    });
+    const [editForm, setEditForm] = useState({
+      certificates: []
     });
 
     useEffect(() => {
-      fetchUsers();
-    }, []);
+      if (selectedUser) {
+        setEditForm({
+          name: selectedUser.name || "",
+          email: selectedUser.email || "",
+          roleName: selectedUser.roleName === "Tư vấn viên" ? "ROLE_CONSULTANT" : (
+            selectedUser.roleName === "Khách hàng" ? "ROLE_CUSTOMER" :
+              selectedUser.roleName === "Nhân viên" ? "ROLE_STAFF" :
+                selectedUser.roleName === "Quản trị viên" ? "ROLE_ADMIN" :
+                  selectedUser.roleName === "Quản lý" ? "ROLE_MANAGER" : ""
+          ),
+          certificates: selectedUser.certificates || [],
+        });
+      }
+    }, [selectedUser]);
+
 
     useEffect(() => {
-      setFilteredUsers(
-        userFilter === "all"
-          ? users
-          : users.filter((u) => u.roleName === userFilter)
-      );
+      if (selectedUser) {
+        setFormData({
+          name: selectedUser.name || "",
+          email: selectedUser.email || "",
+          roleName: selectedUser.roleName === "Tư vấn viên" ? "ROLE_CONSULTANT" : (
+            selectedUser.roleName === "Khách hàng" ? "ROLE_CUSTOMER" :
+              selectedUser.roleName === "Nhân viên" ? "ROLE_STAFF" :
+                selectedUser.roleName === "Quản trị viên" ? "ROLE_ADMIN" :
+                  selectedUser.roleName === "Quản lý" ? "ROLE_MANAGER" :
+                    ""
+          ),
+          certificates: selectedUser.certificates || [],
+        });
+      }
+    }, [selectedUser]);
+
+
+
+
+    const filteredUsers = useMemo(() => {
+      return userFilter === "all"
+        ? users
+        : users.filter((u) => u.roleName === userFilter);
     }, [userFilter, users]);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (page = 0, size = 10) => {
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await axios.get("http://localhost:8080/api/admin/users", {
+        const res = await axios.get(`http://localhost:8080/api/admin/users?page=${page}&size=${size}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setUsers(res.data);
+        const data = res.data;
+
+        if (Array.isArray(data.content)) {
+          // ✅ So sánh trước khi set
+          setUsers(prevUsers => {
+            const isSame = JSON.stringify(prevUsers) === JSON.stringify(data.content);
+            return isSame ? prevUsers : data.content;
+          });
+
+          // ✅ So sánh trước khi set
+          setPageInfo(prev => {
+            const newInfo = {
+              totalPages: data.totalPages,
+              totalElements: data.totalElements
+            };
+
+            const isSame =
+              prev.totalPages === newInfo.totalPages &&
+              prev.totalElements === newInfo.totalElements;
+
+            return isSame ? prev : newInfo;
+          });
+        }
       } catch (err) {
         console.error("Lỗi khi lấy danh sách user:", err);
       }
     };
 
+
+
+    useEffect(() => {
+      fetchUsers(page, size);
+      console.log("🔁 useEffect gọi fetchUsers với page:", page, "size:", size);
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, size]);
+
     const handleChange = (e) => {
       setFormData({ ...formData, [e.target.name]: e.target.value });
+
+      // ✅ Xóa lỗi khi người dùng thay đổi trường liên quan
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [e.target.name]: "", // Xóa lỗi của field đang nhập
+      }));
     };
 
+    const validateForm = () => {
+      const newErrors = {};
+
+      if (!formData.name?.trim()) {
+        newErrors.name = "Vui lòng nhập họ tên";
+      }
+
+      if (!formData.email?.trim()) {
+        newErrors.email = "Vui lòng nhập email";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Email không hợp lệ";
+      }
+
+      if (!formData.password) {
+        newErrors.password = "Vui lòng nhập mật khẩu";
+      }
+
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+      }
+
+      if (!formData.phoneNumber?.trim()) {
+        newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
+      }
+
+      if (!formData.role?.trim()) {
+        newErrors.role = "Vui lòng chọn vai trò";
+      }
+
+      return newErrors;
+    };
+
+
+
     const handleCreateUser = async () => {
+      const errorsFound = validateForm();
+      if (Object.keys(errorsFound).length > 0) {
+        setErrors(errorsFound);
+        return;
+      }
+
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        await axios.post("/api/admin/users/create-user", formData, {
-          headers: { Authorization: `Bearer ${token}` }
+        const { confirmPassword, ...dataToSend } = formData;
+
+        await axios.post("/api/admin/users/create-user", dataToSend, {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         alert("Tạo tài khoản thành công");
@@ -377,37 +542,53 @@ const AdminDashboard = () => {
           name: "",
           email: "",
           password: "",
+          confirmPassword: "",
           phoneNumber: "",
-          role: "Khách hàng",
-          certificates: [], // ✅ thêm dòng này
+          role: "",
+          certificates: [],
         });
+
         setErrors({});
         setShowCreateForm(false);
         fetchUsers();
-
       } catch (error) {
         const message = error.response?.data?.error || "";
-
-        console.log("Lỗi từ backend:", message);
-
-        if (typeof message === "string" && message.includes("Email đã tồn tại")) {
+        if (message.includes("Email đã tồn tại")) {
           setErrors({ email: "Email đã tồn tại" });
         } else {
           alert("Lỗi khi tạo tài khoản");
         }
       }
-
-
     };
 
 
 
-const handleEditUser = (user) => {
-    setSelectedUser({
-      ...user,
-      isActive: Boolean(user.isActive) // Ensure it's a boolean
-    });
-  };    const handleDeleteUser = async (user) => {
+    const handleEditUser = (user) => {
+      const normalizedCertificates = (user.certificates || []).map((cert) => {
+        if (typeof cert === "string") {
+          return { id: null, name: cert.trim() };
+        } else if (typeof cert === "object" && cert !== null) {
+          return {
+            id: cert.id ?? null,
+            name: cert.name?.trim() ?? "",
+          };
+        }
+        return { id: null, name: "" };
+      });
+
+      setEditForm({
+        ...user,
+        certificates: normalizedCertificates
+      });
+
+      setSelectedUser(user);
+    };
+
+
+
+
+
+    const handleDeleteUser = async (user) => {
       const confirmed = window.confirm(`Bạn có chắc muốn xóa ${user.name}?`);
       if (!confirmed) return;
 
@@ -434,67 +615,77 @@ const handleEditUser = (user) => {
         alert(msg);
       }
     };
-const handleCheckboxChange = (e) => {
-    setSelectedUser(prev => ({
-      ...prev,
-      isActive: e.target.checked
-    }));
-  };
-const handleSaveChanges = async () => {
-    const userId = selectedUser?.userId;
-
-    if (!userId) {
-      alert("Thiếu thông tin người dùng để cập nhật");
-      return;
-    }
-
-    const form = document.getElementById("editUserForm");
-    const formData = new FormData(form);
-
-    const updateData = {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      roleName: formData.get("roleName"),
-      isActive: selectedUser.isActive
+    const handleCheckboxChange = (e) => {
+      setSelectedUser(prev => ({
+        ...prev,
+        isActive: e.target.checked
+      }));
     };
-    try {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      const token = storedUser?.token;
+    const handleSaveChanges = async () => {
+      const userId = selectedUser?.userId;
 
-      if (!token) {
-        alert("Token không tồn tại, vui lòng đăng nhập lại.");
+      if (!userId) {
+        alert("Thiếu thông tin người dùng để cập nhật");
         return;
       }
 
-      await axios.put(
-        `/api/admin/users/${userId}`,
-        updateData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
+      const form = document.getElementById("editUserForm");
+      const formData = new FormData(form);
+
+
+
+      const updateData = {
+        name: formData.get("name"),
+        email: formData.get("email"),
+        roleName: formData.get("roleName"),
+        isActive: selectedUser.isActive,
+        certificates: editForm.certificates || [] // ✅ Dữ liệu người dùng nhập thực sự
+      };
+
+      console.log("updateData gửi lên:", updateData);
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        const token = storedUser?.token;
+
+        if (!token) {
+          alert("Token không tồn tại, vui lòng đăng nhập lại.");
+          return;
         }
-      );
 
-      alert("Cập nhật thành công!");
-      setSelectedUser(null);
-    } catch (error) {
-      console.error("Lỗi khi cập nhật:", error);
+        await axios.put(
+          `/api/admin/users/${userId}`,
+          updateData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
 
-      const status = error.response?.status;
-      const message = error.response?.data;
+        alert("Cập nhật thành công!");
+        fetchUsers();
 
-      if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
-        alert("Bạn không thể chỉnh sửa chính mình.");
-      } else {
-        const fallbackMessage =
-          message?.message || error.message || "Cập nhật thất bại";
-        alert("Lỗi khi cập nhật: " + fallbackMessage);
+        setSelectedUser(null);
+      } catch (error) {
+        console.error("Lỗi khi cập nhật:", error);
+
+        const status = error.response?.status;
+        const message = error.response?.data;
+
+        if (status === 400 && message === "Không thể chỉnh sửa chính bạn") {
+          alert("Bạn không thể chỉnh sửa chính mình.");
+        } else {
+          const fallbackMessage =
+            message?.message || error.message || "Cập nhật thất bại";
+          alert("Lỗi khi cập nhật: " + fallbackMessage);
+        }
       }
-    }
+    };
 
-  };
+    //ham để goin lại trang
+
+
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -522,100 +713,175 @@ const handleSaveChanges = async () => {
         </div>
 
         {showCreateForm && (
-          <div className="p-4 bg-white rounded-lg shadow space-y-4 mt-4">
-            <h3 className="text-lg font-semibold">Tạo tài khoản người dùng</h3>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+            onClick={() => {
+              setShowCreateForm(false);
+            }}
+          >
+            <div
+              className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl space-y-4"
+              onClick={(e) => {
+                e.stopPropagation(); // ❗ Chặn sự kiện click lan ra nền
+              }}
+            >
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Họ tên */}
-              <div className="col-span-1 w-full">
-                <input
-                  name="name"
-                  placeholder="Họ tên"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                />
+
+              <h3 className="text-lg font-semibold">Tạo tài khoản người dùng</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Họ tên */}
+                <div className="col-span-1 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Họ tên
+                  </label>
+                  <input
+                    name="name"
+                    placeholder="Họ tên"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="col-span-1 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`w-full p-2 border rounded ${errors.email ? "border-red-500" : ""}`}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                  )}
+                </div>
+
+                {/* Mật khẩu + con mắt */}
+                <div className="col-span-1 w-full relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mật khẩu
+                  </label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Mật khẩu"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded pr-10"
+                  />              
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                  )}
+                </div>
+
+
+                {/* Xác nhận mật khẩu */}
+                <div className="col-span-1 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Xác nhận mật khẩu
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    placeholder="Nhập lại mật khẩu"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className={`w-full p-2 border rounded ${errors.confirmPassword ? "border-red-500" : ""}`}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                  )}
+                </div>
+
+                {/* Số điện thoại */}
+                <div className="col-span-1 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số điện thoại
+                  </label>
+                  <input
+                    name="phoneNumber"
+                    placeholder="Số điện thoại"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                  />
+                  {errors.phoneNumber && (
+                    <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
+                  )}
+                </div>
+
+                {/* Vai trò */}
+                <div className="col-span-1 w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vai trò
+                  </label>
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">-- Chọn vai trò --</option>
+                    <option value="Khách hàng">Khách hàng</option>
+                    <option value="Tư vấn viên">Tư vấn viên</option>
+                    <option value="Nhân viên">Nhân viên</option>
+                    <option value="Quản lý">Quản lý</option>
+                    <option value="Quản trị viên">Quản trị viên</option>
+                  </select>
+                  {errors.role && (
+                    <p className="text-red-500 text-sm mt-1">{errors.role}</p>
+                  )}
+                </div>
               </div>
 
-              {/* Email + Lỗi */}
-              <div className="col-span-1 w-full">
-                <input
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-                )}
+              {formData.role === "Tư vấn viên" && (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mt-2">
+                    Chứng chỉ (mỗi dòng là một chứng chỉ)
+                  </label>
+                  <textarea
+                    name="certificates"
+                    placeholder={`VD:\nChứng chỉ tư vấn tâm lý\nChứng chỉ chăm sóc sức khỏe`}
+                    value={formData.certificates?.join("\n") || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        certificates: e.target.value.split("\n"),
+                      }))
+                    }
+                    rows={4}
+                    className="w-full p-2 border rounded"
+                  />
+                </>
+              )}
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <button
+                  onClick={() => setShowCreateForm(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-lg"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateUser}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Tạo
+                </button>
               </div>
-
-              {/* Mật khẩu */}
-              <div className="col-span-1 w-full">
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Mật khẩu"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              {/* Số điện thoại */}
-              <div className="col-span-1 w-full">
-                <input
-                  name="phoneNumber"
-                  placeholder="Số điện thoại"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-
-
-
-              <select name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded md:col-span-2">
-                <option value="Khách hàng">Khách hàng</option>
-                <option value="Tư vấn viên">Tư vấn viên</option>
-                <option value="Nhân viên">Nhân viên</option>
-                <option value="Quản lý">Quản lý</option>
-                <option value="Quản trị viên">Quản trị viên</option>
-              </select>
-            </div>
-
-            {formData.role === "Tư vấn viên" && (
-              <>
-                <label className="block text-sm font-medium text-gray-700 mt-2">
-                  Chứng chỉ (mỗi dòng là một chứng chỉ)
-                </label>
-                <textarea
-                  name="certificates"
-                  placeholder={`VD:\nChứng chỉ tư vấn tâm lý\nChứng chỉ chăm sóc sức khỏe`}
-                  value={formData.certificates?.join("\n") || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      certificates: e.target.value.split("\n"), // KHÔNG filter lúc nhập
-                    }))
-                  }
-                  rows={4}
-                  className="w-full p-2 border rounded"
-                />
-
-              </>
-            )}
-
-
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <button onClick={() => setShowCreateForm(false)} className="px-4 py-2 bg-gray-300 rounded-lg">Hủy</button>
-              <button onClick={handleCreateUser} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Tạo</button>
             </div>
           </div>
         )}
+
 
 
         {/* Danh sách bảng người dùng giữ nguyên ở đây */}
@@ -707,6 +973,43 @@ const handleSaveChanges = async () => {
           </table>
         </div>
 
+        {/* ✅ Thanh phân trang */}
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            ◀ Trang trước
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            Trang {page + 1} / {pageInfo.totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page + 1 >= pageInfo.totalPages}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Trang sau ▶
+          </button>
+
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value));
+              setPage(0); // 🔄 reset về trang đầu khi đổi size
+            }}
+            className="ml-4 px-2 py-1 border rounded"
+          >
+            <option value={5}>5 dòng/trang</option>
+            <option value={10}>10 dòng/trang</option>
+            <option value={20}>20 dòng/trang</option>
+          </select>
+        </div>
+
+
         {/* Edit User Modal */}
         {selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -736,15 +1039,53 @@ const handleSaveChanges = async () => {
                     <label className="block text-sm font-medium text-gray-700">Vai trò</label>
                     <select
                       name="roleName"
-                      defaultValue={selectedUser.roleName}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      value={editForm.roleName}
+                      onChange={(e) => {
+                        const role = e.target.value;
+                        setEditForm((prev) => ({
+                          ...prev,
+                          roleName: role,
+                          certificates: role === "ROLE_CONSULTANT" ? prev.certificates : []
+                        }));
+                      }}
+                      className="w-full p-2 border rounded"
                     >
                       <option value="ROLE_CUSTOMER">Khách hàng</option>
                       <option value="ROLE_CONSULTANT">Tư vấn viên</option>
-                      <option value="ROLE_ADMIN">Quản trị viên</option>
-                      <option value="ROLE_MANAGER">Quản lý</option>
                       <option value="ROLE_STAFF">Nhân viên</option>
+                      <option value="ROLE_MANAGER">Quản lý</option>
+                      <option value="ROLE_ADMIN">Quản trị viên</option>
                     </select>
+                    {editForm.roleName === "ROLE_CONSULTANT" && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Chứng chỉ (mỗi dòng là một chứng chỉ)
+                        </label>
+                        <textarea
+                          name="certificates"
+                          placeholder={`VD:\nChứng chỉ tư vấn tâm lý\nChứng chỉ chăm sóc sức khỏe`}
+                          value={editForm.certificates?.map(c => c.name).join("\n") || ""}
+                          onChange={(e) => {
+                            const lines = e.target.value.split("\n");
+
+                            const updatedCertificates = lines.map((line, index) => {
+                              const existing = editForm.certificates?.[index];
+                              return {
+                                id: existing?.id || null,
+                                name: line // ❌ KHÔNG trim hay filter ở đây
+                              };
+                            });
+
+                            setEditForm((prev) => ({
+                              ...prev,
+                              certificates: updatedCertificates
+                            }));
+                          }}
+                          rows={4}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <input
@@ -993,32 +1334,7 @@ const handleSaveChanges = async () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Xác nhận xóa</h3>
-            <p className="text-gray-700">Bạn có chắc chắn muốn xóa thông báo này không?</p>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  setNotifications(notifications.filter(n => n.id !== showDeleteConfirm));
-                  setShowDeleteConfirm(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 
@@ -1031,7 +1347,7 @@ const handleSaveChanges = async () => {
   };
 
 
-  
+
 
 
 
@@ -1093,7 +1409,18 @@ const handleSaveChanges = async () => {
 
         {/* Tab Content */}
         {activeTab === 'dashboard' && <DashboardOverview />}
-        {activeTab === 'users' && <UserManagement />}
+        {activeTab === 'users' && <UserManagement
+          users={users}
+          setUsers={setUsers}
+          page={page}
+          setPage={setPage}
+          size={size}
+          setSize={setSize}
+          pageInfo={pageInfo}
+          setPageInfo={setPageInfo}
+        />
+
+        }
         {activeTab === 'messages' && <MessagingPanel />}
         {activeTab === 'notifications' && <NotificationPanel />}
       </div>

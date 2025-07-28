@@ -3,6 +3,10 @@ import { Calendar, Clock, User, Plus, Filter, ChevronLeft, ChevronRight, Edit, T
 
 const ScheduleManagement = () => {
   const [schedules, setSchedules] = useState([]);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('week');
   const [showModal, setShowModal] = useState(false);
@@ -15,25 +19,23 @@ const ScheduleManagement = () => {
   // Keyboard shortcuts
 
   useEffect(() => {
-    const token = localStorage.getItem("token"); // hoặc sessionStorage nếu bạn dùng nó
-
-    fetch('http://localhost:8080/api/manager/bookings', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const token = localStorage.getItem("token");
+    fetch(`http://localhost:8080/api/manager/page/bookings?page=${page}&size=${size}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => {
-        if (!res.ok) {
-          throw new Error('Không thể load booking');
-        }
+        if (!res.ok) throw new Error('Không thể load booking');
         return res.json();
       })
-      .then(setSchedules)
+      .then(data => {
+        setSchedules(data.content);          // danh sách lịch
+        setTotalPages(data.totalPages);     // tổng số trang
+      })
       .catch((err) => {
         console.error('Lỗi khi tải lịch:', err);
         alert("Phiên đăng nhập hết hạn hoặc không có quyền.");
       });
-  }, []);
+  }, [page, size]);
 
 
   // dung de gan mau cho tung loại
@@ -114,6 +116,8 @@ const ScheduleManagement = () => {
       bookingId: selectedSchedule.bookingId,
       bookingDate: formData.date,
       timeSlot: `${formData.startTime}-${formData.endTime}`,
+        consultantId: formData.consultantId, // ✅ Thêm dòng này để cập nhật consultation status
+
     };
 
     try {
@@ -198,63 +202,10 @@ const ScheduleManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý lịch làm việc</h1>
           <p className="text-gray-600 mt-1">Xem và quản lý lịch hẹn của nhân viên và dịch vụ xét nghiệm</p>
         </div>
-        <button
-          onClick={() => openModal('add')}
-          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus size={20} className="mr-2" />
-          Thêm lịch hẹn
-        </button>
+
       </div>
 
-      {/* Calendar Controls */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigateDate('prev')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {currentDate.toLocaleDateString('vi-VN', {
-                month: 'long',
-                year: 'numeric'
-              })}
-            </h2>
-            <button
-              onClick={() => navigateDate('next')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Hôm nay
-            </button>
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              {(['day', 'week', 'month']).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${viewMode === mode
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  {mode === 'day' ? 'Ngày' : mode === 'week' ? 'Tuần' : 'Tháng'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Schedule List View */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -312,7 +263,7 @@ const ScheduleManagement = () => {
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <div className="mb-2">{getStatusBadge(schedule.status)}</div>
-                    <p className="text-sm text-gray-600">{formatDate(schedule.date)}</p>
+                    <p className="text-sm text-gray-600">{formatDate(schedule.bookingDate)}</p>
                     {schedule.serviceName && (
                       <p className={`text-sm mt-1 inline-block px-2 py-1 rounded-full font-medium ${getServiceColor(schedule.serviceName)}`}>
                         {schedule.serviceName}
@@ -339,7 +290,6 @@ const ScheduleManagement = () => {
                       >
                         <Trash2 size={16} />
                       </button> */}
-
                       <div className="relative">
                         <select
                           value={schedule.status}
@@ -363,24 +313,51 @@ const ScheduleManagement = () => {
             </div>
           ))}
         </div>
-
-
-
+        
         {schedules.length === 0 && (
           <div className="p-12 text-center">
             <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có lịch hẹn nào</h3>
             <p className="text-gray-600 mb-4">Bắt đầu bằng cách thêm lịch hẹn mới cho khách hàng</p>
-            <button
-              onClick={() => openModal('add')}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={16} className="mr-2" />
-              Thêm lịch hẹn đầu tiên
-            </button>
+            
           </div>
         )}
       </div>
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-center gap-4 mt-4 pb-4">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            ◀ Trang trước
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            Trang {page + 1} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page + 1 >= totalPages}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Trang sau ▶
+          </button>
+
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value));
+              setPage(0); // reset về trang đầu nếu đổi size
+            }}
+            className="ml-4 px-2 py-1 border rounded"
+          >
+            <option value={5}>5 dòng/trang</option>
+            <option value={10}>10 dòng/trang</option>
+            <option value={20}>20 dòng/trang</option>
+          </select>
+        </div>
 
       {/* Modal */}
       {showModal && (
@@ -487,8 +464,7 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    fetch("http://localhost:8080/api/manager/staffs", {
+    fetch("http://localhost:8080/api/manager/staffs?page=0&size=100", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -498,18 +474,18 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
         return res.json();
       })
       .then((data) => {
-        console.log("✅ Danh sách nhân viên:", data);
-        setStaffList(data);
+        console.log("✅ Danh sách nhân viên (phân trang):", data);
+        setStaffList(data.content); // 👈 CHỈ LẤY PHẦN CONTENT
       })
       .catch((err) => {
         console.error("❌ Lỗi khi lấy danh sách nhân viên:", err);
       });
   }, []);
 
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    fetch("http://localhost:8080/api/manager/consultants", {
+    fetch("http://localhost:8080/api/manager/consultants?page=0&size=100", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -519,17 +495,13 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
         return res.json();
       })
       .then((data) => {
-        console.log("✅ Danh sách tư vấn viên:", data);
-        setConsultantList(data);
+        console.log("✅ Danh sách tư vấn viên (phân trang):", data);
+        setConsultantList(data.content); // 👈 chỉ lấy danh sách tư vấn viên
       })
       .catch((err) => {
         console.error("❌ Lỗi khi lấy danh sách tư vấn viên:", err);
       });
   }, []);
-
-
-
-
 
   const quickFillTime = (timeSlot) => {
     const timeSlots = {
@@ -711,8 +683,8 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
               .filter(staff => staff.active === true)
               .map(staff => (
                 <option key={staff.id} value={String(staff.id)}>
-                  {staff.fullName} - {specializationToVietnamese[staff.specialization] || ''}
-                </option>
+  {staff.fullName} - {staff.specialization || 'Chưa xác định'}
+</option>
               ))}
           </select>
 
@@ -731,8 +703,9 @@ const ScheduleForm = ({ schedule, onSave, onCancel }) => {
               .filter(consultant => consultant.active === true)
               .map(consultant => (
                 <option key={consultant.id} value={String(consultant.id)}>
-                  {consultant.fullName} - {specializationToVietnamese[consultant.specialization] || ''}
-                </option>
+  {consultant.fullName} - {consultant.specialization || 'Chưa xác định'}
+</option>
+
               ))}
           </select>
 

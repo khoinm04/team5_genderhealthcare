@@ -6,9 +6,11 @@ import com.ghsms.model.ConsultantDetails;
 import com.ghsms.model.Services;
 import com.ghsms.model.StaffDetails;
 import com.ghsms.model.User;
-import com.ghsms.repository.ServiceRepository;
 import com.ghsms.service.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,23 +27,26 @@ public class ManagerController {
 
     private final UserService userService;
     private final StaffDetailsService staffDetailsService;
-    private final BookingService bookingService; // Assuming you have a BookingService for booking-related operations
-    private final ServiceService serviceService; // Assuming you have a ServiceService for service-related operations
+    private final BookingService bookingService;
+    private final ServiceService serviceService;
     private final ConsultantDetailsService consultantDetailsService;
 
     @GetMapping("/staffs")
-    public ResponseEntity<List<StaffResponseDto>> getAllStaffs() {
-        List<User> staffs = userService.findByRoleName(RoleName.ROLE_STAFF);
+    public ResponseEntity<Page<StaffResponseDto>> getPagedStaffs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<StaffResponseDto> result = staffs.stream()
-                .map(user -> {
-                    StaffDetails details = staffDetailsService.getById(user.getUserId()).orElse(null);
-                    return StaffResponseDto.from(user, details);
-                })
-                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> staffUsers = userService.findByRoleName(RoleName.ROLE_STAFF, pageable);
+
+        Page<StaffResponseDto> result = staffUsers.map(user -> {
+            StaffDetails details = staffDetailsService.getById(user.getUserId()).orElse(null);
+            return StaffResponseDto.from(user, details);
+        });
 
         return ResponseEntity.ok(result);
     }
+
 
     @PutMapping("/staffs/full")
     public ResponseEntity<?> updateStaffDetails(@RequestBody StaffUpdateRequestDto request) {
@@ -49,11 +54,6 @@ public class ManagerController {
         return ResponseEntity.ok("Cập nhật thông tin nhân viên thành công");
     }
 
-    @GetMapping("/bookings")
-    public ResponseEntity<List<BookingDTO>> getAllBookings() {
-        List<BookingDTO> bookings = bookingService.getAllBookingsForManager();
-        return ResponseEntity.ok(bookings);
-    }
 
     @PutMapping("/bookings/{bookingId}/assign-staff")
     public ResponseEntity<?> assignStaffToBooking(
@@ -64,6 +64,14 @@ public class ManagerController {
         return ResponseEntity.ok("Đã gán nhân viên thành công");
     }
 
+    @GetMapping("/page/bookings")
+    public ResponseEntity<Page<BookingDTO>> getPagedBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<BookingDTO> result = bookingService.getPagedBookingsForManager(page, size);
+        return ResponseEntity.ok(result);
+    }
 
 
     @GetMapping("/services")
@@ -116,20 +124,23 @@ public class ManagerController {
         List<BookingDTO> schedules = bookingService.getUpcomingSchedules();
         return ResponseEntity.ok(schedules);
     }
-//======================Consultant========================
-    @GetMapping("/consultants")
-    public ResponseEntity<List<ConsultantResponseDto>> getAllConsultants() {
-        List<User> staffs = userService.findByRoleName(RoleName.ROLE_CONSULTANT);
 
-        List<ConsultantResponseDto> result = staffs.stream()
-                .map(user -> {
-                    ConsultantDetails details = consultantDetailsService.getById(user.getUserId()).orElse(null);
-                    return ConsultantResponseDto.from(user, details);
-                })
-                .toList();
+    @GetMapping("/consultants")
+    public ResponseEntity<Page<ConsultantResponseDto>> getPagedConsultants(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> consultantUsers = userService.findByRoleName(RoleName.ROLE_CONSULTANT, pageable);
+
+        Page<ConsultantResponseDto> result = consultantUsers.map(user -> {
+            ConsultantDetails details = consultantDetailsService.getByUserId(user.getUserId()).orElse(null);
+            return ConsultantResponseDto.from(user, details);
+        });
 
         return ResponseEntity.ok(result);
     }
+
 
     @PutMapping("/consultants/full")
     public ResponseEntity<?> updateConsultantDetails(@RequestBody ConsultantUpdateRequestDto request) {
@@ -146,12 +157,15 @@ public class ManagerController {
         return ResponseEntity.ok("Đã gán tư vấn viên thành công");
     }
 
-    //=======================Services========================
-    @GetMapping("/services/manager")
-    public ResponseEntity<List<ServiceResponseDTO>> getAllService() {
-        List<ServiceResponseDTO> services = serviceService.getAllServicesForManager();
+    @GetMapping("/page/services")
+    public ResponseEntity<Page<ServiceResponseDTO>> getPagedServices(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<ServiceResponseDTO> services = serviceService.getAllServicesForManager(page, size);
         return ResponseEntity.ok(services);
     }
+
 
     @PutMapping("/services/{id}")
     public ResponseEntity<?> updateService(
@@ -172,21 +186,44 @@ public class ManagerController {
         return ResponseEntity.ok(response);
     }
 
-
-    //lay tong so dich vu dang co
     @GetMapping("/total-services")
     public ResponseEntity<Map<String, Object>> getTotalServices() {
-        long count = serviceService.countServiceActiveTrue(); // hoặc điều kiện tùy hệ thống
+        long count = serviceService.countServiceActiveTrue();
         Map<String, Object> result = new HashMap<>();
         result.put("totalServices", count);
-        result.put("serviceChange", "+0 từ tháng trước"); // nếu muốn có biểu đồ thay đổi
+        result.put("serviceChange", "+0 từ tháng trước");
         return ResponseEntity.ok(result);
     }
 
-    //api them dich vu
+
     @PostMapping("/create")
     public ResponseEntity<Services> createService(@RequestBody CreateServiceRequest request) {
         Services created = serviceService.createService(request);
         return ResponseEntity.ok(created);
     }
+
+    @PutMapping("/services/{id}/deactivate")
+    public ResponseEntity<?> deactivateService(@PathVariable("id") Long id) {
+        serviceService.deactivateService(id);
+        return ResponseEntity.ok("Dịch vụ đã được ngừng.");
+    }
+
+    @PutMapping("/services/{id}/reactivate")
+    public ResponseEntity<?> reactivateService(@PathVariable("id") Long id) {
+        serviceService.reactivateService(id);
+        return ResponseEntity.ok("Dịch vụ đã được kích hoạt lại.");
+    }
+
+    @GetMapping("/consultation")
+    public ResponseEntity<List<SimpleServiceDTO>> getConsultationServices() {
+        List<SimpleServiceDTO> services = serviceService.getConsultationServices();
+        return ResponseEntity.ok(services);
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<List<SimpleServiceDTO>> getTestServices() {
+        List<SimpleServiceDTO> services = serviceService.getTestServices();
+        return ResponseEntity.ok(services);
+    }
+
 }

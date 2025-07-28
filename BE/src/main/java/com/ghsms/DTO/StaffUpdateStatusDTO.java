@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class StaffUpdateStatusDTO {
     private Long bookingId;
-    private String status; // sẽ được convert sang BookingStatus enum
+    private String status;
 }

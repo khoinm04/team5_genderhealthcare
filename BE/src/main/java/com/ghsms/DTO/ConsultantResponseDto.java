@@ -1,6 +1,5 @@
 package com.ghsms.DTO;
 
-import com.ghsms.file_enum.ConsultantSpecialization;
 import com.ghsms.model.Certificate;
 import com.ghsms.model.ConsultantDetails;
 import com.ghsms.model.User;
@@ -11,8 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -23,7 +20,7 @@ public class ConsultantResponseDto {
     private String fullName;
     private String email;
     private String roleDisplay;
-    private ConsultantSpecialization specialization;
+    private String specialization;
     private LocalDate hireDate;
     private Integer yearsOfExperience;
     private Boolean active;
@@ -51,7 +48,7 @@ public class ConsultantResponseDto {
                 .yearsOfExperience(details != null ? details.getYearsOfExperience() : null)
                 .active(user.getIsActive())
                 .phoneNumber(user.getPhoneNumber())
-                .certificates(certNames) // ✅ QUAN TRỌNG: thêm dòng này
+                .certificates(certNames)
                 .build();
     }
 }

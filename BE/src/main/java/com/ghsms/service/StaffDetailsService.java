@@ -1,7 +1,6 @@
 package com.ghsms.service;
 
 import com.ghsms.DTO.StaffUpdateRequestDto;
-import com.ghsms.file_enum.StaffSpecialization;
 import com.ghsms.model.StaffDetails;
 import com.ghsms.model.User;
 import com.ghsms.repository.StaffDetailsRepository;
@@ -37,13 +36,12 @@ public class StaffDetailsService {
         user.setEmail(dto.getEmail());
         user.setPhoneNumber(dto.getPhoneNumber());
 
-        // Lấy hoặc tạo mới StaffDetails
         StaffDetails details = staffDetailsRepository.findById(dto.getStaffId())
                 .orElse(null);
 
         if (details == null) {
             details = new StaffDetails();
-            details.setStaff(user); // ✅ Không cần set ID nếu dùng @MapsId
+            details.setStaff(user);
         }
 
         details.setSpecialization(dto.getSpecialization());
@@ -51,14 +49,5 @@ public class StaffDetailsService {
 
         staffDetailsRepository.save(details);
     }
-
-
-
-
-
-    public void deleteById(Long staffId) {
-        staffDetailsRepository.deleteById(staffId);
-    }
-
 
 }

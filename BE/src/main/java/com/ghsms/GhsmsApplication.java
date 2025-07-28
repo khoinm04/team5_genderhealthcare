@@ -9,7 +9,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocket;
 
 @SpringBootApplication
 @EnableScheduling
-@EnableAsync  // ✅ Dòng này cực kỳ quan trọng
+@EnableAsync
 public class GhsmsApplication {
 
     public static void main(String[] args) {

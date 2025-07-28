@@ -11,7 +11,6 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "BlogPosts")
@@ -34,7 +33,7 @@ public class BlogPost {
     private String content;
 
     @Column(name = "Excerpt",columnDefinition = "nvarchar(100)")
-    private String excerpt;  // Tóm tắt bài viết
+    private String excerpt;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -45,7 +44,7 @@ public class BlogPost {
     private BlogStatus status;
 
     @Column(name = "PublishTime")
-    private LocalDateTime publishTime; // Dành cho bài lên lịch xuất bản
+    private LocalDateTime publishTime;
 
     @Column(name = "ImageUrl")
     private String imageUrl;

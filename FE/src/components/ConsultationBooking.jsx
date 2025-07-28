@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+
 import { jwtDecode } from 'jwt-decode'; import {
     Calendar,
     Clock,
@@ -21,6 +23,8 @@ import { jwtDecode } from 'jwt-decode'; import {
 import PaymentPage from './PaymentPage';
 
 const ConsultationBooking = () => {
+    const [slotAvailability, setSlotAvailability] = useState({});
+
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedService, setSelectedService] = useState(null);
@@ -36,7 +40,7 @@ const ConsultationBooking = () => {
         notes: ''
     });
     const [appointments, setAppointments] = useState([]);
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [services, setServices] = useState([]);
     const [latestBooking, setLatestBooking] = useState(null);
     const [paymentCode, setPaymentCode] = useState('');
     const [copiedCode, setCopiedCode] = useState(false);
@@ -44,36 +48,31 @@ const ConsultationBooking = () => {
     const [error, setError] = useState('');
 
     // Memoize services to prevent re-creation on every render
-    const services = useMemo(() => [
-        {
-            serviceId: 1,
-            serviceName: 'Tư vấn tổng quát',
-            category: 'GENERAL_CONSULTATION',
-            price: 300000,
-            description: 'Khám sức khỏe định kỳ và tư vấn'
-        },
-        {
-            serviceId: 2,
-            serviceName: 'Tư vấn chuyên khoa',
-            category: 'SPECIALIST_CONSULTATION',
-            price: 200000,
-            description: 'Tư vấn với bác sĩ chuyên khoa'
-        },
-        {
-            serviceId: 3,
-            serviceName: 'Tư vấn tái khám',
-            category: 'RE_EXAMINATION',
-            price: 150000,
-            description: 'Tư vấn tái khám'
-        },
-        {
-            serviceId: 4,
-            serviceName: 'Tư vấn khẩn cấp',
-            category: 'EMERGENCY_CONSULTATION',
-            price: 300000,
-            description: 'Tư vấn y tế khẩn cấp'
+    useEffect(() => {
+          const token = localStorage.getItem("token"); // hoặc sessionStorage.getItem("token")
+
+    const fetchConsultationServices = async () => {
+        try {
+            const response = await fetch("/api/bookings/api/services/consultations", {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Nếu cần token
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error("Không thể tải dịch vụ tư vấn");
+            }
+
+            const data = await response.json();
+            setServices(data);
+        } catch (error) {
+            console.error("Lỗi khi gọi API:", error);
+            alert("Lỗi khi tải dịch vụ tư vấn. Vui lòng thử lại.");
         }
-    ], []);
+    };
+
+    fetchConsultationServices();
+}, []);
 
     // Memoize time slots to prevent re-creation
     const timeSlots = useMemo(() => [
@@ -82,6 +81,28 @@ const ConsultationBooking = () => {
         '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00',
     ], []);
 
+    useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!selectedDate || !token) return;
+
+  axios
+    .get("http://localhost:8080/api/booking/availability", {
+      params: {
+        date: selectedDate,
+        type: "consult"
+      },
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      setSlotAvailability(res.data);
+    })
+    .catch(err => {
+      toast.error("Không thể tải dữ liệu khung giờ");
+      console.error("Lỗi slot availability:", err);
+    });
+}, [selectedDate]);
 
     const getMinDate = useCallback(() => {
         const tomorrow = new Date();
@@ -114,9 +135,14 @@ const ConsultationBooking = () => {
     }, []);
 
     const handleTimeSelect = useCallback((time) => {
+        if (slotAvailability[time] === false) {
+            toast.warning("Khung giờ này đã đủ 10 lượt. Vui lòng chọn khung giờ khác.");
+            return;
+        }
         setSelectedTime(time);
         setError('');
-    }, []);
+    }, [slotAvailability]);
+
 
     // CRITICAL: Stable input change handler
     const handleContactInfoChange = useCallback((field, value) => {
@@ -257,12 +283,14 @@ const ConsultationBooking = () => {
     }, []);
 
     // Handle payment confirmation
+
     const handleConfirmBooking = async () => {
         setIsSubmitted(true);
 
+        /* ───────── 0. VALID TOKEN ───────── */
         const token = localStorage.getItem("token");
         if (!token) {
-            setError("Không tìm thấy token đăng nhập. Vui lòng đăng nhập lại.");
+            toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             return;
         }
 
@@ -270,26 +298,33 @@ const ConsultationBooking = () => {
         try {
             decoded = jwtDecode(token);
         } catch (e) {
-            setError("Token không hợp lệ. Vui lòng đăng nhập lại.");
+            toast.error("Token không hợp lệ. Vui lòng đăng nhập lại.");
             return;
         }
 
         const userEmail = decoded.sub;
         if (!userEmail) {
-            setError("Không tìm thấy thông tin người dùng trong token. Vui lòng đăng nhập lại.");
+            toast.error("Không tìm thấy người dùng trong token. Vui lòng đăng nhập lại.");
             return;
         }
 
+        /* ───────── 1. KIỂM TRA FORM & SLOT ───────── */
         if (!canProceedToNextStep) return;
+
+        // ⚠️ Nếu slot đã đầy → cảnh báo & quay ra
+        if (slotAvailability[selectedTime] === false) {
+            toast.warning("Khung giờ này đã đủ 10 lượt. Vui lòng chọn khung giờ khác.");
+            return;
+        }
 
         setLoading(true);
         setError("");
 
         try {
-            // 📌 1. Gửi yêu cầu đặt lịch
+            /* ───────── 2. CALL API ĐẶT LỊCH ───────── */
             const bookingData = {
-                userEmail: userEmail,
-                serviceIds: [selectedService.serviceId],
+                userEmail,
+                serviceIds: [selectedService.id],
                 bookingDate: selectedDate,
                 timeSlot: selectedTime,
                 customerName: contactInfo.fullName,
@@ -299,7 +334,7 @@ const ConsultationBooking = () => {
                 customerEmail: contactInfo.email
             };
 
-            const bookingResponse = await axios.post(
+            const { data } = await axios.post(
                 "http://localhost:8080/api/bookings",
                 bookingData,
                 {
@@ -310,55 +345,48 @@ const ConsultationBooking = () => {
                 }
             );
 
-            const responseData = bookingResponse.data;
-
-            // 📌 2. Lưu lại nếu cần trong state
+            /* ───────── 3. LƯU STATE & ĐIỀU HƯỚNG ───────── */
             const newAppointment = {
-                id: responseData.booking.bookingId,
+                id: data.booking.bookingId,
                 service: selectedService,
-                date: responseData.booking.bookingDate,
-                time: responseData.booking.timeSlot,
-                contact: {
-                    ...contactInfo,
-                    notes: contactInfo.notes
-                },
-                status: responseData.booking.status,
+                date: data.booking.bookingDate,
+                time: data.booking.timeSlot,
+                contact: { ...contactInfo, notes: contactInfo.notes },
+                status: data.booking.status,
                 createdAt: new Date().toLocaleString("vi-VN"),
-                customerName: responseData.booking.customerName || contactInfo.fullName
+                customerName: data.booking.customerName || contactInfo.fullName
             };
 
-            setAppointments((prev) => [...prev, newAppointment]);
+            setAppointments(prev => [...prev, newAppointment]);
             setLatestBooking(newAppointment);
 
-            console.log("selectedService = ", selectedService);
-            // 📌 3. Chuyển hướng tới trang thành công
+            toast.success("Đặt lịch tư vấn thành công!");
+
             navigate("/booking-success", {
                 state: {
-                    serviceName: selectedService.serviceName || selectedService.name || "Không rõ",
-                    date: responseData.booking.bookingDate,
-                    time: responseData.booking.timeSlot,
-                    fullName: responseData.booking.customerName || contactInfo.fullName,
+                    serviceName: selectedService.name,
+                    date: data.booking.bookingDate,
+                    time: data.booking.timeSlot,
+                    fullName: data.booking.customerName || contactInfo.fullName,
                     price: selectedService.price,
                     email: contactInfo.email,
                     phone: contactInfo.phone
                 }
             });
         } catch (error) {
-            console.error("Lỗi khi đặt lịch:", error);
-            if (error.response) {
-                console.error("Chi tiết:", error.response.data);
-                setError(
-                    error.response.data.error ||
-                    error.response.data.message ||
-                    "Có lỗi xảy ra từ server."
-                );
-            } else {
-                setError(error.message);
-            }
+            /* ───────── 4. XỬ LÝ LỖI ───────── */
+            const msg =
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                error.message ||
+                "Có lỗi xảy ra khi đặt lịch.";
+            console.error("Lỗi đặt lịch:", msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
+
     // api lay thong tin ngươi dung co san
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -564,23 +592,20 @@ const ConsultationBooking = () => {
                 {/* Service Selection */}
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">
-                        Chọn dịch vụ tư vấn *
+                        Chọn dịch vụ tư vấn 
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {services.map((service) => (
                             <div
-                                key={service.serviceId}
+                                key={service.id}
                                 onClick={() => handleServiceSelect(service)}
-                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.serviceId === service.serviceId
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.id === service.id
                                     ? "border-blue-600 bg-blue-50"
                                     : "border-gray-200 hover:border-blue-300"
                                     }`}
                             >
                                 <div className="flex items-start justify-between mb-2">
-                                    <h3 className="font-semibold text-gray-900">{service.serviceName}</h3>
-                                    <span className="text-blue-600 font-bold">
-                                        {service.price.toLocaleString("vi-VN")} đ
-                                    </span>
+                                    <h3 className="font-semibold text-gray-900">{service.name}</h3>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-2">
                                     {service.description}
@@ -675,12 +700,9 @@ const ConsultationBooking = () => {
                             <div className="space-y-3 mb-6">
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1">
-                                        <p className="font-medium text-gray-900">{selectedService.serviceName}</p>
+                                        <p className="font-medium text-gray-900">{selectedService.name}</p>
                                         <p className="text-sm text-gray-500">30 phút</p>
                                     </div>
-                                    <span className="font-medium text-blue-600">
-                                        {selectedService.price.toLocaleString("vi-VN")} đ
-                                    </span>
                                 </div>
                             </div>
                         ) : (
@@ -690,12 +712,6 @@ const ConsultationBooking = () => {
                         {selectedService && (
                             <div className="border-t pt-4 mb-6">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-lg font-bold text-gray-900">
-                                        Tổng cộng:
-                                    </span>
-                                    <span className="text-xl font-bold text-blue-600">
-                                        {selectedService.price.toLocaleString("vi-VN")} đ
-                                    </span>
                                 </div>
                             </div>
                         )}
@@ -939,18 +955,17 @@ const ConsultationBooking = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-16">
-            {/* Home Button - fixed at top-left, blue, beautiful */}
-            <button
-                onClick={handleBackToHome}
-                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-            >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                <span className="text-base font-medium">Trang chủ</span>
-            </button>
-
+        <div className="min-h-screen bg-gray-50 pt-0">
             {/* Header */}
-            <div className="bg-blue-600 text-white py-12">
+            <div className="bg-blue-600 text-white py-12 relative">
+                {/* Nút Trang chủ ở góc trái */}
+                <button
+                    onClick={handleBackToHome}
+                    className="absolute top-6 left-6 flex items-center text-white hover:text-blue-100 transition-colors z-10"
+                >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    <span className="text-base font-medium">Trang chủ</span>
+                </button>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">

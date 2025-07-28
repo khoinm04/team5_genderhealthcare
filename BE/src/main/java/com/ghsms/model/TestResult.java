@@ -51,19 +51,19 @@ public class TestResult {
     @Column(name = "LastUpdated")
     private LocalDateTime lastUpdated;
 
-    @Column(name = "Notes")
+    @Column(name = "Notes", columnDefinition = "nvarchar(100)")
     private String notes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "Format")
-    private ReportFormat format; // For file download type (PDF/EXCEL)
+    private ReportFormat format;
 
 
     @Column(name = "FileContent")
-    private byte[] fileContent; // Store generated file content
+    private byte[] fileContent;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ServiceID") // Bạn có thể đặt tên khác nếu cần
+    @JoinColumn(name = "ServiceID")
     private Services service;
 
 

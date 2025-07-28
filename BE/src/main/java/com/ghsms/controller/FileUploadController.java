@@ -12,7 +12,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/uploads")
-@CrossOrigin // Cho phép frontend gọi API
+@CrossOrigin
 public class FileUploadController {
 
     @Value("${file.upload-dir}")
@@ -21,18 +21,17 @@ public class FileUploadController {
     @PostMapping("/image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
-            // Kiểm tra file rỗng
+
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest().body("File rỗng");
             }
 
-            // Tạo thư mục nếu chưa tồn tại
+
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
 
-            // Lấy đuôi file và kiểm tra
             String originalFilename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
             String extension = getFileExtension(originalFilename).toLowerCase();
 
@@ -41,19 +40,15 @@ public class FileUploadController {
                 return ResponseEntity.badRequest().body("Chỉ hỗ trợ ảnh có định dạng: " + allowedExtensions);
             }
 
-            // Tạo tên file ngẫu nhiên an toàn
             String fileName = UUID.randomUUID() + extension;
             Path filePath = uploadPath.resolve(fileName).normalize();
 
-            // Chống path traversal
             if (!filePath.toAbsolutePath().startsWith(uploadPath)) {
                 return ResponseEntity.status(400).body("Đường dẫn không hợp lệ");
             }
 
-            // Lưu file
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Trả về đường dẫn ảnh (tùy thuộc vào WebMvcConfigurer)
             String fileUrl = "/uploads/images/" + fileName;
 
             Map<String, String> response = new HashMap<>();

@@ -1,28 +1,19 @@
 package com.ghsms.controller;
 
 import com.ghsms.DTO.UserDTO;
-import com.ghsms.DTO.UserInfoDTO;
 import com.ghsms.config.UserPrincipal;
-import com.ghsms.model.CustomerDetails;
-import com.ghsms.model.Root;
 import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
-import com.ghsms.service.CustomUserDetailsService;
 import com.ghsms.service.JwtService;
 import com.ghsms.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
@@ -72,40 +63,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No active session");
     }
 
-//    @PostMapping("/logout")
-//    public ResponseEntity<?> logout(HttpSession session) {
-//        session.invalidate();
-//        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
-//    }
-
-
-    public Root toPerson(Map<String, Object> map) {
-        if (map == null || map.isEmpty()) {
-            return null;
-        }
-        Root root = new Root();
-        root.setUserID((Long) map.get("id")); // Giả sử id là Long
-        root.setEmail((String) map.get("email"));
-        root.setName((String) map.get("name"));
-        root.setPicture((String) map.get("picture"));
-        return root;
-    }
-
-//    @PostMapping("/logout")
-//    public ResponseEntity<?> logout(HttpSession session) {
-//        String loginType = (String) session.getAttribute("loginType");
-//        session.invalidate();
-//
-//        if ("google".equals(loginType)) {
-//            String redirectAfterLogout = "http://localhost:5173"; // về trang chủ
-//            String googleLogout = "https://accounts.google.com/Logout?continue=" +
-//                    "https://appengine.google.com/_ah/logout?continue=" + redirectAfterLogout;
-//
-//            return ResponseEntity.ok(Map.of("logoutUrl", googleLogout));
-//        }
-//
-//        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
-//    }
 
     @PutMapping("/profile")
     public ResponseEntity<UserDTO> updateProfile(@AuthenticationPrincipal UserPrincipal user,
@@ -115,9 +72,6 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-
-
-    // Đổi mật khẩu
     @PutMapping("/change-password")
     public ResponseEntity<String> changePassword(@AuthenticationPrincipal UserPrincipal user,
                                                  @RequestParam String currentPassword,
@@ -126,7 +80,4 @@ public class UserController {
         userService.changePassword(userId, currentPassword, newPassword);
         return ResponseEntity.ok("Đổi mật khẩu thành công.");
     }
-
-
-
 }

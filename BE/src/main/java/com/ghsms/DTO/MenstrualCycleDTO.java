@@ -26,7 +26,7 @@ public class MenstrualCycleDTO implements Serializable {
     private LocalDate endDate;
 
     @NotNull(message = "Số ngày giữa 2 chu kỳ không được để trống")
-    @Min(value = 20, message = " Nếu số ngày giữa 2 chu kỳ ít hơn 20 ngày thì bạn nên đi kiểm tra sức khỏe")
+    @Min(value = 25, message = " Nếu số ngày giữa 2 chu kỳ ít hơn 25 ngày thì bạn nên đi kiểm tra sức khỏe")
     @Max(value = 45, message = " Nếu số ngày giữa 2 chu kỳ nhiều hơn 45 ngày thì bạn nên đi kiểm tra sức khỏe")
     private Integer cycleLength;
 

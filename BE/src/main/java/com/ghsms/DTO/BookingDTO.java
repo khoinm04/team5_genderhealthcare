@@ -1,7 +1,8 @@
 package com.ghsms.DTO;
 
 import com.ghsms.file_enum.BookingStatus;
-import com.ghsms.file_enum.ServiceBookingCategory;
+import com.ghsms.file_enum.ConsultationStatus;
+import com.ghsms.file_enum.TestStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -18,12 +19,17 @@ import java.util.List;
 public class BookingDTO implements Serializable {
 
     private Long bookingId;
+    private Long consultationId;
+    private Long testResultId;
+
+    private String feedback;
+    private Integer rating;
 
     private Long userId;
 
-    private Long staffId; // có thể để null khi khách vừa đặt
+    private Long staffId;
 
-    private Long consultantId; // có thể để null nếu không có tư vấn viên
+    private Long consultantId;
 
     private List<Long> serviceIds;
 
@@ -38,12 +44,12 @@ public class BookingDTO implements Serializable {
     private String timeSlot;
 
     private String paymentCode;
-
     private BookingStatus status;
+    private ConsultationStatus consultationStatus;
+    private TestStatus testStatus;
 
-    private ServiceBookingCategory category;
+    private String category;
 
-    // Thông tin liên hệ khách (tùy theo use-case)
     private String customerName;
 
     @Pattern(regexp = "^0\\d{9}$", message = "Số điện thoại phải bắt đầu bằng 0 và có 10 số")
@@ -55,21 +61,21 @@ public class BookingDTO implements Serializable {
     private Integer customerAge;
     private String customerGender;
 
-    // ➕ CÁC TRƯỜNG BỔ SUNG CHO GIAO DIỆN
-    private String staffName;  // Tên nhân viên
-    private String consultantName;  // Tên tư vấn viên
-    private String client;      // Tên khách hàng (phục vụ React)
-    private String serviceName;     // Ghép chuỗi tên dịch vụ
-    private String date;        // = bookingDate
-    private String startTime;   // từ timeSlot
-    private String endTime;     // từ timeSlot
+    private String staffName;
+    private String consultantName;
+    private String client;
+    private String serviceName;
+    private String date;
+    private String startTime;
+    private String endTime;
 
     private List<TestResultDTO> testResults;
 
-    //danh cho consultation
     private String topic;
     private String note;
 
-    private Integer amount;  // hoặc Long nếu bạn dùng số lớn
+    private Integer amount;
+
+    private String categoryType;
 
 }

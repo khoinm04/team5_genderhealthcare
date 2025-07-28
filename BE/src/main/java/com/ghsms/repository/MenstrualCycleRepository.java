@@ -14,8 +14,6 @@ public interface MenstrualCycleRepository extends JpaRepository<MenstrualCycle, 
 
     List<MenstrualCycle> findByNextPredictedDateEquals(LocalDate date);
 
-    //update ngày 8/6/2024: menstrual cycle sẽ được cập nhật theo ngày
-
     List<MenstrualCycle> findByPredictedOvulationDateEquals(LocalDate date);
 
     List<MenstrualCycle> findByPredictedFertileWindowStartDateEquals(LocalDate date);

@@ -1,7 +1,6 @@
 package com.ghsms.controller;
 
 import com.ghsms.DTO.LoginRequest;
-import com.ghsms.DTO.LoginRespone;
 import com.ghsms.DTO.SignupRequestDTO;
 import com.ghsms.DTO.UserDTO;
 import com.ghsms.file_enum.AuthProvider;
@@ -12,8 +11,7 @@ import com.ghsms.service.JwtService;
 import com.ghsms.service.OtpService;
 import com.ghsms.service.RoleService;
 import com.ghsms.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,15 +21,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 
 
-import java.util.HashMap;
-import java.util.List;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -70,7 +66,7 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 🔍 Tìm user trong DB
+
             User user = userService.findByEmail(email);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -104,7 +100,6 @@ public class AuthController {
         }
     }
 
-    //Login thủ công customer với role mặc định
     @PostMapping(value = "/customer/login", produces = "application/json")
     public ResponseEntity<?> authenticateCustomer(@RequestBody LoginRequest loginRequest) {
         try {
@@ -140,7 +135,6 @@ public class AuthController {
             }
 
 
-            // ✅ Tạo JWT
             String token = jwtService.generateToken(user);
 
             return ResponseEntity.ok()
@@ -209,7 +203,6 @@ public class AuthController {
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
 
-        //kiểm tra đin dạng hoặc null
         if (email == null || !email.endsWith("@gmail.com")) {
             return ResponseEntity.badRequest().body("Email không hợp lệ.");
         }
@@ -246,7 +239,6 @@ public class AuthController {
                     .body("Không tìm thấy người dùng.");
         }
 
-        // Verify OTP first
         String otp = request.get("otp");
         if (!otpService.verifyOtp(email, otp)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -255,14 +247,12 @@ public class AuthController {
 
         try {
             User user = optionalUser.get();
-            // Encode and set the new password
+
             String encodedPassword = passwordEncoder.encode(newPassword);
             user.setPasswordHash(encodedPassword);
 
-            // Save the updated user to database
             userService.saveUser(user);
 
-            // Clear OTP after successful password reset
             otpService.clearOtp(email);
             return ResponseEntity.ok("Đổi mật khẩu thành công.");
         } catch (Exception e) {

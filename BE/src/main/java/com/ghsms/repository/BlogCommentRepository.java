@@ -8,4 +8,8 @@ import java.util.List;
 
 public interface BlogCommentRepository extends JpaRepository<BlogComment, Long> {
     List<BlogComment> findByBlogPostOrderByCreatedAtAsc(BlogPost blogPost);
+    long countByBlogPost_BlogId(Long blogId);
+
+
+
 }

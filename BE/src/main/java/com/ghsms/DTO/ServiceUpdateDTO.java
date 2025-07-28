@@ -1,6 +1,5 @@
 package com.ghsms.DTO;
 
-import com.ghsms.file_enum.ServiceBookingCategory;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,7 +10,7 @@ public class ServiceUpdateDTO {
     private String description;
     private BigDecimal price;
     private String duration;
-    private ServiceBookingCategory category;
+    private String category;
     private Boolean isActive;
 }
 

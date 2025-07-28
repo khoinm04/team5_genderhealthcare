@@ -3,12 +3,12 @@ package com.ghsms.mapper;
 import com.ghsms.DTO.BookingDTO;
 import com.ghsms.DTO.ConsultationBookingUpdateRequest;
 import com.ghsms.DTO.TestResultDTO;
+import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.model.*;
 import org.springframework.stereotype.Component;
-
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,7 +19,6 @@ public class BookingMapper {
 
         dto.setBookingId(booking.getBookingId());
 
-        // Customer info
         if (booking.getCustomer() != null) {
             if (booking.getCustomer().getCustomer() != null) {
                 dto.setUserId(booking.getCustomer().getCustomer().getUserId());
@@ -32,32 +31,24 @@ public class BookingMapper {
             dto.setClient(booking.getCustomer().getFullName());
         }
 
-        // Staff info
         if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
             dto.setStaffId(booking.getStaff().getStaff().getUserId());
             dto.setStaffName(booking.getStaff().getStaff().getName());
         }
 
-        // Consultant info
         if (booking.getConsultant() != null && booking.getConsultant().getConsultant() != null) {
             dto.setConsultantId(booking.getConsultant().getConsultant().getUserId());
             dto.setConsultantName(booking.getConsultant().getConsultant().getName());
         }
-
-
-        // Booking details
         dto.setBookingDate(booking.getBookingDate().toString());
         dto.setDate(dto.getBookingDate());
         dto.setTimeSlot(booking.getTimeSlot());
-
-        // Time slot parsing
         String[] timeParts = booking.getTimeSlot().split("-");
         if (timeParts.length == 2) {
             dto.setStartTime(timeParts[0]);
             dto.setEndTime(timeParts[1]);
         }
 
-        // Status and services
         dto.setStatus(booking.getStatus());
         if (!booking.getServices().isEmpty()) {
             dto.setCategory(booking.getServices().iterator().next().getCategory());
@@ -67,6 +58,18 @@ public class BookingMapper {
             dto.setServiceName(booking.getServices().stream()
                     .map(service -> service.getServiceName())
                     .collect(Collectors.joining(", ")));
+        }
+        if (booking.getConsultation() != null) {
+            dto.setConsultationId(booking.getConsultation().getConsultationId());
+            dto.setConsultationStatus(booking.getConsultation().getStatus());
+            dto.setNote(booking.getConsultation().getNote());
+        }
+
+        if (booking.getTestResults() != null && !booking.getTestResults().isEmpty()) {
+            TestResult firstResult = booking.getTestResults().iterator().next();
+            dto.setTestResultId(firstResult.getTestResultId());
+            dto.setTestStatus(firstResult.getStatus());
+            dto.setNote(firstResult.getNotes());
         }
 
         if (booking.getTestResults() != null) {
@@ -98,7 +101,6 @@ public class BookingMapper {
         dto.setNotes(entity.getNotes());
         dto.setFormat(entity.getFormat());
 
-        // Lấy info khách nếu cần
         if (entity.getBooking() != null && entity.getBooking().getCustomer() != null) {
             var customer = entity.getBooking().getCustomer();
             dto.setCustomerName(customer.getFullName());
@@ -108,13 +110,12 @@ public class BookingMapper {
             dto.setCustomerPhone(customer.getPhoneNumber());
         }
 
-        // Staff info mapping
         if (entity.getBooking() != null && entity.getBooking().getStaff() != null) {
             StaffDetails staffDetails = entity.getBooking().getStaff();
             if (staffDetails.getStaff() != null) {
                 dto.setStaffName(staffDetails.getStaff().getName());
                 if (staffDetails.getSpecialization() != null) {
-                    dto.setStaffSpecialty(staffDetails.getSpecialization().name());
+                    dto.setStaffSpecialty(staffDetails.getSpecialization());
                 }
             }
         }
@@ -129,26 +130,42 @@ public class BookingMapper {
             Services service,
             ConsultantDetails consultant
     ) {
-        // Cập nhật ngày và khung giờ
+        String oldDate = booking.getBookingDate();
+        String oldTimeSlot = booking.getTimeSlot();
+
         booking.setBookingDate(req.getBookingDate());
         booking.setTimeSlot(req.getTimeSlot());
-
-        // Cập nhật dịch vụ tư vấn
         booking.setServices(new HashSet<>(List.of(service)));
-
-        // Cập nhật tư vấn viên nếu có
         booking.setConsultant(consultant);
-
-        // Cập nhật thông tin khách trong CustomerDetails
         if (booking.getCustomer() != null) {
             booking.getCustomer().setFullName(req.getCustomerName());
             booking.getCustomer().setPhoneNumber(req.getCustomerPhone());
         }
-        // Cập nhật trạng thái nếu có
+
+        Consultation consultation = booking.getConsultation();
+        if (consultation != null) {
+            boolean dateChanged = !Objects.equals(oldDate, req.getBookingDate());
+            boolean timeChanged = !Objects.equals(oldTimeSlot, req.getTimeSlot());
+
+            if (dateChanged || timeChanged) {
+                consultation.setStatus(ConsultationStatus.SCHEDULED);
+                consultation.setDateScheduled(req.getBookingDate());
+                consultation.setTimeSlot(req.getTimeSlot());
+            }
+        }
+
         if (req.getStatus() != null) {
             booking.setStatus(req.getStatus());
         }
+
+        if (consultation != null && req.getConsultationStatus() != null) {
+            consultation.setStatus(req.getConsultationStatus());
+        }
+
+
     }
+
+
 }
 
 

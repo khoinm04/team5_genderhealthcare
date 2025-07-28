@@ -1,8 +1,9 @@
 package com.ghsms.service;
 
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -15,17 +16,19 @@ public class MailService {
     private static final String FROM_EMAIL = "anmom8910@gmail.com";
 
     @Async
-    public void sendEmail(String to, String subject, String text) {
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(FROM_EMAIL);
-            msg.setTo(to);
-            msg.setSubject(subject);
-            msg.setText(text);
-            mailSender.send(msg);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(FROM_EMAIL);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
         } catch (Exception e) {
-            e.printStackTrace();  // hoặc log lỗi
+            e.printStackTrace();
         }
     }
 }
-

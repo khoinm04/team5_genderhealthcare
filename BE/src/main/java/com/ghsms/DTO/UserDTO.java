@@ -2,20 +2,16 @@ package com.ghsms.DTO;
 
 import com.ghsms.file_enum.AuthProvider;
 import com.ghsms.file_enum.RoleName;
-import com.ghsms.model.Certificate;
 import com.ghsms.model.User;
 import com.ghsms.util.RoleNameConverter;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
@@ -36,7 +32,7 @@ public class UserDTO implements Serializable {
 
     private List<CertificateDTO> certificates;
 
-    private Boolean isOnline; // ✅ Thêm dòng này
+    private Boolean isOnline;
 
     public UserDTO(User user) {
         this.userId = user.getUserId();

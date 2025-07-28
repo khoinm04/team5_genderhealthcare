@@ -28,7 +28,7 @@ const GoogleCallback = () => {
             window.location.replace("/admin");
           } else if (role === "Nhân viên") {
             window.location.replace("/staff");
-          } else if (role === "Quản lý") {
+          } else if (role === "Quản lý") { 
             window.location.replace("/manager");
           } else if (role === "Tư vấn viên") {
             window.location.replace("/consultant");

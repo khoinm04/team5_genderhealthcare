@@ -60,7 +60,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         CustomerDetails details = customerDetailsRepository.findByCustomer(user)
-                .orElseGet(() -> new CustomerDetails()); // nếu chưa có thì tạo mới
+                .orElseGet(() -> new CustomerDetails());
 
         details.setCustomer(user);
         details.setFullName(dto.getFullName());

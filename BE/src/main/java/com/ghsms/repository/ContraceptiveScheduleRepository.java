@@ -8,6 +8,8 @@ import java.util.List;
 public interface ContraceptiveScheduleRepository extends JpaRepository<ContraceptiveSchedule, Long> {
     List<ContraceptiveSchedule> findByActiveTrue();
     List<ContraceptiveSchedule> findByUserUserIdAndActiveTrue(Long userId);
+    List<ContraceptiveSchedule> findByUserUserIdAndActiveFalseOrderByLastCheckedDateDesc(Long userId);
+
 }
 
 

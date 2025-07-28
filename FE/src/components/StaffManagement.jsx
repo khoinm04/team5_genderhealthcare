@@ -3,6 +3,9 @@ import { Plus, Search, Edit, Eye, Calendar, MoreVertical, Filter } from 'lucide-
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState([]);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -10,16 +13,16 @@ const StaffManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredStaff = staff.filter(member => {
-  const matchesSearch =
-    member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const matchesFilter =
-    filterStatus === 'all' ||
-    String(member.active) === filterStatus;
+    const matchesFilter =
+      filterStatus === 'all' ||
+      String(member.active) === filterStatus;
 
-  return matchesSearch && matchesFilter;
-});
+    return matchesSearch && matchesFilter;
+  });
 
 
   const openModal = (type, staffMember) => {
@@ -112,14 +115,15 @@ const StaffManagement = () => {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await fetch('/api/manager/staffs', {
+        const response = await fetch(`/api/manager/staffs?page=${page}&size=${size}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         if (!response.ok) throw new Error('Lỗi khi tải danh sách nhân viên');
         const data = await response.json();
-        setStaff(data);
+        setStaff(data.content);       // danh sách nhân viên
+        setTotalPages(data.totalPages); // tổng số trang
       } catch (error) {
         console.error(error);
         alert('Không thể tải danh sách nhân viên');
@@ -127,22 +131,10 @@ const StaffManagement = () => {
     };
 
     fetchStaff();
-  }, []);
+  }, [page, size]);
 
-  const translateSpecialty = (specialization) => {
-    switch (specialization) {
-      case 'STI_HIV':
-        return 'Xét nghiệm HIV';
-      case 'STI_SYPHILIS':
-        return 'Xét nghiệm giang mai (Syphilis)';
-      case 'STI_GONORRHEA':
-        return 'Xét nghiệm lậu (Gonorrhea)';
-      case 'STI_Chlamydia':
-        return 'Xét nghiệm Chlamydia';
-      default:
-        return specialization;
-    }
-  };
+
+
 
 
   return (
@@ -153,7 +145,7 @@ const StaffManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý nhân viên</h1>
           <p className="text-gray-600 mt-1">Quản lý thông tin và lịch làm việc của nhân viên</p>
         </div>
-        
+
       </div>
 
       {/* Search and Filter */}
@@ -218,9 +210,10 @@ const StaffManagement = () => {
                   <td className="py-4 px-4 text-sm text-gray-900">{member.roleDisplay}</td>
                   <td className="py-4 px-4 text-sm">
                     <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
-                      {translateSpecialty(member.specialization) || 'Chưa xác định'}
+                      {member.specialization || 'Chưa xác định'}
                     </span>
                   </td>
+
 
                   <td className="py-4 px-4">{getStatusBadge(member.active)}</td>
                   <td className="py-4 px-4 text-sm text-gray-900">
@@ -262,6 +255,41 @@ const StaffManagement = () => {
           </table>
         </div>
       </div>
+      <div className="flex justify-center items-center mt-6 gap-4">
+        <button
+          onClick={() => setPage(p => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          ◀ Trước
+        </button>
+
+        <span className="text-sm text-gray-700">
+          Trang {page + 1} / {totalPages}
+        </span>
+
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={page + 1 >= totalPages}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Sau ▶
+        </button>
+
+        <select
+          value={size}
+          onChange={(e) => {
+            setSize(Number(e.target.value));
+            setPage(0); // reset lại về trang đầu nếu đổi size
+          }}
+          className="ml-4 px-2 py-1 border rounded"
+        >
+          <option value={6}>6 nhân viên/trang</option>
+          <option value={9}>9 nhân viên/trang</option>
+          <option value={12}>12 nhân viên/trang</option>
+        </select>
+      </div>
+
 
       {/* Modal */}
       {showModal && (
@@ -337,13 +365,29 @@ const StaffManagement = () => {
 
 // Staff Form Component
 const StaffForm = ({ staff, onSave, onCancel }) => {
+  const [testServiceOptions, setTestServiceOptions] = useState([]);
+
   const [formData, setFormData] = useState({
-    name: staff?.fullName || '',
-    email: staff?.email || '',
-    phoneNumber: staff?.phoneNumber || '',
-    specialization: staff?.specialization || '',
-    hireDate: staff?.hireDate || new Date().toISOString().split('T')[0]
-  });
+  name: staff?.fullName || '',
+  email: staff?.email || '',
+  phoneNumber: staff?.phoneNumber || '',
+  specialization: staff?.specialization || '',
+  specializationId: '', // thêm trường này
+  hireDate: staff?.hireDate || new Date().toISOString().split('T')[0]
+});
+
+useEffect(() => {
+  if (staff && testServiceOptions.length > 0) {
+    const matched = testServiceOptions.find(
+      (opt) => opt.name === staff.specialization
+    );
+
+    setFormData(prev => ({
+      ...prev,
+      specializationId: matched?.id || '',
+    }));
+  }
+}, [staff, testServiceOptions]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -392,6 +436,22 @@ const StaffForm = ({ staff, onSave, onCancel }) => {
       setIsSubmitting(false);
     }
   };
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/manager/test", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setTestServiceOptions(data); // [{ id, name, category }]
+      })
+      .catch(err => console.error("❌ Không thể load dịch vụ xét nghiệm:", err));
+  }, []);
+
 
   const handleCancel = () => {
     if (JSON.stringify(formData) !== JSON.stringify({
@@ -459,17 +519,28 @@ const StaffForm = ({ staff, onSave, onCancel }) => {
           Chuyên môn <span className="text-red-500">*</span>
         </label>
         <select
-          value={formData.specialization || ''}
-          onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          required
-        >
-          <option value="" disabled>-- Chọn chuyên môn --</option> {/* ✅ thêm dòng này */}
-          <option value="STI_HIV">Xét nghiệm HIV</option>
-          <option value="STI_Syphilis">Xét nghiệm giang mai (Syphilis)</option>
-          <option value="STI_Gonorrhea">Xét nghiệm lậu (Gonorrhea)</option>
-          <option value="STI_Chlamydia">Xét nghiệm Chlamydia</option>
-        </select>
+  value={formData.specializationId || ''}
+  onChange={(e) => {
+    const selected = testServiceOptions.find(s => s.id === parseInt(e.target.value));
+    setFormData({
+      ...formData,
+      specializationId: selected?.id,
+      specialization: selected?.name || ''
+    });
+  }}
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+
+>
+  <option value="">Chọn chuyên môn</option>
+  {testServiceOptions.map(opt => (
+    <option key={opt.id} value={opt.id}>
+      {opt.name}
+    </option>
+  ))}
+</select>
+
+
+
       </div>
 
       <div>

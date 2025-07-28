@@ -1,7 +1,9 @@
 import React from 'react';
-import { 
-  TrendingUp, 
-  Users, 
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  TrendingUp,
+  Users,
   Calendar,
   Clock,
   DollarSign,
@@ -9,6 +11,8 @@ import {
 } from 'lucide-react';
 
 const Dashboard = ({ setActiveTab }) => {
+  const [consultantName, setConsultantName] = useState("...");
+
   const stats = [
     {
       title: 'Tổng khách hàng',
@@ -17,20 +21,8 @@ const Dashboard = ({ setActiveTab }) => {
       icon: Users,
       color: 'bg-blue-500'
     },
-    {
-      title: 'Doanh thu tháng này',
-      value: '312.500.000đ',
-      change: '+18%',
-      icon: DollarSign,
-      color: 'bg-teal-500'
-    },
-    {
-      title: 'Buổi tư vấn sắp tới',
-      value: '15',
-      change: '7 ngày tới',
-      icon: Calendar,
-      color: 'bg-orange-500'
-    },
+
+
     {
       title: 'Bài viết blog',
       value: '28',
@@ -90,58 +82,77 @@ const Dashboard = ({ setActiveTab }) => {
       color: 'bg-orange-500'
     }
   ];
+useEffect(() => {
+  const userStr = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+
+  if (!userStr || !token) return;
+
+  try {
+    const { userId, name } = JSON.parse(userStr);
+    if (!userId) return;
+
+    axios.get(`/api/consultations/consultant/${userId}/all`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => setConsultantName(name || "Không rõ"))
+    .catch(() => setConsultantName("Không rõ"));
+  } catch (err) {
+    console.error("Lỗi parse user từ localStorage:", err);
+  }
+}, []);
+
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Chào mừng trở lại, Nguyễn Văn A!</h1>
-        <p className="text-gray-600">Đây là những gì đang diễn ra với doanh nghiệp tư vấn của bạn hôm nay.</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Chào mừng trở lại, {consultantName}!</h1>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
+            <div key={index} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <div className={`w-16 h-16 ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                  <Icon className="w-8 h-8 text-white" />
                 </div>
-                <span className="text-sm font-medium text-green-600">{stat.change}</span>
+                <span className="text-lg font-semibold text-green-600">{stat.change}</span>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</h3>
-              <p className="text-gray-600 text-sm">{stat.title}</p>
+              <h3 className="text-4xl font-bold text-gray-900 mb-2">{stat.value}</h3>
+              <p className="text-gray-600 text-lg">{stat.title}</p>
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Thao tác nhanh</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <div
                   key={index}
-                  className="relative bg-white rounded-[2rem] shadow-md border border-gray-100 flex flex-col items-start p-8 transition-all hover:shadow-lg group"
+                  className="relative bg-white rounded-[2rem] shadow-lg border border-gray-100 flex flex-col items-start p-10 transition-all hover:shadow-xl hover:-translate-y-1 group min-h-[280px]"
                 >
                   {/* Icon Badge */}
-                  <div className={`absolute -top-5 left-6 rounded-xl p-2 ${action.color} shadow-md flex items-center justify-center`}>
+                  <div className={`absolute top-6 left-6 rounded-xl p-3 ${action.color} shadow-md flex items-center justify-center`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <div className="mt-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{action.title}</h3>
-                    <p className="text-gray-600 text-base mb-6">{action.description}</p>
+                  <div className="mt-16 flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{action.title}</h3>
+                    <p className="text-gray-600 text-lg mb-8 leading-relaxed">{action.description}</p>
                   </div>
                   <button
                     onClick={action.action}
-                    className="mt-auto text-blue-600 font-semibold flex items-center gap-1 hover:underline focus:outline-none"
+                    className="mt-auto text-blue-600 font-semibold text-lg flex items-center gap-2 hover:underline focus:outline-none transition-all"
                   >
-                    Bắt đầu <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                    Bắt đầu <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-2" />
                   </button>
                 </div>
               );
@@ -149,7 +160,7 @@ const Dashboard = ({ setActiveTab }) => {
           </div>
 
           {/* Today's Schedule */}
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Lịch trình hôm nay</h2>
+          {/* <h2 className="text-xl font-semibold text-gray-900 mb-4">Lịch trình hôm nay</h2>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
@@ -185,27 +196,26 @@ const Dashboard = ({ setActiveTab }) => {
                 <span className="text-sm font-medium text-orange-600">4:00 CH</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Recent Activities */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Hoạt động gần đây</h2>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="space-y-4">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Hoạt động gần đây</h2>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+            <div className="space-y-6">
               {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <div key={index} className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 text-sm">{activity.title}</p>
-                    <p className="text-gray-500 text-xs">{activity.time}</p>
+                    <p className="font-medium text-gray-900 text-base">{activity.title}</p>
+                    <p className="text-gray-500 text-sm mt-1">{activity.time}</p>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    activity.status === 'hoàn thành' ? 'bg-green-100 text-green-800' :
+                  <span className={`px-3 py-1 text-sm rounded-full font-medium ${activity.status === 'hoàn thành' ? 'bg-green-100 text-green-800' :
                     activity.status === 'đã xuất bản' ? 'bg-blue-100 text-blue-800' :
-                    activity.status === 'chưa đọc' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                      activity.status === 'chưa đọc' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                    }`}>
                     {activity.status}
                   </span>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback  } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -9,7 +9,9 @@ import {
   ChevronRight,
   Filter,
   X,
-  Save
+  Save,
+  Eye,
+  Star
 } from 'lucide-react';
 
 const ScheduleManagement = () => {
@@ -18,12 +20,14 @@ const ScheduleManagement = () => {
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [editStatus, setEditStatus] = useState('chờ xác nhận');
   const [editNotes, setEditNotes] = useState('');
-
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [viewingRating, setViewingRating] = useState(null);
 
   const [appointments, setAppointments] = useState([]);
 
   const statusOptions = [
-    { value: 'chờ xác nhận', label: 'Chờ xác nhận', description: 'Đang chờ staff assign consultant' },
     { value: 'đã xác nhận', label: 'Đã xác nhận', description: 'Staff đã assign consultant' },
     { value: 'đã lên lịch', label: 'Đã lên lịch', description: 'Đã sắp xếp thời gian cụ thể' },
     { value: 'đang tư vấn', label: 'Đang tư vấn', description: 'Đang trong quá trình tư vấn' },
@@ -102,7 +106,7 @@ const ScheduleManagement = () => {
   };
 
   //GỌI LẠI 
- 
+
   const handleSaveEdit = async () => {
     if (!editingAppointment) return;
 
@@ -147,49 +151,74 @@ const ScheduleManagement = () => {
     setEditNotes('');
   };
 
+  const handleViewRating = (appointment) => {
+    setViewingRating(appointment);
+  };
+
+  const handleCloseRating = () => {
+    setViewingRating(null);
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <Star
+        key={index}
+        className={`w-4 h-4 ${
+          index < rating
+            ? 'text-yellow-400 fill-yellow-400'
+            : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   //api lay danh sach lich hen tu van vien
 
   const fetchAppointments = useCallback(async () => {
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
-  const consultantId = user?.userId;
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    const consultantId = user?.userId;
 
-  if (!token || !consultantId) return;
+    if (!token || !consultantId) return;
 
-  try {
-    const res = await fetch(`/api/consultations/consultant/${consultantId}/all`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await fetch(`/api/consultations/consultant/${consultantId}/consultations?page=${page}&size=${size}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!res.ok) throw new Error("Không thể tải lịch hẹn");
+      if (!res.ok) throw new Error("Không thể tải lịch hẹn");
 
-    const json = await res.json();
-    const data = json.consultations || [];
+      const json = await res.json();
+      const data = json.consultations ?? [];
 
-    const mapped = data.map(item => ({
-      id: item.consultationId,
-      title: item.serviceNames,
-      client: item.customerName,
-      email: item.customerEmail,
-      date: item.dateScheduled,
-      time: item.timeSlot?.split("-")[0] || "",
-      duration: getDuration(item.timeSlot),
-      type: item.categoryTypes?.[0]?.toLowerCase() || "khác",
-status: item.statusDescription?.trim().toLowerCase(),
-      notes: item.note,
-    }));
+      const mapped = data.map(item => ({
+        id: item.consultationId,
+        title: item.serviceNames,
+        client: item.customerName,
+        email: item.customerEmail,
+        date: item.dateScheduled,
+        time: item.timeSlot?.split("-")[0] || "",
+        duration: getDuration(item.timeSlot),
+        type: item.categoryTypes?.[0]?.toLowerCase() || "khác",
+        status: item.statusDescription?.trim().toLowerCase(),
+        notes: item.note,
+        rating: item.rating || 0,
+        feedback: item.feedback || "",
+      }));
 
-    setAppointments(mapped);
-  } catch (err) {
-    console.error("❌ Lỗi khi tải lịch:", err);
-  }
-}, []); // dependency rỗng vì không dùng biến ngoài scope
+      setAppointments(mapped);
+      setTotalPages(json.totalPages); // 👈 nếu bạn cần hiển thị phân trang
+    } catch (err) {
+      console.error("❌ Lỗi khi tải lịch:", err);
+    }
+  }, [page, size]);
 
-useEffect(() => {
-  fetchAppointments(); // không còn cảnh báo
-}, [fetchAppointments]);
+
+  useEffect(() => {
+    fetchAppointments(); // không còn cảnh báo
+  }, [fetchAppointments]);
 
   const getDuration = (timeSlot) => {
     if (!timeSlot) return 0;
@@ -300,19 +329,30 @@ useEffect(() => {
 
                   <div className="flex items-center space-x-3">
                     <span
-  className={`inline-block px-2.5 py-1 text-sm font-semibold rounded-full border shadow-sm ${getStatusColor(appointment.status)}`}
->
-  {appointment.status}
-</span>
+                      className={`inline-block px-2.5 py-1 text-sm font-semibold rounded-full border shadow-sm ${getStatusColor(appointment.status)}`}
+                    >
+                      {appointment.status}
+                    </span>
 
                     <div className="flex items-center space-x-1">
                       <button
+                        onClick={() => handleViewRating(appointment)}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Xem đánh giá"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleEditClick(appointment)}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Chỉnh sửa"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -323,6 +363,41 @@ useEffect(() => {
           </div>
         </div>
       </div>
+      <div className="flex items-center justify-center gap-4 mt-4 pb-4">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            ◀ Trang trước
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            Trang {page + 1} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page + 1 >= totalPages}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Trang sau ▶
+          </button>
+
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value));
+              setPage(0); // reset về trang đầu nếu đổi size
+            }}
+            className="ml-4 px-2 py-1 border rounded"
+          >
+            <option value={5}>5 dòng/trang</option>
+            <option value={10}>10 dòng/trang</option>
+            <option value={20}>20 dòng/trang</option>
+          </select>
+        </div>
+
 
       {/* Edit Modal */}
       {editingAppointment && (
@@ -421,6 +496,128 @@ useEffect(() => {
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Lưu thay đổi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rating & Feedback Modal */}
+      {viewingRating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Đánh giá & Phản hồi</h2>
+                <button
+                  onClick={handleCloseRating}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Appointment Info */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">{viewingRating.title}</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <span className="font-medium">Khách hàng:</span> {viewingRating.client}
+                    </div>
+                    <div>
+                      <span className="font-medium">Email:</span> {viewingRating.email}
+                    </div>
+                    <div>
+                      <span className="font-medium">Ngày:</span> {new Date(viewingRating.date).toLocaleDateString('vi-VN')}
+                    </div>
+                    <div>
+                      <span className="font-medium">Thời gian:</span> {viewingRating.time}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900">Đánh giá của khách hàng</h4>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        {renderStars(viewingRating.rating)}
+                      </div>
+                      <span className="text-lg font-semibold text-gray-900">
+                        {viewingRating.rating}/5
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {viewingRating.rating === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 mb-2">
+                        <Star className="w-12 h-12 mx-auto" />
+                      </div>
+                      <p className="text-gray-500">Khách hàng chưa đánh giá</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center space-x-1 py-4">
+                        {renderStars(viewingRating.rating)}
+                      </div>
+                      
+                      <div className="text-center">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                          {viewingRating.rating === 5 ? 'Xuất sắc' :
+                           viewingRating.rating === 4 ? 'Tốt' :
+                           viewingRating.rating === 3 ? 'Khá' :
+                           viewingRating.rating === 2 ? 'Trung bình' : 'Cần cải thiện'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Feedback Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Phản hồi chi tiết</h4>
+                  
+                  {viewingRating.feedback ? (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-blue-600" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-medium text-gray-900">{viewingRating.client}</span>
+                            <span className="text-sm text-gray-500">
+                              {new Date(viewingRating.date).toLocaleDateString('vi-VN')}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 leading-relaxed">{viewingRating.feedback}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 mb-2">
+                        <User className="w-12 h-12 mx-auto" />
+                      </div>
+                      <p className="text-gray-500">Khách hàng chưa để lại phản hồi</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex items-center justify-end mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleCloseRating}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Đóng
                 </button>
               </div>
             </div>

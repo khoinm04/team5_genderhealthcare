@@ -7,6 +7,7 @@ import com.ghsms.service.ConsultationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,16 +26,13 @@ public class ConsultationController {
 
     private final ConsultationService consultationService;
 
-    /**
-     * 1. API lấy tất cả lịch hẹn của customer cụ thể
-     */
     @GetMapping("/customer/{customerId}/all")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getAllCustomerConsultations(
             @PathVariable @Positive(message = "Customer ID phải là số dương") Long customerId,
             @AuthenticationPrincipal UserPrincipal principal) {
         try {
-            // Kiểm tra quyền: Customer chỉ xem được lịch của mình, Staff/Manager/Admin xem được tất cả
+
             if (principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
                 if (!principal.getId().equals(customerId)) {
                     return ResponseEntity.badRequest().body(Map.of("error", "Bạn chỉ có thể xem lịch hẹn của mình"));
@@ -53,37 +51,35 @@ public class ConsultationController {
         }
     }
 
-    /**
-     * 2. API lấy tất cả lịch hẹn của consultant cụ thể
-     */
-    @GetMapping("/consultant/{consultantId}/all")
-    @PreAuthorize("hasRole('CONSULTANT') or hasRole('STAFF') or hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getAllConsultantConsultations(
+    @GetMapping("/consultant/{consultantId}/consultations")
+    @PreAuthorize("hasRole('CONSULTANT')")
+    public ResponseEntity<?> getPagedConsultantConsultations(
             @PathVariable @Positive(message = "Consultant ID phải là số dương") Long consultantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal UserPrincipal principal) {
         try {
-            // Kiểm tra quyền: Consultant chỉ xem được lịch của mình, Staff/Manager/Admin xem được tất cả
-            if (principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("CONSULTANT"))) {
+            if (principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CONSULTANT"))) {
                 if (!principal.getId().equals(consultantId)) {
-                    return ResponseEntity.badRequest().body(Map.of("error", "Bạn chỉ có thể xem lịch hẹn của mình"));
+                    return ResponseEntity.status(403).body(Map.of("error", "Bạn chỉ có thể xem lịch hẹn của mình"));
                 }
             }
 
-            List<ConsultationDTO> consultations = consultationService.getAllConsultantConsultations(consultantId);
+            Page<ConsultationDTO> consultations = consultationService.getAllConsultantConsultations(consultantId, page, size);
+
             return ResponseEntity.ok(Map.of(
-                    "message", "Lấy tất cả lịch hẹn của consultant thành công",
-                    "consultations", consultations,
-                    "total", consultations.size(),
+                    "message", "Lấy lịch hẹn theo trang thành công",
+                    "consultations", consultations.getContent(),
+                    "totalPages", consultations.getTotalPages(),
+                    "totalElements", consultations.getTotalElements(),
+                    "currentPage", consultations.getNumber(),
                     "consultantId", consultantId
             ));
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi khi lấy lịch hẹn getAllConsultantConsultations"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi khi lấy lịch hẹn có phân trang"));
         }
     }
 
-    /**
-     * 3. API chỉnh sửa note và status của Consultant (giữ nguyên signature cũ)
-     */
     @PutMapping("/{consultationId}/consultant/update")
     @PreAuthorize("hasRole('CONSULTANT')")
     public ResponseEntity<?> updateConsultantNoteAndStatus(
@@ -103,117 +99,6 @@ public class ConsultationController {
             ));
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
-        }
-    }
-
-
-    /**
-     * 4. API chỉnh sửa rating và feedback của Customer
-     */
-    @PutMapping("/{consultationId}/customer/rating")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
-    public ResponseEntity<?> updateCustomerRatingAndFeedback(
-            @PathVariable @Positive(message = "Consultation ID phải là số dương") Long consultationId,
-            @RequestBody @Valid ConsultationDTO consultationDTO,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        try {
-            // Validation: Ít nhất một trong hai phải có giá trị
-            if (consultationDTO.getRating() == null &&
-                    (consultationDTO.getFeedback() == null || consultationDTO.getFeedback().trim().isEmpty())) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Phải cung cấp ít nhất rating hoặc feedback"));
-            }
-
-            // Set consultationId từ path parameter
-            consultationDTO.setConsultationId(consultationId);
-
-            ConsultationDTO consultation = consultationService.updateCustomerRatingAndFeedback(
-                    consultationDTO, principal.getId());
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Cập nhật đánh giá thành công",
-                    "consultation", consultation
-            ));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi khi cập nhật đánh giá updateCustomerRatingAndFeedback"));
-        }
-    }
-
-    /**
-     * 5. API chỉnh sửa TimeSlot của Staff
-     */
-    @PutMapping("/{consultationId}/staff/timeslot")
-    @PreAuthorize("hasRole('ROLE_STAFF') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> updateTimeSlotByStaff(
-            @PathVariable @Positive(message = "Consultation ID phải là số dương") Long consultationId,
-            @RequestBody @Valid ConsultationDTO consultationDTO) {
-        try {
-            // Validation: TimeSlot không được null hoặc empty
-            if (consultationDTO.getTimeSlot() == null || consultationDTO.getTimeSlot().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Time slot không được để trống"));
-            }
-
-            // Set consultationId từ path parameter
-            consultationDTO.setConsultationId(consultationId);
-
-            ConsultationDTO consultation = consultationService.updateTimeSlotByStaff(consultationDTO);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Cập nhật time slot thành công",
-                    "consultation", consultation,
-                    "newTimeSlot", consultationDTO.getTimeSlot()
-            ));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "error khi cập nhật time slot updateTimeSlotByStaff"));
-        }
-    }
-
-    /**
-     * 6. API chỉnh sửa Status của Staff
-     */
-    @PutMapping("/{consultationId}/staff/status")
-    @PreAuthorize("hasRole('ROLE_STAFF') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> updateStatusByStaff(
-            @PathVariable @Positive(message = "Consultation ID phải là số dương") Long consultationId,
-            @RequestBody @Valid ConsultationDTO consultationDTO) {
-        try {
-            // Validation: Status không được null
-            if (consultationDTO.getStatus() == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Status không được để trống"));
-            }
-
-            // Set consultationId từ path parameter
-            consultationDTO.setConsultationId(consultationId);
-
-            ConsultationDTO consultation = consultationService.updateStatusByStaff(consultationDTO);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Cập nhật trạng thái thành công",
-                    "consultation", consultation,
-                    "newStatus", consultationDTO.getStatus().getDescription()
-            ));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "error khi cập nhật status updateStatusByStaff"));
-        }
-    }
-    /**
-     * 7.API lấy tất cả consultation cho Manager
-     * Chỉ Manager và Admin được phép truy cập
-     */
-    @GetMapping("/manager/all")
-    @PreAuthorize("hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> getAllConsultationsForManager(
-            @AuthenticationPrincipal UserPrincipal principal) {
-        try {
-            List<ConsultationDTO> consultations = consultationService.getAllConsultationsForManager();
-
-            return ResponseEntity.ok(Map.of(
-                    "consultations", consultations,
-                    "total", consultations.size(),
-                    "message", "Lấy tất cả consultation thành công",
-                    "managerId", principal.getId()
-            ));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi khi lấy tất cả consultation cho Manager getAllConsultationsForManager"));
         }
     }
 
@@ -288,7 +173,7 @@ public class ConsultationController {
 
     @GetMapping("/stats/today")
     public ResponseEntity<?> getTodayStatsForConsultant(@AuthenticationPrincipal UserPrincipal principal) {
-        Long consultantId = principal.getUser().getUserId(); // 👈 lấy ID từ token giải mã sẵn
+        Long consultantId = principal.getUser().getUserId();
         ConsultationStatsDTO stats = consultationService.getTodayStats(consultantId);
         return ResponseEntity.ok(stats);
     }
@@ -319,13 +204,11 @@ public class ConsultationController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Consultation not found");
             }
 
-            // ✅ Kiểm tra user hiện tại có phải là tư vấn viên của consultation không
             Long consultantUserId = consultation.getConsultant().getConsultant().getUserId();
             if (!consultantUserId.equals(currentUser.getId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền chỉnh sửa ghi chú này.");
             }
 
-            // ✅ Gọi service để update ghi chú
             consultationService.updateNoteOnly(id, note);
 
             return ResponseEntity.ok(Map.of("message", "Ghi chú đã được cập nhật"));
@@ -340,26 +223,16 @@ public class ConsultationController {
             @PathVariable("id") Long consultationId,
             @AuthenticationPrincipal UserPrincipal user
     ) {
-        System.out.println("📥 [GET] /consultations/" + consultationId + "/details");
-        System.out.println("👤 User ID: " + user.getId());
-
         try {
             ConsultationDetailsResponse res = consultationService.getConsultationDetails(consultationId, user.getId());
-            System.out.println("✅ Trả về dữ liệu thành công.");
             return ResponseEntity.ok(res);
         } catch (RuntimeException e) {
-            System.err.println("❌ Lỗi xảy ra trong getConsultationDetails:");
-            e.printStackTrace(); // In chi tiết stack trace
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception ex) {
-            System.err.println("🔥 Lỗi không xác định:");
             ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi server nội bộ.");
         }
     }
-
-
-
-
 
 }

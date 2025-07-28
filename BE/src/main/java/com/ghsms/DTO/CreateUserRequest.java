@@ -1,6 +1,5 @@
 package com.ghsms.DTO;
 
-import com.ghsms.file_enum.ConsultantSpecialization;
 import lombok.Data;
 
 import java.util.List;
@@ -11,7 +10,7 @@ public class CreateUserRequest {
     private String email;
     private String password;
     private String phoneNumber;
-    private String role; // ví dụ: "Khách hàng", "Tư vấn viên",...
+    private String role;
 
     private List<String> certificates;
 }

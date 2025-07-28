@@ -26,10 +26,6 @@ public class AdminStatsService {
         List<User> users = userRepository.findAll();
         List<Booking> bookings = bookingRepository.findAll();
 
-        System.out.println("🔍 Tổng số user: " + users.size());
-        System.out.println("🔍 Tổng số booking: " + bookings.size());
-
-        // Đếm user theo ngày
         Map<LocalDate, Long> userCounts = users.stream()
                 .filter(Objects::nonNull)
                 .filter(u -> u.getCreatedAt() != null)
@@ -38,7 +34,6 @@ public class AdminStatsService {
                         Collectors.counting()
                 ));
 
-        // Đếm số booking theo loại dịch vụ
         Map<LocalDate, Long> consultantCounts = new HashMap<>();
         Map<LocalDate, Long> testCounts = new HashMap<>();
 
@@ -62,15 +57,11 @@ public class AdminStatsService {
             }
         }
 
-        // Gộp tất cả ngày lại
         Set<LocalDate> allDates = new HashSet<>();
         allDates.addAll(userCounts.keySet());
         allDates.addAll(consultantCounts.keySet());
         allDates.addAll(testCounts.keySet());
 
-        System.out.println("📅 Số ngày thống kê: " + allDates.size());
-
-        // Tạo kết quả DTO
         return allDates.stream()
                 .sorted()
                 .map(date -> new DailyStatsDTO(

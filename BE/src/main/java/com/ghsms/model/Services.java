@@ -1,7 +1,5 @@
 package com.ghsms.model;
 
-import com.ghsms.file_enum.ConsultantSpecialization;
-import com.ghsms.file_enum.ServiceBookingCategory;
 import com.ghsms.file_enum.ServiceCategoryType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -31,9 +29,8 @@ public class Services {
     private ServiceCategoryType categoryType;
 
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "Category")
-    private ServiceBookingCategory category;
+    private String category;
 
     @Column(name = "Description",columnDefinition = "nvarchar(100)")
     private String description;
@@ -43,17 +40,16 @@ public class Services {
     private BigDecimal price;
 
     @Column(name = "Preparation",columnDefinition = "nvarchar(100)")
-    private String preparation; // e.g., "Không cần nhịn ăn"
+    private String preparation;
 
     @Column(name = "Duration")
-    private String duration; // e.g., "30 phút"
+    private String duration;
 
     @Column(name = "IsActive", columnDefinition = "BIT DEFAULT 1")
     private boolean active = true;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "specialization", length = 100)
-    private ConsultantSpecialization specialization;
+    @Column(name = "specialization", columnDefinition = "nvarchar(100)")
+    private String specialization;
 
 
 }

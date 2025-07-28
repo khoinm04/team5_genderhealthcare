@@ -32,9 +32,9 @@ const BookingSuccess = ({ serviceName, date, time, fullName, price, email, phone
           <p className="text-green-700">
             <span className="font-medium">Họ tên:</span> {fullName}
           </p>
-          <p className="text-green-700">
+          {/* <p className="text-green-700">
             <span className="font-medium">Số tiền:</span> {price}
-          </p>
+          </p> */}
           <p className="text-green-700">
             <span className="font-medium">Trạng thái:</span>{" "}
             <span className="text-green-600 font-semibold">ĐÃ THANH TOÁN</span>

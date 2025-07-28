@@ -3,26 +3,30 @@ package com.ghsms.controller;
 import com.ghsms.DTO.MenstrualCycleDTO;
 import com.ghsms.config.UserPrincipal;
 import com.ghsms.model.MenstrualCycle;
+import com.ghsms.model.MenstrualCycleHistory;
+import com.ghsms.service.MenstrualCycleHistoryService;
 import com.ghsms.service.MenstrualCycleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/menstrual-cycles")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ROLE_CUSTOMER')")
 public class MenstrualCycleController {
     private final MenstrualCycleService menstrualCycleService;
+    private final MenstrualCycleHistoryService menstrualCycleHistoryService;
 
     @PostMapping("/track")
     public ResponseEntity<MenstrualCycleDTO> trackCycle(@AuthenticationPrincipal UserPrincipal user,
                                                         @Valid @RequestBody MenstrualCycleDTO menstrualCycleDTO) {
-        // ✅ Gán userId/customerId từ token
         menstrualCycleDTO.setUserId(user.getId());
 
         MenstrualCycle result = menstrualCycleService.trackCycle(
@@ -37,7 +41,6 @@ public class MenstrualCycleController {
     }
 
 
-
     @GetMapping("/customer/{customerId}/next-period")
     public ResponseEntity<LocalDate> getNextPeriod(@PathVariable Long customerId) {
         return ResponseEntity.ok(menstrualCycleService.getPredictedNextDate(customerId));
@@ -50,7 +53,11 @@ public class MenstrualCycleController {
 
     @GetMapping("/customer/{customerId}/current")
     public ResponseEntity<MenstrualCycleDTO> getCurrentCycle(@PathVariable Long customerId) {
-        return ResponseEntity.ok(menstrualCycleService.toDTO(menstrualCycleService.getCurrentCycle(customerId)));
+        MenstrualCycle currentCycle = menstrualCycleService.getCurrentCycle(customerId);
+        if (currentCycle == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(menstrualCycleService.toDTO(currentCycle));
     }
 
     @GetMapping("/customer/{customerId}/predicted")
@@ -79,6 +86,29 @@ public class MenstrualCycleController {
                 request.getCycleLength(),
                 request.getMenstruationDuration(),
                 request.getNotes())));
+    }
+
+    @PostMapping("/history/save-current")
+    public ResponseEntity<?> saveCurrentCycleToHistory(@AuthenticationPrincipal UserPrincipal user) {
+        Long userId = user.getId();
+        MenstrualCycle currentCycle = menstrualCycleService.getCurrentCycle(userId);
+        if (currentCycle == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Không có chu kỳ hiện tại để lưu lịch sử"));
+        }
+
+        LocalDate startDate = currentCycle.getStartDate();
+        LocalDate endDate = startDate.plusDays(currentCycle.getCycleLength() - 1);
+        Integer menstruationDuration = currentCycle.getMenstruationDuration();
+        String notes = currentCycle.getNotes();
+
+        try {
+            MenstrualCycleHistory history = menstrualCycleHistoryService.addCycle(
+                    userId, startDate, endDate, menstruationDuration, notes
+            );
+            return ResponseEntity.ok(Map.of("message", "Đã lưu chu kỳ hiện tại vào lịch sử", "history", history));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
 

@@ -4,13 +4,13 @@ import lombok.Getter;
 
 @Getter
 public enum ConsultationStatus {
-    PENDING("Chờ xác nhận"),           // Đang chờ staff assign consultant
-    CONFIRMED("Đã xác nhận"),         // Staff đã assign consultant
-    SCHEDULED("Đã lên lịch"),         // Đã sắp xếp thời gian cụ thể
-    ONGOING("Đang tư vấn"),           // Đang trong quá trình tư vấn
-    COMPLETED("Hoàn thành"),          // Đã hoàn thành buổi tư vấn
-    CANCELED("Đã hủy"),               // Đã hủy lịch hẹn
-    RESCHEDULED("Đã dời lịch");       // Đã thay đổi thời gian hẹn
+    PENDING("Chờ xác nhận"),
+    CONFIRMED("Đã xác nhận"),
+    SCHEDULED("Đã lên lịch"),
+    ONGOING("Đang tư vấn"),
+    COMPLETED("Hoàn thành"),
+    CANCELED("Đã hủy"),
+    RESCHEDULED("Đã dời lịch");
 
     private final String description;
 

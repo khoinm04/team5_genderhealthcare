@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "ContraceptiveSchedules")
@@ -26,35 +27,37 @@ public class ContraceptiveSchedule {
     @Column(name = "StartDate", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "Type", nullable = false) // "21" hoặc "28"
+    @NotNull(message = "Ngày kết thúc không được để trống")
+    @Column(name = "EndDate", nullable = false)
+    private LocalDate endDate;
+
+    @Column(name = "Type", nullable = false)
     private String type;
 
     @JsonFormat(pattern = "HH:mm:ss")
     @Column(name = "PillTime", nullable = false)
-    private LocalTime pillTime; // Giờ uống thuốc mỗi ngày
+    private LocalTime pillTime;
 
     @Column(name = "CurrentIndex", nullable = false)
-    private int currentIndex; // Đánh dấu đã uống tới viên số mấy (0-20 hoặc 0-27)
+    private int currentIndex;
 
     @Column(name = "IsActive", nullable = false)
-    private boolean active = true; // Để dừng nhắc nhở khi người dùng không còn dùng nữa
+    private boolean active = true;
 
-    @Column(name = "BreakUntil")
-    private LocalDate breakUntil; // null nếu không nghỉ, hoặc ngày kết thúc kỳ nghỉ nếu vỉ 21
-
-    @Column(name = "TakenToday", nullable = false)
-    private boolean takenToday = false; // Đã uống thuốc hôm nay chưa
-
-    @Column(name = "MissedCount", nullable = false)
-    private int missedCount = 0; // Số lần quên uống thuốc liên tiếp
+    @Column(name = "StartBreakDay")
+    private LocalDate startBreakDay;
 
     @Column(name = "LastCheckedDate")
-    private LocalDate lastCheckedDate; // Ngày kiểm tra cuối cùng
+    private LocalDate lastCheckedDate;
 
-    // ✅ THÊM MỚI: Danh sách những ngày quên uống thuốc
-    @ElementCollection
-    @CollectionTable(name = "MissedPillDates",
-            joinColumns = @JoinColumn(name = "ScheduleID"))
-    @Column(name = "MissedDate")
-    private List<LocalDate> missedPillDates = new ArrayList<>(); // Danh sách ngày quên uống
+
+    @Column(name = "MedicineName", length = 255)
+    private String medicineName;
+
+    @CreationTimestamp
+    @Column(name = "CreateAt" , nullable = false)
+    private LocalDateTime createAt;
+
+    @Column(name = "Note", length = 1000, columnDefinition = "nvarchar(1000)")
+    private String note;
 }

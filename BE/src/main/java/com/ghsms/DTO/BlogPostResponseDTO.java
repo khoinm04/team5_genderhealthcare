@@ -22,10 +22,11 @@ public class BlogPostResponseDTO {
     private Double rating;
     private Integer ratingCount;
     private int views;
+    private long commentsCount;
 
 
 
-    public BlogPostResponseDTO(BlogPost blogPost) {
+    public BlogPostResponseDTO(BlogPost blogPost, long commentsCount) {
         this.id = blogPost.getBlogId();
         this.title = blogPost.getTitle();
         this.content = blogPost.getContent();
@@ -40,6 +41,7 @@ public class BlogPostResponseDTO {
         this.rating = blogPost.getRating();
         this.ratingCount = blogPost.getRatingCount();
         this.views = blogPost.getViews();
+        this.commentsCount= commentsCount;
     }
 
     private String convertStatusToVietnamese(BlogStatus status) {

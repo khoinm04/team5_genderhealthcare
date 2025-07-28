@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from "react";
-import {
-  Calendar,
-  Clock,
-  User,
-  FileText,
-  CreditCard,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  ArrowLeft,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, User, FileText, CreditCard, CheckCircle, XCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { statusMap } from "../utils/statusMap"; // Cập nhật đúng path
+
 
 const AppointmentHistory = () => {
   const [appointments, setAppointments] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate(); // Khởi tạo navigate
 
@@ -24,46 +16,84 @@ const AppointmentHistory = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [rating, setRating] = useState(5);
+
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultData, setResultData] = useState(null);
+
+  const [showTestResultModal, setShowTestResultModal] = useState(false);
+  const [selectedResult, setSelectedResult] = useState(null);
+
   const [hoverRating, setHoverRating] = useState(0);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(5);
+
+  const [pageInfo, setPageInfo] = useState({
+    page: 0,
+    size: 5,
+    totalPages: 0,
+    totalElements: 0
+  });
+
 
   // Load dữ liệu giả
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8080/api/bookings/history",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        let url = `http://localhost:8080/api/bookings/history?page=${page}&size=${size}`;
+        if (filter !== 'all') {
+          url += `&type=${filter}`;
+        }
 
-        const transformed = response.data.map((item) => ({
-          id: item.id,
-          type: item.categoryType.toLowerCase(), // "CONSULTATION" => "consultation"
-          title: item.serviceName,
-          date: item.date,
-          time: item.timeSlot, // giữ nguyên toàn bộ chuỗi timeSlot
-          doctor: item.assignedStaff || "Chưa gán",
-          status: item.status.toLowerCase(),
-          price: item.price,
-          notes: item.notes,
-          hasFeedback: item.hasFeedback || false,
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        const pageData = response.data;
+
+        const transformed = pageData.content.map((item) => ({
+          id: item.bookingId,
+          consultationId: item.consultationId, // 👈 Thêm dòng này
+          testResultId: item.testResultId,     // 👈 Nếu cần dùng
+          feedback: item.feedback,         // 👈 THÊM DÒNG NÀY
+          rating: item.rating,
+          categoryType: item.categoryType, // ✅ Thêm dòng này
+
+          type: item.categoryType?.toLowerCase() || 'unknown',
+          title: item.serviceName || 'Không rõ',
+          date: item.date || item.bookingDate || 'N/A',
+          time: item.timeSlot || 'N/A',
+          doctor: item.staffName || item.consultantName || 'Chưa gán',
+          status:
+            item.status?.trim().toLowerCase() ||
+            item.consultationStatus?.trim().toLowerCase() ||
+            item.testStatus?.trim().toLowerCase() ||
+            'unknown',
+          price: item.amount || 0,
+          notes: item.note || '',
+          startTime: item.startTime || '',
+          endTime: item.endTime || '',
+          topic: item.topic || '',
+          client: item.client || '',
         }));
 
         setAppointments(transformed);
+        setPageInfo({
+          page: pageData.number,
+          totalPages: pageData.totalPages,
+          totalElements: pageData.totalElements,
+          size: pageData.size,
+        });
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu từ API:", error);
+        console.error("Lỗi khi tải dữ liệu từ API:", error.response?.data || error.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAppointments();
-  }, []);
+  }, [page, size, filter]); // ✅ Gọi lại khi `filter` thay đổi
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -85,7 +115,7 @@ const AppointmentHistory = () => {
     }
   };
 
-  const handleViewResult = async (appointment) => {
+  const handleViewConsultationResult = async (appointment) => {
     try {
       const consultationId = appointment.consultationId || appointment.id;
       console.log(
@@ -156,26 +186,27 @@ const AppointmentHistory = () => {
   };
 
   const filterAppointments = (appointment) => {
-    if (filter === "all") return true;
-    if (filter === "test") return appointment.type === "test";
-    if (filter === "consultation") return appointment.type === "consultation";
+    if (filter === 'all') return true;
+    if (filter === 'test') return appointment.type === 'test';
+    if (filter === 'consultation') return appointment.type === 'consultation';
     return appointment.status === filter;
   };
 
   const filteredAppointments = appointments.filter(filterAppointments);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
     }).format(price);
   };
 
@@ -194,19 +225,31 @@ const AppointmentHistory = () => {
   const handleBackToHome = () => {
     navigate("/"); // Điều hướng về trang chủ
   };
+
   // Mở modal
   const handleOpenFeedbackModal = (appointment) => {
     setSelectedAppointment(appointment);
     setShowFeedbackModal(true);
-    setFeedbackText("");
-    setRating(5);
+    setFeedbackText(appointment.feedback || "");
+    setRating(appointment.rating || 5);
   };
+
+
 
   // Gửi feedback
   const handleSubmitFeedback = async () => {
     try {
+
+
+
+
+      if (!selectedAppointment?.consultationId) {
+        alert("Không tìm thấy consultationId để gửi feedback");
+        return;
+      }
+
       await axios.post(
-        `http://localhost:8080/api/consultations/${selectedAppointment.id}/feedback`,
+        `http://localhost:8080/api/consultations/${selectedAppointment.consultationId}/feedback`,
         {
           rating,
           feedback: feedbackText,
@@ -217,21 +260,31 @@ const AppointmentHistory = () => {
           },
         }
       );
+
+
+
       alert("Đã gửi đánh giá thành công!");
       setShowFeedbackModal(false);
-      // Cập nhật lại danh sách
+
       setAppointments((prev) =>
         prev.map((item) =>
-          item.id === selectedAppointment.id
-            ? { ...item, hasFeedback: true }
+          item.consultationId === selectedAppointment.consultationId
+            ? {
+              ...item,
+              hasFeedback: true,
+              feedback: feedbackText,
+              rating: rating,
+            }
             : item
         )
       );
+
     } catch (err) {
       alert("Lỗi khi gửi đánh giá");
       console.error(err);
     }
   };
+
 
   const renderRatingMessage = (rating) => {
     const messages = {
@@ -248,15 +301,50 @@ const AppointmentHistory = () => {
     return [...Array(5)].map((_, index) => (
       <span
         key={index}
-        className={`text-xl ${
-          index < rating ? "text-yellow-400" : "text-gray-300"
-        }`}
+        className={`text-xl ${index < rating ? "text-yellow-400" : "text-gray-300"
+          }`}
       >
         ★
       </span>
     ));
   };
 
+  const renderStatusTag = (status) => {
+    const s = statusMap[status?.toLowerCase()] || {
+      label: "Không xác định",
+      color: "bg-gray-100 text-gray-600",
+      icon: AlertCircle,
+    };
+
+    const Icon = s.icon;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${s.color}`}>
+        <Icon className="w-4 h-4" />
+        {s.label}
+      </span>
+    );
+  };
+
+  //api lay ket qua xet nghiem
+  const handleViewTestResult = async (appointment) => {
+    console.log("🧪 Đang gọi kết quả với testResultId:", appointment.testResultId);
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await axios.get(`/api/test-results/${appointment.testResultId}/details`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSelectedResult(res.data); // Lưu lại dữ liệu để hiển thị trong modal
+      setShowTestResultModal(true); // Bật modal hiển thị kết quả
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết kết quả xét nghiệm:", error);
+      alert("Không thể tải kết quả xét nghiệm. Vui lòng thử lại.");
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -275,44 +363,40 @@ const AppointmentHistory = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Lịch sử đặt lịch
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Lịch sử đặt lịch</h1>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filter Tabs */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-2 mb-4">
             <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === "all"
-                  ? "bg-pink-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'all'
+                ? 'bg-pink-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
             >
               Tất cả
             </button>
             <button
-              onClick={() => setFilter("test")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === "test"
-                  ? "bg-pink-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              onClick={() => setFilter('test')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'test'
+                ? 'bg-pink-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
             >
               Xét nghiệm
             </button>
             <button
-              onClick={() => setFilter("consultation")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === "consultation"
-                  ? "bg-pink-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              onClick={() => setFilter('consultation')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'consultation'
+                ? 'bg-pink-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
             >
               Tư vấn
             </button>
@@ -337,11 +421,10 @@ const AppointmentHistory = () => {
                       key={value}
                       onClick={() => setRating(value)}
                       onMouseEnter={() => setHoverRating(value)}
-                      className={`cursor-pointer text-2xl transition-colors ${
-                        value <= (hoverRating || rating)
-                          ? "text-yellow-400"
-                          : "text-gray-300"
-                      }`}
+                      className={`cursor-pointer text-2xl transition-colors ${value <= (hoverRating || rating)
+                        ? "text-yellow-400"
+                        : "text-gray-300"
+                        }`}
                     >
                       ★
                     </span>
@@ -395,8 +478,8 @@ const AppointmentHistory = () => {
                   {resultData.gender === "MALE"
                     ? "Nam"
                     : resultData.gender === "FEMALE"
-                    ? "Nữ"
-                    : "Khác"}
+                      ? "Nữ"
+                      : "Khác"}
                   )
                 </p>
                 <p>
@@ -444,38 +527,84 @@ const AppointmentHistory = () => {
           </div>
         )}
 
+        {showTestResultModal && selectedResult && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4">
+            <div className="bg-white border border-gray-300 shadow-2xl rounded-xl p-6 w-full max-w-xl overflow-y-auto max-h-[90vh]">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Chi tiết kết quả xét nghiệm
+              </h2>
+
+              <div className="space-y-3 text-sm text-gray-800">
+                <p>
+                  <strong>Khách hàng:</strong> {selectedResult.customerName} (
+                  {selectedResult.customerGender === "MALE"
+                    ? "Nam"
+                    : selectedResult.customerGender === "FEMALE"
+                      ? "Nữ"
+                      : "Khác"}
+                  )
+                </p>
+                <p><strong>Email:</strong> {selectedResult.customerEmail}</p>
+                <p><strong>Điện thoại:</strong> {selectedResult.customerPhone}</p>
+                <p><strong>Tuổi:</strong> {selectedResult.customerAge}</p>
+                <p><strong>Thời gian:</strong> {selectedResult.timeSlot}</p>
+
+                <div className="mt-4">
+                  <p className="font-semibold text-gray-900">🔬 Kết quả xét nghiệm:</p>
+                  <div className="border border-gray-200 rounded-lg p-3 mt-2">
+                    <p><strong>Tên xét nghiệm:</strong> {selectedResult.testName}</p>
+                    <p><strong>Kết quả:</strong> {selectedResult.result}</p>
+                    <p><strong>Ghi chú:</strong> {selectedResult.notes || "Không có"}</p>
+                  </div>
+                </div>
+
+                {selectedResult.doctorNotes && (
+                  <div className="mt-4 border-t pt-4">
+                    <h3 className="font-semibold text-gray-900">📝 Ghi chú của bác sĩ:</h3>
+                    <p className="text-gray-700 whitespace-pre-line">
+                      {selectedResult.doctorNotes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-right mt-6">
+                <button
+                  onClick={() => setShowTestResultModal(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
         {/* Appointments List */}
         {filteredAppointments.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Không có lịch hẹn nào
-            </h3>
-            <p className="text-gray-500">
-              Bạn chưa có lịch hẹn nào trong danh mục này.
-            </p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có lịch hẹn nào</h3>
+            <p className="text-gray-500">Bạn chưa có lịch hẹn nào trong danh mục này.</p>
           </div>
         ) : (
           <div className="space-y-6">
             {filteredAppointments.map((appointment) => (
-              <div
-                key={appointment.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-              >
+              <div key={appointment.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="flex items-center gap-2">
-                          {appointment.type === "test" ? (
+                          {appointment.type === 'test' ? (
                             <FileText className="w-5 h-5 text-blue-600" />
                           ) : (
                             <User className="w-5 h-5 text-green-600" />
                           )}
                           <span className="text-sm font-medium text-gray-600">
-                            {appointment.type === "test"
-                              ? "Xét nghiệm"
-                              : "Tư vấn"}
+                            {appointment.type === 'test' ? 'Xét nghiệm' : 'Tư vấn'}
                           </span>
                         </div>
                         <div
@@ -486,6 +615,7 @@ const AppointmentHistory = () => {
                           {getStatusIcon(appointment.status)}
                           {getStatusText(appointment.status)}
                         </div>
+
                       </div>
 
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -507,11 +637,11 @@ const AppointmentHistory = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <CreditCard className="w-4 h-4" />
-                          <span className="font-medium">
-                            {formatPrice(appointment.price)}
-                          </span>
+                          <span className="font-medium">{formatPrice(appointment.price)}</span>
                         </div>
                       </div>
+
+
 
                       {appointment.notes && (
                         <div className="mt-3 p-3 bg-gray-50 rounded-md">
@@ -523,21 +653,35 @@ const AppointmentHistory = () => {
                     </div>
 
                     <div className="flex flex-col gap-2 ml-4">
-                      {appointment.status === "scheduled" && (
+                      {appointment.status === 'scheduled' && (
                         <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
                           Xem chi tiết
                         </button>
                       )}
-                      {appointment.status === "completed" && (
-                        <button
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                          onClick={() => handleViewResult(appointment)}
-                        >
-                          Xem kết quả
-                        </button>
-                      )}
+                      <>
+                        {appointment.status === "completed" && (
+                          <>
+                            {appointment.categoryType === "TEST" && (
+                              <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                onClick={() => handleViewTestResult(appointment)}
+                              >
+                                Xem kết quả
+                              </button>
+                            )}
 
-                      {/* Hiển thị Feedback & Rating */}
+                            {appointment.categoryType === "CONSULTATION" && appointment.notes && (
+                              <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                onClick={() => handleViewConsultationResult(appointment)}
+                              >
+                                Xem ghi chú
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                      </>
                       {appointment.type === "consultation" &&
                         appointment.status === "completed" && (
                           <button
@@ -556,6 +700,42 @@ const AppointmentHistory = () => {
             ))}
           </div>
         )}
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            ◀ Trang trước
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            Trang {page + 1} / {pageInfo.totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page + 1 >= pageInfo.totalPages}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Trang sau ▶
+          </button>
+
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(Number(e.target.value));
+              setPage(0); // Reset về trang đầu khi đổi size
+            }}
+            className="ml-4 px-2 py-1 border rounded"
+          >
+            <option value={5}>5 dòng/trang</option>
+            <option value={10}>10 dòng/trang</option>
+            <option value={20}>20 dòng/trang</option>
+          </select>
+        </div>
+
       </div>
     </div>
   );

@@ -3,11 +3,8 @@ package com.ghsms.model;
 import com.ghsms.file_enum.BookingStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -74,11 +71,12 @@ public class Booking {
     @Column(name = "CreatedAt", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+
+
     public Booking(Long bookingId) {
         this.bookingId = bookingId;
     }
 
-    // Helper methods
     public void addService(Services service) {
         this.services.add(service);
     }

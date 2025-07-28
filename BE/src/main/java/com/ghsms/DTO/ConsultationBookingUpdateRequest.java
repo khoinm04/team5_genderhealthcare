@@ -1,6 +1,7 @@
 package com.ghsms.DTO;
 
 import com.ghsms.file_enum.BookingStatus;
+import com.ghsms.file_enum.ConsultationStatus;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -9,10 +10,12 @@ import java.time.LocalDate;
 public class ConsultationBookingUpdateRequest {
     private String customerName;
     private String customerPhone;
-    private String bookingDate;   // yyyy-MM-dd
-    private String timeSlot;      // "08:00-09:00"
+    private String bookingDate;
+    private String timeSlot;
     private Long serviceId;
     private Long consultantId;
-    private BookingStatus status;// nullable
+    private BookingStatus status;
+    private ConsultationStatus consultationStatus;
+
 }
 

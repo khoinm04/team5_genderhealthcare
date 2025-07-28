@@ -53,7 +53,6 @@ const BlogManagement = () => {
   const [notification, setNotification] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [postComments, setPostComments] = useState([]);
-  const [comments, setComments] = useState(new Map());
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -66,6 +65,13 @@ const BlogManagement = () => {
   });
   const [editPost, setEditPost] = useState(null);
   const [answerText, setAnswerText] = useState('');
+  const [pageInfo, setPageInfo] = useState({
+    page: 0,
+    totalPages: 0,
+    size: 5,
+    totalElements: 0
+  });
+
 
   // const blogPosts = [
   //   {
@@ -289,6 +295,8 @@ const BlogManagement = () => {
   };
 
   const handleViewComments = (post) => {
+    setPostComments([]); // 👈 reset bình luận cũ
+
     setSelectedPost(post);
     setShowCommentsModal(true);
   };
@@ -332,32 +340,7 @@ const BlogManagement = () => {
       }
 
       // 2. Gọi lại API để lấy danh sách bình luận mới
-      const res = await fetch(`/api/blogposts/${selectedPost.id}/comments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Không thể tải lại bình luận.");
-
-      const raw = await res.json();
-      const mapped = raw.map((c) => ({
-        id: c.commentId,
-        content: c.commentText,
-        author: c.commenterName,
-        avatar: c.imageUrl,
-        date: c.createdAt,
-        parentCommentId: c.parentCommentId,
-        isAuthor: c.author,
-        replies: [],
-        status: c.status || "đã duyệt",
-        isReported: c.isReported || false,
-        likes: c.likes || 0,
-        dislikes: c.dislikes || 0,
-      }));
-
-      const grouped = groupComments(mapped);
-      setPostComments(grouped); // 👈 nếu đang dùng postComments
+      await reloadComments();
 
       // 3. Reset UI sau khi gửi
       showNotification("Phản hồi đã được gửi thành công!");
@@ -480,10 +463,14 @@ const BlogManagement = () => {
   useEffect(() => {
     if (!showCommentsModal || !selectedPost) return;
 
+    // 💡 Reset trước khi gọi API để tránh hiển thị nhầm dữ liệu cũ
+    setPostComments([]);
+
     getCommentsForPost(selectedPost.id)
       .then(setPostComments)
       .catch(() => setPostComments([]));
   }, [showCommentsModal, selectedPost, getCommentsForPost]);
+
 
   const formatCommentDate = (dateString) => {
     const date = new Date(dateString);
@@ -525,9 +512,7 @@ const BlogManagement = () => {
       if (!res.ok) throw new Error("Không thể tải lại bình luận");
 
       const raw = await res.json();
-      console.log("🔄 comments Map:", comments);
-      console.log("✅ postComments state:", postComments);
-      console.log("📌 selectedPost.id:", selectedPost?.id);
+
 
 
       const mapped = raw.map((c) => ({
@@ -588,7 +573,7 @@ const BlogManagement = () => {
         showNotification('Tạo bài viết thành công!');
         console.log('Bài viết mới:', data);
 
-        await fetchBlogPosts();
+        await fetchBlogPosts(pageInfo.page, pageInfo.size); // ✅ Truyền đúng
 
         setShowCreateModal(false);
         setNewPost({
@@ -612,19 +597,34 @@ const BlogManagement = () => {
     }
   };
 
-  const fetchBlogPosts = async () => {
+  const fetchBlogPosts = async (page = 0, size = 10) => {
     console.log("🔄 Đang gọi API bài viết...");
+    console.log("📥 Gọi API với page =", page, "size =", size);
+    console.trace("🔍 Gọi từ đâu?");
+
 
     try {
-      const response = await fetch('http://localhost:8080/api/blogposts', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      const response = await fetch(
+        `http://localhost:8080/api/blogposts?page=${page}&size=${size}&sort=createdAt,desc`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
         }
-      });
+      );
 
       const data = await response.json();
+      console.log("📄 Dữ liệu bài viết:", data);
+      console.log("📥 Gọi API với page =", page, "size =", size);
+
       if (response.ok) {
-        setBlogPosts(data); // Cập nhật danh sách blog
+        setBlogPosts(data.content); // ✅ Chỉ lấy mảng bài viết
+        setPageInfo({
+          page: data.number,
+          totalPages: data.totalPages,
+          size: data.size,
+          totalElements: data.totalElements,
+        });
       } else {
         console.error("Lỗi lấy bài viết:", data.message || data);
       }
@@ -634,14 +634,14 @@ const BlogManagement = () => {
   };
 
   useEffect(() => {
-    fetchBlogPosts(); // ✅ Gọi ngay khi component render lần đầu
+    fetchBlogPosts(pageInfo.page, pageInfo.size); // ✅ Gọi đúng size bạn đã đặt trong state
 
     const interval = setInterval(() => {
-      fetchBlogPosts(); // 🔁 Gọi mỗi phút
+      fetchBlogPosts(pageInfo.page, pageInfo.size); // 🔁 Gọi định kỳ với đúng size
     }, 30000);
 
-    return () => clearInterval(interval); //  Dọn dẹp khi component bị unmount
-  }, []);
+    return () => clearInterval(interval);
+  }, [pageInfo.page, pageInfo.size]); // ✅ Thêm vào dependency để khi thay đổi sẽ gọi lại
 
   useEffect(() => {
     if (showEditModal && editPost?.content) {
@@ -688,7 +688,7 @@ const BlogManagement = () => {
         showNotification('Bài viết đã được cập nhật thành công!');
         console.log('Cập nhật thành công:', data);
 
-        await fetchBlogPosts(); // Gọi lại danh sách bài viết
+        await fetchBlogPosts(pageInfo.page, pageInfo.size); // ✅ Truyền đúng
         setShowEditModal(false);
         setEditPost(null);
       } else {
@@ -932,18 +932,6 @@ const BlogManagement = () => {
     fetchCategories();
   }, []);
 
-  const countAllComments = (comments) => {
-    let count = 0;
-    const stack = [...comments];
-    while (stack.length) {
-      const c = stack.pop();
-      count++;
-      if (c.replies) stack.push(...c.replies);
-    }
-    return count;
-  };
-
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Notification */}
@@ -986,15 +974,6 @@ const BlogManagement = () => {
               }`}
           >
             Bài viết Blog
-          </button>
-          <button
-            onClick={() => setActiveView('questions')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeView === 'questions'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-          >
-            Câu hỏi bệnh nhân ({customerQuestions.filter(q => q.status === 'chờ xử lý').length})
           </button>
         </nav>
       </div>
@@ -1090,7 +1069,7 @@ const BlogManagement = () => {
                       className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      <span>{countAllComments(postComments)} bình luận</span>
+                      <span>{post.commentsCount || 0} bình luận</span>
                     </button>
                   </div>
 
@@ -1232,6 +1211,29 @@ const BlogManagement = () => {
           ))}
         </div>
       )}
+
+      <div className="flex justify-center items-center gap-4 mt-6">
+        <button
+          onClick={() => fetchBlogPosts(pageInfo.page - 1, pageInfo.size)}
+          disabled={pageInfo.page === 0}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+        >
+          ◀ Trang trước
+        </button>
+
+        <span>
+          Trang {pageInfo.page + 1} / {pageInfo.totalPages}
+        </span>
+
+        <button
+          onClick={() => fetchBlogPosts(pageInfo.page + 1, pageInfo.size)}
+          disabled={pageInfo.page + 1 >= pageInfo.totalPages}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+        >
+          Trang sau ▶
+        </button>
+      </div>
+
 
       {/* Comments Modal */}
       {showCommentsModal && selectedPost && (
@@ -1839,7 +1841,7 @@ const BlogManagement = () => {
                     </div>
                     <div className="flex items-center space-x-1">
                       <MessageCircle className="w-4 h-4" />
-                      <span>{countAllComments(postComments)} bình luận</span>
+                      <span>{selectedPost.commentsCount || 0} bình luận</span>
                     </div>
                   </div>
 
@@ -1950,71 +1952,7 @@ const BlogManagement = () => {
       }
 
       {/* Answer Question Modal */}
-      {
-        showAnswerModal && selectedQuestion && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Trả lời câu hỏi</h2>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-2">Câu hỏi từ {selectedQuestion.customer}:</h3>
-                  <p className="text-gray-700">{selectedQuestion.question}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Câu trả lời của bạn *</label>
-                  <textarea
-                    value={answerText}
-                    onChange={(e) => setAnswerText(e.target.value)}
-                    rows="8"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nhập câu trả lời chuyên nghiệp và chi tiết..."
-                  />
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-start space-x-2">
-                    <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-800">Lưu ý quan trọng</p>
-                      <p className="text-sm text-blue-700">
-                        Đây là tư vấn y tế. Vui lòng đảm bảo thông tin chính xác và khuyến nghị bệnh nhân đến gặp bác sĩ trực tiếp khi cần thiết.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowAnswerModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  disabled={isLoading}
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleAnswerQuestion}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg hover:from-blue-600 hover:to-teal-600 transition-all duration-200 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Đang gửi...</span>
-                    </div>
-                  ) : (
-                    'Gửi câu trả lời'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
+      
     </div >
   );
 };

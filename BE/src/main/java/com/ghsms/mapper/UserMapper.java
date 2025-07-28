@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserMapper {
     public UserDTO toDto(User user) {
-        return new UserDTO(user, true); // ✅ true vì đang online
+        return new UserDTO(user, true);
     }
 
     public static UserInfoDTO fromEntity(CustomerDetails details) {

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Eye, Trash2, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Eye, Trash2, Filter, RefreshCcw } from 'lucide-react';
 import axios from 'axios';
 
 const ServiceManagement = () => {
   const [services, setServices] = useState([]);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(9); // tương ứng với grid 3 cột
+  const [totalPages, setTotalPages] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -11,33 +15,23 @@ const ServiceManagement = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const categories = [
-    { value: 'GENERAL_CONSULTATION', label: 'Tư vấn tổng quát' },
-    { value: 'SPECIALIST_CONSULTATION', label: 'Tư vấn chuyên khoa' },
-    { value: 'RE_EXAMINATION', label: 'Tư vấn tái khám' },
-    { value: 'EMERGENCY_CONSULTATION', label: 'Tư vấn y tế khẩn cấp' },
-    { value: 'STI_HIV', label: 'Xét nghiệm HIV' },
-    { value: 'STI_Syphilis', label: 'Xét nghiệm Giang mai' },
-    { value: 'STI_Gonorrhea', label: 'Xét nghiệm Lậu' },
-    { value: 'STI_Chlamydia', label: 'Xét nghiệm Chlamydia' },
-  ];
+  const [categories, setCategories] = useState([]);
 
-  const getCategoryLabel = (value) => {
-    const found = categories.find(cat => cat.value === value);
-    return found ? found.label : value;
-  };
-
-  const filteredServices = services.filter(service => {
-    const matchesSearch = service.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredServices = services.filter((service) => {
+    const matchesSearch =
+      service.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || service.category === filterCategory;
-    const matchesStatus =
-      filterStatus === 'all' ||
-      (filterStatus === 'active' && service.isActive) ||
-      (filterStatus === 'inactive' && !service.isActive);
 
+    const matchesCategory = filterCategory === 'all' || service.category === filterCategory;
+
+    const matchesStatus =
+      filterStatus === "all" ||
+      (filterStatus === "active" && service.isActive === true) ||
+      (filterStatus === "inactive" && service.isActive === false);
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+
 
   const openModal = (type, service) => {
     setModalType(type);
@@ -57,12 +51,62 @@ const ServiceManagement = () => {
     setSelectedService(null);
   };
 
-  const handleDeleteService = () => {
-    if (selectedService) {
-      setServices(services.filter(s => s.id !== selectedService.id));
+  const handleDeleteService = async () => {
+    if (!selectedService) return;
+
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+    if (!token) return;
+
+    try {
+      await axios.put(
+        `http://localhost:8080/api/manager/services/${selectedService.serviceId}/deactivate`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // ✅ Cập nhật trạng thái isActive = false thay vì xóa khỏi danh sách
+      setServices(prev =>
+        prev.map(s =>
+          s.serviceId === selectedService.serviceId
+            ? { ...s, isActive: false }
+            : s
+        )
+      );
+
       closeModal();
+    } catch (err) {
+      console.error("Lỗi khi xóa dịch vụ:", err);
     }
   };
+
+  const handleReactivateService = async (serviceId) => {
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+    if (!token) return;
+
+    try {
+      await axios.put(
+        `http://localhost:8080/api/manager/services/${serviceId}/reactivate`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // ✅ Đồng bộ với thuộc tính isActive
+      setServices(prev =>
+        prev.map(s =>
+          s.serviceId === serviceId ? { ...s, isActive: true } : s
+        )
+      );
+    } catch (err) {
+      console.error("Lỗi khi kích hoạt lại dịch vụ:", err);
+    }
+  };
+
+
+
 
   const getStatusBadge = (isActive) => {
     return isActive ? (
@@ -88,15 +132,42 @@ const ServiceManagement = () => {
 
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/manager/services/manager", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      }
+    const token = localStorage.getItem("token");
+
+    fetch(`http://localhost:8080/api/manager/page/services?page=${page}&size=${size}`, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-      .then((res) => res.json())
-      .then((data) => setServices(data))
-      .catch((err) => console.error("Lỗi khi tải danh sách dịch vụ:", err));
-  }, []);
+      .then(res => {
+        if (!res.ok) throw new Error("Không thể tải dịch vụ");
+        return res.json();
+      })
+      .then(data => {
+        const serviceList = data.content || [];
+
+        // ✅ Cập nhật danh sách dịch vụ
+        setServices(serviceList);
+
+        // ✅ Cập nhật số trang
+        setTotalPages(data.totalPages);
+
+        // ✅ Trích danh mục duy nhất từ danh sách
+        const uniqueCategories = Array.from(
+          new Set(serviceList.map(s => s.category))
+        ).filter(Boolean); // loại bỏ null
+
+        const categoryOptions = uniqueCategories.map(cat => ({
+          value: cat,
+          label: translateCategory(cat),
+        }));
+
+        setCategories(categoryOptions);
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi khi tải dịch vụ:", err);
+        alert("Không thể tải danh sách dịch vụ");
+      });
+  }, [page, size]);
+
 
   const translateCategory = (category) => {
     switch (category) {
@@ -132,6 +203,43 @@ const ServiceManagement = () => {
     }
   };
 
+  //api gọi lại
+const fetchServices = () => {
+  const token = localStorage.getItem("token");
+
+  fetch(`http://localhost:8080/api/manager/page/services?page=${page}&size=${size}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Không thể tải dịch vụ");
+      return res.json();
+    })
+    .then(data => {
+      const serviceList = data.content || [];
+
+      setServices(serviceList);
+      setTotalPages(data.totalPages || 1);
+
+      const uniqueCategories = Array.from(
+        new Set(serviceList.map(s => s.category))
+      ).filter(Boolean);
+
+      const categoryOptions = uniqueCategories.map(cat => ({
+        value: cat,
+        label: translateCategory(cat),
+      }));
+
+      setCategories(categoryOptions);
+    })
+    .catch(err => {
+      console.error("❌ Lỗi khi tải danh sách dịch vụ:", err);
+      alert("Không thể tải danh sách dịch vụ");
+    });
+};
+
+
+
+
 
   const handleSaveService = () => {
     if (!selectedService) return;
@@ -144,38 +252,38 @@ const ServiceManagement = () => {
       category: selectedService.category,
       isActive: selectedService.isActive,
     };
-    console.log("📦 Dữ liệu gửi lên backend:", body);
+
+    console.log("📤 Dữ liệu gửi lên:", body);
+
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+    if (!token) return;
 
     fetch(`http://localhost:8080/api/manager/services/${selectedService.serviceId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     })
       .then((res) => {
+        console.log("📥 Phản hồi từ API cập nhật:", res.status);
         if (!res.ok) throw new Error("Cập nhật thất bại");
-        return res.json(); // hoặc `res.text()` nếu backend không trả json
+        return res.json(); // hoặc res.text()
       })
-      .then(() => {
+      .then((updated) => {
+        console.log("✅ Dịch vụ đã cập nhật:", updated);
         alert("✅ Cập nhật thành công!");
-        setShowModal(false); // đóng modal
-
-        // Tải lại danh sách dịch vụ sau khi cập nhật
-        fetch("http://localhost:8080/api/manager/services", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        })
-          .then(res => res.json())
-          .then(data => setServices(data));
+        setShowModal(false);
+        fetchServices(); // Gọi lại để lấy danh sách mới
       })
       .catch(err => {
         console.error("❌ Lỗi khi cập nhật dịch vụ:", err);
         alert("❌ Đã xảy ra lỗi khi cập nhật dịch vụ.");
       });
   };
+
+
 
   //api them dich vu
   const handleAddService = async () => {
@@ -282,6 +390,7 @@ const ServiceManagement = () => {
                 >
                   <Eye size={16} />
                 </button>
+
                 <button
                   onClick={() => openModal('edit', service)}
                   className="p-1 text-gray-500 hover:text-purple-600 transition-colors"
@@ -289,6 +398,7 @@ const ServiceManagement = () => {
                 >
                   <Edit size={16} />
                 </button>
+
                 <button
                   onClick={() => openModal('delete', service)}
                   className="p-1 text-gray-500 hover:text-red-600 transition-colors"
@@ -296,9 +406,18 @@ const ServiceManagement = () => {
                 >
                   <Trash2 size={16} />
                 </button>
+
+                {!service.isActive && (
+                  <button
+                    onClick={() => handleReactivateService(service.serviceId)}
+                    className="p-1 text-gray-500 hover:text-green-600 transition-colors"
+                    title="Kích hoạt lại"
+                  >
+                    <RefreshCcw size={16} />
+                  </button>
+                )}
               </div>
             </div>
-
             <div className="space-y-3">
               <p className="text-sm text-gray-600 line-clamp-2">{service.description}</p>
 
@@ -312,7 +431,6 @@ const ServiceManagement = () => {
                   <p className="text-sm text-gray-600">{service.duration} phút</p>
                 </div>
               </div>
-
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                 {getStatusBadge(service.isActive)}
               </div>
@@ -320,6 +438,41 @@ const ServiceManagement = () => {
           </div>
         ))}
       </div>
+      <div className="flex justify-center items-center mt-6 gap-4">
+        <button
+          onClick={() => setPage(p => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          ◀ Trước
+        </button>
+
+        <span className="text-sm text-gray-700">
+          Trang {page + 1} / {totalPages}
+        </span>
+
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={page + 1 >= totalPages}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Sau ▶
+        </button>
+
+        <select
+          value={size}
+          onChange={(e) => {
+            setSize(Number(e.target.value));
+            setPage(0); // reset lại về trang đầu nếu đổi size
+          }}
+          className="ml-4 px-2 py-1 border rounded"
+        >
+          <option value={6}>6 dịch vụ/trang</option>
+          <option value={9}>9 dịch vụ/trang</option>
+          <option value={12}>12 dịch vụ/trang</option>
+        </select>
+      </div>
+
 
       {/* Modal */}
       {showModal && (
@@ -427,10 +580,21 @@ const ServiceManagement = () => {
                         }
                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
-
                     </div>
-                    
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Loại dịch vụ cụ thể (category)</label>
+                    <input
+                      type="text"
+                      defaultValue={selectedService?.category || ''}
+                      onChange={(e) =>
+                        setSelectedService(prev => ({ ...prev, category: e.target.value }))
+                      }
+                      placeholder="Ví dụ: GENERAL_CONSULTATION, STI_HIV, ..."
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Danh mục</label>
                     <select
@@ -447,22 +611,20 @@ const ServiceManagement = () => {
                   </div>
 
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
-                    <select
-                      defaultValue={selectedService?.isActive ? 'active' : 'inactive'}
-                      onChange={(e) =>
-                        setSelectedService(prev => ({
-                          ...prev,
-                          isActive: e.target.value === 'active',
-                        }))
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value="true">Đang hoạt động</option>
-                      <option value="false">Tạm dừng</option>
-                    </select>
-                  </div>
+                  <select
+                    value={selectedService?.isActive ? 'true' : 'false'} // 🔁 dùng value thay vì defaultValue
+                    onChange={(e) =>
+                      setSelectedService(prev => ({
+                        ...prev,
+                        isActive: e.target.value === 'true', // vì e.target.value là chuỗi
+                      }))
+                    }
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="true">Đang hoạt động</option>
+                    <option value="false">Tạm dừng</option>
+                  </select>
+
                 </form>
               )}
             </div>

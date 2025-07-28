@@ -3,8 +3,6 @@ package com.ghsms.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ghsms.file_enum.AuthProvider;
-import com.ghsms.model.ConsultantDetails;
-import com.ghsms.model.StaffDetails;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,7 +39,7 @@ public class User implements Serializable {
     private String name;
 
     @Column(name = "ImageUrl", length = 255)
-    private String imageUrl; // URL to user's profile image, can be null
+    private String imageUrl;
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "email không hợp lệ")
@@ -51,7 +49,7 @@ public class User implements Serializable {
 
     @Column(name = "PasswordHash")
     @Size(min = 6, max = 255)
-    private String passwordHash; // Validation depends on auth strategy
+    private String passwordHash;
 
     @Column(name = "PhoneNumber", length = 20)
     @Pattern(regexp = "(84|0[3|5|7|8|9])+([0-9]{8})\\b", message = "số điện thoại không hợp lệ")
@@ -70,10 +68,6 @@ public class User implements Serializable {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "M/d/yyyy, h:mm:ss a")
     @Column(name = "LastLogin")
     private LocalDateTime lastLogin;
-
-    // Relationships (e.g., OneToMany to BlogPosts, BlogComments, etc.) can be added here
-    // For StaffDetails and ConsultantDetails (OneToOne)
-
 
     @OneToOne(mappedBy = "staff", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private StaffDetails staffDetails;

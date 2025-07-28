@@ -30,7 +30,7 @@ public class BlogComment {
     private BlogPost blogPost;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UserID") // Assuming comments can be by anonymous users if UserID is nullable, or add nullable=false
+    @JoinColumn(name = "UserID")
     private User user;
 
     @NotBlank(message = "Comment text cannot be blank")

@@ -30,11 +30,11 @@ public class Notification {
 
     @NotBlank(message = "Message cannot be blank")
     @Size(max = 500, message = "Message must be less than 500 characters")
-    @Column(name = "Message", nullable = false, length = 500)
+    @Column(name = "Message", nullable = false, columnDefinition = "nvarchar(700)")
     private String message;
 
-    @Column(name = "IsRead", columnDefinition = "BIT DEFAULT 0")
-    private boolean isRead = false;
+    @Column(name = "is_read", columnDefinition = "BIT DEFAULT 0")
+    private Boolean read = false;
 
     @CreationTimestamp
     @Column(name = "CreatedAt", nullable = false, updatable = false)

@@ -9,7 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -41,7 +40,7 @@ public class Consultation {
     private String topic;
 
     @Size(max = 1000, message = "Ghi chú phải ít hơn 1000 ký tự")
-    @Column(name = "Note", length = 1000)
+    @Column(name = "Note", length = 1000, columnDefinition = "nvarchar(200)")
     private String note;
 
     @Column(name = "DateScheduled")
@@ -53,16 +52,13 @@ public class Consultation {
     @NotNull(message = "Trạng thái không được để trống")
     private ConsultationStatus status;
 
-
-    // ✅ THÊM MỚI: Đánh giá từ khách hàng
     @Column(name = "Rating")
-    private Integer rating; // 1-5 sao
+    private Integer rating;
 
     @Size(max = 500, message = "Phản hồi phải ít hơn 500 ký tự")
-    @Column(name = "Feedback", length = 500)
+    @Column(name = "Feedback", length = 500 ,columnDefinition = "nvarchar(100)")
     private String feedback;
 
-    // ✅ THÊM MỚI: Quan hệ one-to-one với Booking
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "BookingID", nullable = false)
     @NotNull(message = "Booking không được để trống")
@@ -80,13 +76,16 @@ public class Consultation {
     private String timeSlot;
 
     @Column(name = "MeetLink")
-    private String meetLink; // Thêm trường meetLink để lưu trữ liên kết cuộc họp trực tuyến
+    private String meetLink;
 
     @Column(name = "StartTime")
     private LocalDateTime startTime;
 
     @Column(name = "EndTime")
     private LocalDateTime endTime;
+
+
+
 
 
 }

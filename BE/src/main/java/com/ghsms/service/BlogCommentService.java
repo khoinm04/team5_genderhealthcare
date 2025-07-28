@@ -29,7 +29,6 @@ public class BlogCommentService {
         comment.setUser(user);
         comment.setCommentText(request.getCommentText());
 
-        // Xử lý parentCommentId
         if (request.getParentCommentId() != null) {
             BlogComment parentComment = commentRepo.findById(request.getParentCommentId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bình luận cha"));
@@ -43,7 +42,7 @@ public class BlogCommentService {
         BlogPost post = blogPostRepo.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
 
-        Long authorId = post.getAuthor().getUserId(); // Lấy ID người viết bài
+        Long authorId = post.getAuthor().getUserId();
 
         return commentRepo.findByBlogPostOrderByCreatedAtAsc(post)
                 .stream()
@@ -81,7 +80,7 @@ public class BlogCommentService {
         BlogComment comment = commentRepo.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bình luận"));
 
-        commentRepo.delete(comment); // sẽ tự động xóa các replies nếu cascade đúng
+        commentRepo.delete(comment);
     }
 
 }

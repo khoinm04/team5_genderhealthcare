@@ -1,6 +1,5 @@
 package com.ghsms.DTO;
 
-import com.ghsms.file_enum.StaffSpecialization;
 import com.ghsms.model.StaffDetails;
 import com.ghsms.model.User;
 import lombok.AllArgsConstructor;
@@ -19,7 +18,7 @@ public class StaffResponseDto {
     private String fullName;
     private String email;
     private String roleDisplay;
-    private StaffSpecialization specialization;
+    private String specialization;
     private LocalDate hireDate;
     private Boolean active;
     private String phoneNumber;

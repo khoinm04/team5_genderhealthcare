@@ -1,6 +1,5 @@
 package com.ghsms.DTO;
 
-import com.ghsms.file_enum.ConsultantSpecialization;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -11,7 +10,7 @@ public class ConsultantUpdateRequestDto {
     private String name;
     private String email;
     private String phoneNumber;
-    private ConsultantSpecialization specialization;
+    private String specialization;
     private LocalDate hireDate;
     private Integer yearsOfExperience;
 }

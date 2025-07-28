@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Eye, Calendar, Star, MoreVertical, Filter } from 'lucide-react';
 
 const ConsultantManagement = () => {
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10); // hoặc giá trị bạn muốn
+  const [totalPages, setTotalPages] = useState(1);
   const [consultants, setConsultants] = useState([]);
+  const [specializationOptions, setSpecializationOptions] = useState([]);
+
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConsultant, setSelectedConsultant] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -10,15 +16,15 @@ const ConsultantManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredConsultants = consultants.filter(member => {
-  const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        member.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const matchesFilter =
-    filterStatus === 'all' ||
-    String(member.active) === filterStatus; // vì active là boolean, filterStatus là string
+    const matchesFilter =
+      filterStatus === 'all' ||
+      String(member.active) === filterStatus; // vì active là boolean, filterStatus là string
 
-  return matchesSearch && matchesFilter;
-});
+    return matchesSearch && matchesFilter;
+  });
 
 
   const openModal = (type, consultant) => {
@@ -93,6 +99,8 @@ const ConsultantManagement = () => {
       }
     }
   };
+  //lay service theo type
+
 
 
   const getStatusBadge = (active) => {
@@ -107,55 +115,32 @@ const ConsultantManagement = () => {
     );
   };
 
-  const renderStars = (rating) => {
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            size={14}
-            className={`${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-          />
-        ))}
-        <span className="ml-1 text-xs text-gray-600">({rating})</span>
-      </div>
-    );
-  };
+
 
   useEffect(() => {
-    const fetchStaff = async () => {
+    const fetchConsultants = async () => {
       try {
-        const response = await fetch('/api/manager/consultants', {
+        const response = await fetch(`/api/manager/consultants?page=${page}&size=${size}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        if (!response.ok) throw new Error('Lỗi khi tải danh sách nhân viên');
+
+        if (!response.ok) throw new Error('Lỗi khi tải danh sách tư vấn viên');
         const data = await response.json();
-        setConsultants(data);
+
+        setConsultants(data.content);     // ✅ Dữ liệu danh sách
+        setTotalPages(data.totalPages);   // ✅ Tổng số trang
       } catch (error) {
         console.error(error);
-        alert('Không thể tải danh sách nhân viên');
+        alert('Không thể tải danh sách tư vấn viên');
       }
     };
 
-    fetchStaff();
-  }, []);
+    fetchConsultants();
+  }, [page, size]);  // 👈 nhớ thêm page và size để khi đổi trang tự gọi lại
 
-  const translateSpecialty = (specialization) => {
-    switch (specialization) {
-      case 'GENERAL_CONSULTATION':
-        return 'Tư vấn tổng quát';
-      case 'SPECIALIST_CONSULTATION':
-        return 'Tư vấn chuyên khoa';
-      case 'RE_EXAMINATION':
-        return 'Tư vấn tái khám';
-      case 'EMERGENCY_CONSULTATION':
-        return 'Tư vấn y tế khẩn cấp';
-      default:
-        return specialization;
-    }
-  };
+
 
   return (
     <div className="p-6">
@@ -231,7 +216,7 @@ const ConsultantManagement = () => {
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.roleDisplay}</td>
                   <td className="py-4 px-4 text-sm">
                     <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium inline-block">
-                      {translateSpecialty(consultant.specialization) || 'Chưa xác định'}
+                      {consultant.specialization || 'Chưa xác định'}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-sm text-gray-900">{consultant.yearsOfExperience} năm</td>
@@ -290,6 +275,41 @@ const ConsultantManagement = () => {
           </table>
         </div>
       </div>
+      <div className="flex justify-center items-center mt-6 gap-4">
+        <button
+          onClick={() => setPage(p => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          ◀ Trước
+        </button>
+
+        <span className="text-sm text-gray-700">
+          Trang {page + 1} / {totalPages}
+        </span>
+
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={page + 1 >= totalPages}
+          className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Sau ▶
+        </button>
+
+        <select
+          value={size}
+          onChange={(e) => {
+            setSize(Number(e.target.value));
+            setPage(0); // reset lại về trang đầu nếu đổi size
+          }}
+          className="ml-4 px-2 py-1 border rounded"
+        >
+          <option value={6}>6 tư vấn viên/trang</option>
+          <option value={9}>9 tư vấn viên/trang</option>
+          <option value={12}>12 tư vấn viên/trang</option>
+        </select>
+      </div>
+
 
       {/* Modal */}
       {showModal && (
@@ -324,7 +344,7 @@ const ConsultantManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Chuyên môn</label>
-                    <p className="mt-1 text-sm text-gray-900">{translateSpecialty(selectedConsultant.specialization) || 'Chưa xác định'}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedConsultant.specialization}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Kinh nghiệm</label>
@@ -366,6 +386,8 @@ const ConsultantManagement = () => {
 
 // Consultant Form Component
 const ConsultantForm = ({ consultant, onSave, onCancel }) => {
+  const [specializationOptions, setSpecializationOptions] = useState([]);
+
   const [formData, setFormData] = useState({
     name: consultant?.fullName || consultant?.name || '',
     email: consultant?.email || '',
@@ -376,6 +398,20 @@ const ConsultantForm = ({ consultant, onSave, onCancel }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/manager/consultation", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setSpecializationOptions(data); // [{ id, name, category }]
+      })
+      .catch(err => console.error("❌ Không thể load chuyên môn:", err));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -498,16 +534,22 @@ const ConsultantForm = ({ consultant, onSave, onCancel }) => {
         </label>
         <select
           value={formData.specialization}
-          onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+          onChange={(e) => {
+            setFormData({
+              ...formData,
+              specialization: e.target.value,  // 👉 gán trực tiếp tên chuyên môn
+            });
+          }}
           className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          required
         >
           <option value="">Chọn chuyên môn</option>
-          <option value="GENERAL_CONSULTATION">Tư vấn tổng quát</option>
-          <option value="SPECIALIST_CONSULTATION">Tư vấn chuyên khoa</option>
-          <option value="RE_EXAMINATION">Tư vấn tái khám</option>
-          <option value="EMERGENCY_CONSULTATION">Tư vấn khẩn cấp</option>
+          {specializationOptions.map(opt => (
+            <option key={opt.id} value={opt.name}>
+              {opt.name}
+            </option>
+          ))}
         </select>
+
       </div>
 
       <div>

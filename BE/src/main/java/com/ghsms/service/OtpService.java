@@ -4,6 +4,7 @@ import com.ghsms.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,10 +18,8 @@ public class OtpService {
     @Autowired
     private MailService mailService;
 
-    // Store OTP with expiration time
     private final Map<String, OtpData> otpStorage = new ConcurrentHashMap<>();
 
-    // OTP valid duration in minutes (30 minutes)
     private static final int OTP_VALID_DURATION = 30;
 
     private static class OtpData {
@@ -46,17 +45,33 @@ public class OtpService {
         otpStorage.put(email, new OtpData(otp));
 
         String subject = "Mã OTP đặt lại mật khẩu";
-        String body = String.format("Mã OTP của bạn là: %s\nMã có hiệu lực trong %d phút.",
-                otp, OTP_VALID_DURATION);
 
-        mailService.sendEmail(email, subject, body);
-        return true; // ✅ Trả về thành công
-// ✅ Gọi không cần return
+        String htmlBody = String.format("""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <div style="max-width: 500px; margin: auto; background-color: #fefefe; padding: 20px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.05);">
+                <h2 style="color: #007bff;">🔐 Mã OTP đặt lại mật khẩu</h2>
+                <p>Xin chào,</p>
+                <p>Mã OTP của bạn là:</p>
+                <p style="font-size: 24px; font-weight: bold; color: #d63384;">%s</p>
+                <p>Mã có hiệu lực trong <strong>%d phút</strong>. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
+                <p style="margin-top: 24px;">Trân trọng,<br><strong>Hệ thống GHSMS</strong></p>
+            </div>
+        </body>
+        </html>
+    """, otp, OTP_VALID_DURATION);
+
+        mailService.sendHtmlEmail(email, subject, htmlBody);
+        return true;
     }
 
+
+
+
     private String generateOtp() {
-        int randomPin = (int) (Math.random() * 900000) + 100000;
-        return String.valueOf(randomPin);
+        SecureRandom secureRandom = new SecureRandom();
+        int otp = 100000 + secureRandom.nextInt(900000);
+        return String.valueOf(otp);
     }
 
     public boolean verifyOtp(String email, String otp) {

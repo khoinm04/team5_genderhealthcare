@@ -9,10 +9,10 @@ public class ConsultationBookingCreateRequest {
     private String customerPhone;
 
     private String customerEmail;
-    private String bookingDate; // dạng "yyyy-MM-dd"
-    private String timeSlot;    // dạng "HH:mm-HH:mm"
+    private String bookingDate;
+    private String timeSlot;
     private Long serviceId;
-    private Long consultantId; // có thể null
+    private Long consultantId;
     private Integer age;
     private String gender;
 }

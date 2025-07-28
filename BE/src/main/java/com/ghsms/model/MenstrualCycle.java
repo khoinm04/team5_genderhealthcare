@@ -38,16 +38,16 @@ public class MenstrualCycle {
     private LocalDate endDate;
 
     @NotNull(message =" Số ngày của 2 chu kỳ không được để trống")
-    @Min(value = 20, message = " Nếu số ngày giữa 2 chu kỳ ít hơn 20 ngày thì bạn nên đi kiểm tra sức khỏe")
+    @Min(value = 25, message = " Nếu số ngày giữa 2 chu kỳ ít hơn 25 ngày thì bạn nên đi kiểm tra sức khỏe")
     @Max(value = 45, message = " Nếu số ngày giữa 2 chu kỳ nhiều hơn 45 ngày thì bạn nên đi kiểm tra sức khỏe")
     @Column(name = "CycleLength")
-    private Integer cycleLength; // Default value, can be adjusted based on user input
+    private Integer cycleLength;
 
     @NotNull(message =" Số ngày hành kinh không được để trống")
     @Column(name = "MenstruationDuration")
     @Min(value = 1, message = " Nếu số ngày hành kinh ít hơn 1 ngày thì bạn nên đi kiểm tra sức khỏe")
     @Max(value = 10, message = " Nếu số ngày hành kinh nhiều hơn 10 ngày thì bạn nên đi kiểm tra sức khỏe")
-    private Integer menstruationDuration; // Default value, can be adjusted based on user input
+    private Integer menstruationDuration;
 
     @Column(name = "NextPredictedDate")
     private LocalDate nextPredictedDate;
@@ -61,11 +61,9 @@ public class MenstrualCycle {
     @Column(name = "PredictedFertileWindowEndDate")
     private LocalDate predictedFertileWindowEndDate;
 
-
     @Size(max = 255, message = " Chú thích nên ít hơn 255 ký tự")
-    @Column(name = "Notes", length = 255)
+    @Column(name = "Notes", length = 255, columnDefinition = "nvarchar(500)")
     private String notes;
 
-    //cần bổ sung the previous start date và end date of the cycle:
 
 }

@@ -11,13 +11,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ConsultationStatsDTO {
 
-    private int totalSessions;       // ✅ Tổng số phiên đã diễn ra
-    private long totalMinutes;       // ✅ Tổng số phút đã tư vấn
-    private double averageMinutes;   // ✅ Thời lượng trung bình mỗi phiên (phút, có thể làm tròn)
+    private int totalSessions;
+    private long totalMinutes;
+    private double averageMinutes;
 
-    // Optional: nếu bạn muốn hiển thị đẹp
-    public String getFormattedAverage() {
-        return String.format("%.1f phút", averageMinutes);
-    }
+
 }
 

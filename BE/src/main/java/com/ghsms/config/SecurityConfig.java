@@ -4,11 +4,9 @@ import com.ghsms.model.User;
 import com.ghsms.service.CustomOAuth2UserService;
 import com.ghsms.service.CustomUserDetailsService;
 import com.ghsms.service.JwtService;
-import com.ghsms.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -66,7 +64,7 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
+                .sessionManagement(   session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -76,10 +74,9 @@ public class SecurityConfig {
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/staff/**").hasRole("STAFF")
                         .requestMatchers("/manager/**").hasRole("MANAGER")
-                        .requestMatchers("/consultant/**").hasRole("CONSULTANT")
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/uploads/images/**").permitAll()
-                        .requestMatchers("/api/blogposts/public").hasAnyRole("CUSTOMER", "CONSULTANT") // ✅ cả 2 vai trò
+                        .requestMatchers("/api/blogposts/public").hasAnyRole("CUSTOMER", "CONSULTANT")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -116,16 +113,13 @@ public class SecurityConfig {
             DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
             OAuth2User oauth2User = delegate.loadUser(userRequest);
 
-            // Lấy info từ OAuth2User
             Map<String, Object> attributes = oauth2User.getAttributes();
             String email = (String) attributes.get("email");
             String name = (String) attributes.get("name");
             String picture = (String) attributes.get("picture");
 
-            // Lưu user nếu mới
             User user = customOAuth2UserService.processOAuthPostLogin(null,email, name, picture);
 
-            // Trả về OAuth2User với các quyền (ở đây mình cấp mặc định ROLE_CUSTOMER)
             return new DefaultOAuth2User(
                     oauth2User.getAuthorities(),
                     oauth2User.getAttributes(),

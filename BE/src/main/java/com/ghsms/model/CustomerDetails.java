@@ -24,7 +24,7 @@ public class CustomerDetails {
     private Long customerId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // sử dụng User.userId làm luôn customerId
+    @MapsId
     @JoinColumn(name = "CustomerID")
     private User customer;
 
@@ -42,7 +42,7 @@ public class CustomerDetails {
 
     @NotBlank(message = "Tuổi không được để trống")
     @Column(name = "Gender", length = 20)
-    private String gender; // Có thể là "MALE", "FEMALE", "OTHER"
+    private String gender;
 
 
     @NotBlank(message = "Email không được để trống")

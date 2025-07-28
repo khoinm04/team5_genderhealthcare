@@ -3,7 +3,6 @@ package com.ghsms.controller;
 import com.ghsms.DTO.*;
 import com.ghsms.config.UserPrincipal;
 import com.ghsms.file_enum.BookingStatus;
-import com.ghsms.file_enum.ConsultationStatus;
 import com.ghsms.file_enum.RoleName;
 import com.ghsms.model.Booking;
 import com.ghsms.model.CustomerDetails;
@@ -13,10 +12,13 @@ import com.ghsms.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,9 +28,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/staff")  // base path cho staff
+@RequestMapping("/api/staff")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('STAFF')")  // Chỉ cho phép người dùng có vai trò STAFF truy cập
+@PreAuthorize("hasRole('STAFF')")
 public class StaffController {
 
     private final BookingService bookingService;
@@ -37,10 +39,16 @@ public class StaffController {
     private final ConsultantDetailsService consultantDetailsService;
 
     @GetMapping("/bookings")
-    public ResponseEntity<List<BookingDTO>> getMyBookings(@AuthenticationPrincipal UserPrincipal user) {
-        Long staffUserId = user.getId();
-        return ResponseEntity.ok(bookingService.getBookingsByStaffUserId(staffUserId));
+    public ResponseEntity<?> getBookingsByStaffUserId(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        Long id = principal.getId(); // Lấy email từ token
+        Page<BookingDTO> result = bookingService.getBookingsByStaffUserId(id, PageRequest.of(page, size));
+        return ResponseEntity.ok(result);
     }
+
 
     @PutMapping("/bookings/update")
     public ResponseEntity<?> updateBookingFromStaff(@RequestBody BookingUpdateRequestDTO req) {
@@ -64,8 +72,12 @@ public class StaffController {
         }
     }
 
+    @GetMapping("/services/consultation")
+    public ResponseEntity<List<SimpleServiceDTO>> getConsultationServices() {
+        return ResponseEntity.ok(serviceService.getConsultationServices());
+    }
 
-    //dung để tạo booking cho STI (xét nghiệm lây nhiễm qua đường tình dục)
+
     @PostMapping("/create/sti")
     @Operation(summary = "Create a new STI booking")
     public ResponseEntity<?> createStiBooking(@Valid @RequestBody BookingDTO bookingDTO,
@@ -100,7 +112,6 @@ public class StaffController {
         BookingDTO dto = new BookingDTO();
         dto.setBookingId(booking.getBookingId());
 
-        // Fix customer related fields
         if (booking.getCustomer() != null) {
             dto.setUserId(
                     booking.getCustomer().getCustomer() != null
@@ -114,16 +125,13 @@ public class StaffController {
             dto.setCustomerGender(booking.getCustomer().getGender()); // Giới tính
         }
 
-        // Fix staff related fields
         if (booking.getStaff() != null && booking.getStaff().getStaff() != null) {
             dto.setStaffId(booking.getStaff().getId());
         }
 
         dto.setBookingDate(booking.getBookingDate());
         dto.setTimeSlot(booking.getTimeSlot());
-        dto.setStatus(booking.getStatus());
 
-        // Map services
         if (booking.getServices() != null && !booking.getServices().isEmpty()) {
             List<Long> serviceIds = booking.getServices().stream()
                     .map(Services::getServiceId)
@@ -150,7 +158,6 @@ public class StaffController {
         dto.setNotes(testResult.getNotes());
         dto.setFormat(testResult.getFormat());
 
-        // ✅ Thêm đầy đủ thông tin khách hàng
         CustomerDetails customer = testResult.getBooking().getCustomer();
         if (customer != null) {
             dto.setCustomerName(customer.getFullName());
@@ -160,10 +167,9 @@ public class StaffController {
             dto.setCustomerEmail(customer.getEmail());
         }
 
-        // ✅ Thêm thông tin dịch vụ
         if (!testResult.getBooking().getServices().isEmpty()) {
             Services service = testResult.getBooking().getServices().iterator().next();
-            dto.setServiceCategory(service.getCategory().name());
+            dto.setServiceCategory(service.getCategory());
         }
 
         return dto;
@@ -174,7 +180,7 @@ public class StaffController {
                                           @Valid @RequestBody TestResultDTO dto,
                                           @AuthenticationPrincipal UserPrincipal user) {
         try {
-            Long staffId = user.getId(); // Lấy từ JWT nếu cần log kiểm tra
+            Long staffId = user.getId();
 
             TestResult updated = testResultService.updateResult(testResultId, dto, staffId);
 
@@ -192,14 +198,16 @@ public class StaffController {
         }
     }
 
-    //lay thông tin lich hen tư vấn viên cho staff thay
     @GetMapping("/bookings/consulting")
-    public ResponseEntity<List<BookingDTO>> getAllConsultingBookings() {
-        List<BookingDTO> bookings = consultantDetailsService.getAllConsultingBookings();
-        return ResponseEntity.ok(bookings);
+    public ResponseEntity<Page<BookingDTO>> getAllConsultingBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("bookingDate").descending());
+        Page<BookingDTO> result = consultantDetailsService.getAllConsultingBookings(pageable);
+        return ResponseEntity.ok(result);
     }
 
-    // API gán tư vấn viên duoc thuc hien boi nhan vien
     @PutMapping("/bookings/{bookingId}")
     public ResponseEntity<?> updateConsultationBooking(
             @PathVariable Long bookingId,
@@ -222,7 +230,6 @@ public class StaffController {
         return ResponseEntity.ok(Map.of("bookingId", newBookingId));
     }
 
-    //dung de update status thanh toan chung
     @PutMapping("/bookings/update-status")
     public ResponseEntity<?> updateBookingStatusByStaff(@RequestBody StaffUpdateStatusDTO dto) {
         try {

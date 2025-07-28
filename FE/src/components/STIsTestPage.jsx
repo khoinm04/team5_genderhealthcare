@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "react-toastify";
+
 import {
   TestTube,
   Calendar,
@@ -20,6 +22,8 @@ import { useNavigate } from "react-router-dom"; // For navigation to payment pag
 const STIsTestBooking = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [errors, setErrors] = useState({});
+  const [slotAvailability, setSlotAvailability] = useState({});
+
   const [bookingData, setBookingData] = useState({
     name: "",
     phone: "",
@@ -32,44 +36,8 @@ const STIsTestBooking = () => {
   });
   const navigate = useNavigate();
 
-  const availableTests = [
-    {
-      id: 5,
-      name: "Xét nghiệm HIV",
-      description: "Phát hiện virus gây suy giảm miễn dịch mắc phải",
-      price: 200000,
-      duration: "30 phút",
-      preparation: "Không cần nhịn ăn",
-      category: "STI_HIV",
-    },
-    {
-      id: 6,
-      name: "Xét nghiệm giang mai (Syphilis)",
-      description: "Phát hiện vi khuẩn Treponema pallidum",
-      price: 150000,
-      duration: "20 phút",
-      preparation: "Không cần nhịn ăn",
-      category: "STI_Syphilis",
-    },
-    {
-      id: 7,
-      name: "Xét nghiệm lậu (Gonorrhea)",
-      description: "Phát hiện vi khuẩn Neisseria gonorrhoeae",
-      price: 180000,
-      duration: "25 phút",
-      preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-      category: "STI_Gonorrhea",
-    },
-    {
-      id: 8,
-      name: "Xét nghiệm Chlamydia",
-      description: "Phát hiện vi khuẩn Chlamydia trachomatis",
-      price: 170000,
-      duration: "25 phút",
-      preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-      category: "STI_Chlamydia",
-    },
-  ];
+  const [availableTests, setAvailableTests] = useState([]);
+  const [selectedTestIds, setSelectedTestIds] = useState([]);
 
   const timeSlots = [
     "08:00-08:30",
@@ -85,6 +53,47 @@ const STIsTestBooking = () => {
     "16:00-16:30",
     "16:30-17:00",
   ];
+
+  useEffect(() => {
+    const token = localStorage.getItem("token"); // hoặc sessionStorage.getItem("token")
+
+    fetch("/api/bookings/api/services/sti-tests", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Không thể tải danh sách xét nghiệm");
+        return res.json();
+      })
+      .then((data) => setAvailableTests(data))
+      .catch((err) => {
+        console.error("Lỗi khi gọi API:", err);
+        alert("Lỗi hệ thống, vui lòng thử lại.");
+      });
+  }, []);
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (bookingData.date && token) {
+      axios.get("/api/booking/availability", {
+        params: { date: bookingData.date },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          setSlotAvailability(res.data); // Lưu map { slot: boolean }
+        })
+        .catch(err => {
+          console.error("Lỗi khi lấy slot availability:", err);
+        });
+    }
+  }, [bookingData.date]);
+
+
 
   const handleTestSelection = (testId) => {
     setSelectedTest((prev) => {
@@ -109,16 +118,17 @@ const STIsTestBooking = () => {
 
   const calculateTotal = () => (selectedTest ? selectedTest.price : 0);
 
+
   const handleBooking = async () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("Bạn chưa đăng nhập. Vui lòng đăng nhập để đặt lịch.");
+      toast.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập để đặt lịch.");
       return;
     }
 
     if (!selectedTest) {
-      alert("Vui lòng chọn ít nhất một xét nghiệm");
+      toast.warning("Vui lòng chọn ít nhất một xét nghiệm");
       return;
     }
 
@@ -126,6 +136,7 @@ const STIsTestBooking = () => {
 
     const isValid = validate();
     if (!isValid) return;
+
     const amount = calculateTotal();
 
     const payload = {
@@ -134,7 +145,7 @@ const STIsTestBooking = () => {
       bookingDate: date,
       timeSlot: time,
       paymentCode: null,
-      status: "COMPLETED", // ✅ sửa chỗ này
+      status: "COMPLETED",
       isStiBooking: true,
       customerName: name,
       customerAge: bookingData.age,
@@ -152,25 +163,31 @@ const STIsTestBooking = () => {
         },
       });
 
-      {
-        navigate("/booking-success", {
-          state: {
-            testName: selectedTest.name,
-            date,
-            time,
-            fullName: name,
-            amount,
-            email,
-            phone,
-          }
-        });
+      toast.success("Đặt lịch thành công!");
 
-      }
+      navigate("/booking-success", {
+        state: {
+          testName: selectedTest.name,
+          date,
+          time,
+          fullName: name,
+          amount,
+          email,
+          phone,
+        },
+      });
+
     } catch (error) {
-      console.error("Lỗi đặt lịch:", error.response?.data || error.message);
-      alert("Không thể gửi đặt lịch. Vui lòng thử lại sau.");
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Không thể gửi đặt lịch. Vui lòng thử lại sau.";
+
+      console.error("Lỗi đặt lịch:", errorMessage);
+      toast.error(errorMessage);
     }
   };
+
 
 
   // api lay thong tin ngươi dung co san
@@ -265,7 +282,6 @@ const STIsTestBooking = () => {
 
 
   return (
-
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Test Selection */}
       <div className="lg:col-span-2">
@@ -293,7 +309,7 @@ const STIsTestBooking = () => {
                   {test.description}
                 </p>
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>⏱ {test.duration}</span>
+                  <span>⏱ {test.duration} phút</span>
                   <span className="bg-gray-100 px-2 py-1 rounded">
                     {test.category.replace("STI_", "")}
                   </span>
@@ -413,7 +429,13 @@ const STIsTestBooking = () => {
               {timeSlots.map((time) => (
                 <button
                   key={time}
-                  onClick={() => handleInputChange("time", time)}
+                  onClick={() => {
+                    if (slotAvailability[time] === false) {
+                      alert("Khung giờ này đã đầy. Vui lòng chọn khung giờ khác.");
+                      return;
+                    }
+                    handleInputChange("time", time);
+                  }}
                   className={`p-2 text-sm border rounded-lg transition-colors ${bookingData.time === time
                     ? "border-purple-600 bg-purple-50 text-purple-600"
                     : "border-gray-300 hover:border-purple-300"
@@ -472,10 +494,10 @@ const STIsTestBooking = () => {
             <div className="border-t pt-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-bold text-gray-900">
-                  Tổng cộng:
+                  {/* Tổng cộng: */}
                 </span>
                 <span className="text-xl font-bold text-purple-600">
-                  {calculateTotal().toLocaleString("vi-VN")} đ
+                  {/* {calculateTotal().toLocaleString("vi-VN")} đ */}
                 </span>
               </div>
             </div>
@@ -518,7 +540,14 @@ const STIsTestPage = () => {
   const [step, setStep] = useState(1); // 1 = booking, 2 = payment, 3 = success
   const [paymentCode, setPaymentCode] = useState("");
   const [selectedService, setSelectedService] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);   // trang bắt đầu từ 0
+  const pageSize = 5;                                  // cố định 5 / trang
+  const [totalPages, setTotalPages] = useState(0);     // lấy từ backend
   const [bookingId, setBookingId] = useState(null);
+  const [totalStiCount, setTotalStiCount] = useState(0);
+
+  const token = localStorage.getItem("token");
+
   const [contactInfo, setContactInfo] = useState({
     fullName: '',
     phone: '',
@@ -527,79 +556,85 @@ const STIsTestPage = () => {
     gender: '',
     notes: ''
   });
+  // api đếm tống số xét nghiệm
+  useEffect(() => {
+    if (!token) return;
+
+    axios.get("/api/bookings/user/sti-count", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        setTotalStiCount(res.data.total);
+      })
+      .catch(err => {
+        console.error("❌ Lỗi khi gọi API sti-count:", err);
+      });
+  }, [token]); // thêm dependency nếu cần
+
 
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
-    axios
-      .get(`/api/bookings/user`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        const bookings = res.data.bookings || [];
+    // 1️⃣  Gọi API bookings có phân trang
+    axios.get(`/api/bookings/user?page=${currentPage}&size=${pageSize}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        const bookings = res.data.content || [];
+        setTotalPages(res.data.totalPages);              // lưu lại tổng trang
 
-        const testResultsPromises = bookings.map((booking) =>
-          axios.get(`/api/bookings/sti/${booking.bookingId}/test-results`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
+        // 2️⃣  Gọi song song /test-results cho từng booking
+        const results = await Promise.all(
+          bookings.map(b =>
+            axios.get(`/api/bookings/sti/${b.bookingId}/test-results`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          )
         );
 
+        const all = results.flatMap(r => r.data.testResults || []);
 
-
-        Promise.all(testResultsPromises)
-          .then((results) => {
-            const allTestResults = results.flatMap((result) => result.data.testResults);
-            setTestResults(
-              allTestResults.map((result) => ({
-                id: result.testResultId,
-                bookingId: result.bookingId,
-                patientName: result.customerName,
-                testDate: result.scheduledTime,
-                timeSlot: result.timeSlot,
-                tests: [result.testName],
-                status: result.status.toLowerCase(),
-                currentPhase: result.currentPhase,
-                progressPercentage: result.progressPercentage,
-                estimatedMinutesRemaining: result.estimatedMinutesRemaining,
-                details: {
-                  patientInfo: {
-                    name: result.customerName,
-                    age: result.customerAge || "N/A",
-                    gender: result.customerGender || "N/A",
-                    phone: result.customerPhone || "N/A",
-                    email: result.customerEmail || "N/A",
-                  },
-                  testResults: {
-                    [result.testName]: {
-                      status: result.result ? "abnormal" : "normal",
-                      result: result.result || "Chưa có kết quả",
-                      normalRange: "N/A",
-                    },
-                  },
-                  doctorNotes: result.notes || "Không có ghi chú",
-                  nextAppointment: null,
+        // 3️⃣  Map về định dạng bạn cần (nếu chưa có testResult thì hiển thị “pending”)
+        const mapped = bookings.map(b => {
+          const r = all.find(t => t.bookingId === b.bookingId);
+          return {
+            id: r?.testResultId ?? `pending-${b.bookingId}`,
+            bookingId: b.bookingId,
+            patientName: b.customerName,
+            testDate: r?.scheduledTime ?? b.bookingDate,
+            timeSlot: b.timeSlot,
+            tests: [b.serviceName],
+            status: (r ? r.status : b.testStatus ?? "PENDING").toLowerCase(),
+            progressPercentage: r ? r.progressPercentage : 0,
+            details: {
+              patientInfo: {
+                name: b.customerName,
+                age: b.customerAge,
+                gender: b.customerGender,
+                phone: b.customerPhone,
+                email: b.customerEmail,
+              },
+              testResults: {
+                [b.serviceName]: {
+                  status: r?.result ? "abnormal" : "pending",
+                  result: r?.result ?? "Chưa có kết quả",
+                  normalRange: "N/A",
                 },
-                downloadUrl:
-                  result.status === "completed"
-                    ? `/api/bookings/sti/test-result/${result.bookingId}/report?format=PDF`
-                    : null,
-              }))
-            );
-          })
-          .catch((err) => {
-            console.error("Lỗi lấy kết quả xét nghiệm:", err);
-          });
+              },
+              doctorNotes: r?.notes || null,  // 🟡 Thêm dòng này
+
+            },
+            downloadUrl: r && r.status === "completed"
+              ? `/api/bookings/sti/test-result/${b.bookingId}/report?format=PDF`
+              : null,
+          };
+        });
+
+        setTestResults(mapped);
       })
-      .catch((err) => {
-        console.error("Lỗi lấy danh sách booking:", err);
-      });
-  }, []);
+      .catch(err => console.error("⛔ Lỗi lấy booking:", err));
+  }, [currentPage, token]); // ⚠️ phụ thuộc currentPage
 
 
   const getStatusColor = (status) => {
@@ -689,44 +724,19 @@ const STIsTestPage = () => {
 
 
   const STIsTestInfo = () => {
-    const availableTests = [
-      {
-        id: 5,
-        name: "Xét nghiệm HIV",
-        description: "Phát hiện virus gây suy giảm miễn dịch mắc phải",
-        price: 200000,
-        duration: "30 phút",
-        preparation: "Không cần nhịn ăn",
-        category: "STI_HIV",
-      },
-      {
-        id: 6,
-        name: "Xét nghiệm giang mai (Syphilis)",
-        description: "Phát hiện vi khuẩn Treponema pallidum",
-        price: 150000,
-        duration: "20 phút",
-        preparation: "Không cần nhịn ăn",
-        category: "STI_Syphilis",
-      },
-      {
-        id: 7,
-        name: "Xét nghiệm lậu (Gonorrhea)",
-        description: "Phát hiện vi khuẩn Neisseria gonorrhoeae",
-        price: 180000,
-        duration: "25 phút",
-        preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-        category: "STI_Gonorrhea",
-      },
-      {
-        id: 8,
-        name: "Xét nghiệm Chlamydia",
-        description: "Phát hiện vi khuẩn Chlamydia trachomatis",
-        price: 170000,
-        duration: "25 phút",
-        preparation: "Không quan hệ tình dục 24h trước xét nghiệm",
-        category: "STI_Chlamydia",
-      },
-    ];
+    const [availableTests, setAvailableTests] = useState([]);
+
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      fetch("http://localhost:8080/api/bookings/test-services", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setAvailableTests(data)) // mỗi item: { id, name, category }
+        .catch(err => console.error("❌ Không thể load danh sách xét nghiệm:", err));
+    }, []);
 
     return (
       <div className="space-y-6">
@@ -958,6 +968,29 @@ const STIsTestPage = () => {
                 </div>
               </div>
             ))}
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center space-x-4 mt-6">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                disabled={currentPage === 0}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-200"
+              >
+                Trang trước
+              </button>
+
+              <span className="text-sm text-gray-600">
+                Trang {currentPage + 1} / {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                disabled={currentPage >= totalPages - 1}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-200"
+              >
+                Trang sau
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -989,6 +1022,7 @@ const STIsTestPage = () => {
 
 
 
+    console.log("📦 selectedResult:", selectedResult);
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1148,7 +1182,7 @@ const STIsTestPage = () => {
               Object.keys(selectedResult.details.testResults).length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Kết quả xét nghiệm
+                    Kết quả xét nghiệm ({totalStiCount})
                   </h3>
                   <div className="space-y-4">
                     {Object.entries(selectedResult.details.testResults).map(
@@ -1250,17 +1284,19 @@ const STIsTestPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      <button
-        onClick={handleBackToHome}
-        className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        <span className="text-base font-medium">Trang chủ</span>
-      </button>
+    <div className="min-h-screen bg-gray-50 pt-0">
       {/* Header */}
-      <div className="bg-purple-600 text-white py-12">
+      <div className="bg-purple-600 text-white py-12 relative">
+        {/* Nút Trang chủ lên góc trái */}
+        <button
+          onClick={handleBackToHome}
+          className="absolute top-4 left-4 flex items-center text-white hover:text-gray-100 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          <span className="text-base font-medium">Trang chủ</span>
+        </button>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Xóa nút Trang chủ ở đây */}
           <div className="flex items-center space-x-3 mb-4">
             <TestTube className="h-8 w-8" />
             <h1 className="text-3xl font-bold">Xét nghiệm STIs</h1>
@@ -1271,7 +1307,6 @@ const STIsTestPage = () => {
           </p>
         </div>
       </div>
-
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1287,7 +1322,7 @@ const STIsTestPage = () => {
                 id: "results",
                 label: "Kết quả xét nghiệm",
                 icon: TestTube,
-                badge: testResults.length,
+                badge: `${testResults.length} / ${totalStiCount}`, // ✅ 5 / 8
               },
             ].map((tab) => (
               <button

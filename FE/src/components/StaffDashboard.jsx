@@ -13,14 +13,17 @@ import {
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
   const { deactivateClient } = useOnlineUsersSocket(() => { });
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
+  const [notes, setNotes] = useState('');
+  const [consultPage, setConsultPage] = useState(0);
+  const [consultSize, setConsultSize] = useState(10);
+  const [consultTotalPages, setConsultTotalPages] = useState(0);
 
-
+  const [testPage, setTestPage] = useState(0);
+  const [testSize, setTestSize] = useState(10);
+  const [testTotalPages, setTestTotalPages] = useState(0);
 
   const [testOrders, setTestOrders] = useState([]);
   const [schedules, setSchedules] = useState([])
@@ -264,7 +267,7 @@ const StaffDashboard = () => {
           timeSlot,
           serviceId,
           consultantId: consultantId || null,
-          status: selectedItem.status, // 👈 thêm dòng này
+          consultationStatus: selectedItem.consultationStatus, // 👈 thêm dòng này
         }),
       });
 
@@ -410,13 +413,16 @@ const StaffDashboard = () => {
     }
   };
 
-  const handleServiceToggle = (serviceId) => {
-    setSelectedServiceId(prev =>
-      prev.includes(serviceId)
-        ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
-    );
-  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:8080/api/staff/services/consultation", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then(data => setAvailableServices(data))
+      .catch(err => console.error("❌ Không thể load dịch vụ tư vấn:", err));
+  }, []);
 
 
 
@@ -545,6 +551,11 @@ const StaffDashboard = () => {
     }
   }, [selectedItem]);
 
+  useEffect(() => {
+    console.log("🔍 selectedItem.serviceId:", selectedItem?.serviceId);
+  }, [selectedItem?.serviceId]);
+
+
   //api để lấy danh sách consultant ứng với service Lưu ý cho chỉnh sửa
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -593,17 +604,15 @@ const StaffDashboard = () => {
 
 
 
-  useEffect(() => {
+  const fetchTestOrders = (page = 0) => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     const token = localStorage.getItem("token");
-
     if (storedUser) {
-      setUser(storedUser); // lưu vào state
+      setUser(storedUser);
     }
-
     if (!token) return;
 
-    fetch("http://localhost:8080/api/staff/bookings", {
+    fetch(`http://localhost:8080/api/staff/bookings?page=${page}&size=${testSize}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -611,10 +620,9 @@ const StaffDashboard = () => {
         return res.json();
       })
       .then(data => {
-        const mappedTestOrders = data.map((booking) => {
+        const mapped = data.content.map(booking => {
           const rawStatus = booking.testResults?.[0]?.status ?? booking.status;
           const [startTime, endTime] = booking.timeSlot?.split('-') || [];
-
 
           return {
             id: booking.bookingId,
@@ -624,108 +632,50 @@ const StaffDashboard = () => {
             customerPhone: booking.customerPhone,
             bookingDate: booking.bookingDate,
             statusBooking: booking.status?.toUpperCase() || "PENDING_PAYMENT",
-
-            timeSlot: booking.timeSlot, // ✅ THÊM DÒNG NÀY!
+            timeSlot: booking.timeSlot,
             startTime,
             endTime,
             status: rawStatus?.toUpperCase() || 'PENDING',
-            statusCode: rawStatus?.toUpperCase() || 'PENDING',// ✅ bạn có thể gộp lại nếu muốn
-            services: booking.testResults?.map(tr => tr.testName)
-              ?? (booking.serviceName ? [booking.serviceName] : []),
+            statusCode: rawStatus?.toUpperCase() || 'PENDING',
+            services: booking.testResults?.map(tr => tr.testName) ?? (booking.serviceName ? [booking.serviceName] : []),
             paymentCode: booking.paymentCode,
             staffId: booking.staffId,
-            staffName: storedUser?.name || "Ẩn danh",
+            staffName: booking.staffName || storedUser?.name || "Ẩn danh",
             testResults: booking.testResults || [],
             consultantName: booking.consultantName || null
           };
         });
 
-        setTestOrders(mappedTestOrders);
-        console.log("✅ Test orders:", mappedTestOrders);
+        setTestOrders(mapped);
+        setTestTotalPages(data.totalPages);
       })
-      .catch(error => {
-        console.error("Lỗi khi gọi API booking:", error);
+      .catch(err => {
+        console.error("Lỗi khi tải booking xét nghiệm:", err);
+        setTestOrders([]);
       });
-  }, []);
-  //api để lấy danh sách tư vấn
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    fetch("http://localhost:8080/api/staff/services", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch services");
-        return res.json();
-      })
-      .then(data => setAvailableServices(data))
-      .catch(error => {
-        console.error("Lỗi khi load dịch vụ:", error);
-      });
-  }, []);
-
-
-  //api để lấy danh sách Test
-  useEffect(() => {
-    const token = localStorage.getItem("token"); // nếu API cần xác thực
-
-    fetch("http://localhost:8080/api/staff/services", {
-      headers: {
-        Authorization: `Bearer ${token}`, // nếu backend có bảo vệ
-      },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch services");
-        return res.json();
-      })
-      .then(data => setAvailableTests(data))
-      .catch(error => {
-        console.error("Lỗi khi load dịch vụ:", error);
-      });
-  }, []);
-
-  const handleSubmitResult = async () => {
-    try {
-      const res = await fetch(`/api/staff/${selectedItem.testResultId}/update-result`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ result: selectedResult }),
-      });
-
-      if (!res.ok) throw new Error("Lỗi cập nhật");
-
-      alert("Cập nhật thành công");
-      setShowEditResultModal(false);
-      // reload lại danh sách nếu cần
-    } catch (err) {
-      alert("Cập nhật thất bại: " + err.message);
-    }
   };
+
+  useEffect(() => {
+    fetchTestOrders(testPage);
+  }, [testPage, testSize]);
+
 
 
   //lấy danh sách tư vấn viên
-  useEffect(() => {
+  const fetchConsultSchedules = (page = 0) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:8080/api/staff/bookings/consulting", {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    fetch(`http://localhost:8080/api/staff/bookings/consulting?page=${page}&size=${consultSize}`, {
+      headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
         if (!res.ok) throw new Error("Lỗi khi tải lịch tư vấn");
         return res.json();
       })
       .then(data => {
-        const mappedSchedules = data.map((booking) => {
+        const mapped = data.content.map(booking => {
           const [startTime, endTime] = booking.timeSlot?.split("-") || [];
-
           return {
             id: booking.bookingId,
             customerName: booking.customerName,
@@ -737,25 +687,31 @@ const StaffDashboard = () => {
             endTime,
             serviceName: booking.serviceName,
             duration: booking.duration || "",
-            status: booking.status?.toUpperCase() || "PENDING_PAYMENT",
+            consultationStatus: booking.consultationStatus?.toUpperCase() || "PENDING",
             services: booking.serviceName ? [booking.serviceName] : [],
             serviceIds: booking.serviceIds || [],
             testResults: booking.testResults || [],
           };
         });
 
-        setSchedules(mappedSchedules);
+        setSchedules(mapped);
+        setConsultTotalPages(data.totalPages);
       })
       .catch(err => {
         console.error("Không thể tải lịch tư vấn:", err);
         setSchedules([]);
       });
-  }, []);
+  };
 
-  const translateStatusLabel = (status, type) => {
-    if (!status) return "Không rõ";
+  useEffect(() => {
+    fetchConsultSchedules(consultPage);
+  }, [consultPage, consultSize]);
 
-    const normalizedStatus = status.toUpperCase();
+
+  const translateStatusLabel = (consultationStatus, type) => {
+    if (!consultationStatus) return "Không rõ";
+
+    const normalizedStatus = consultationStatus.toUpperCase();
 
     if (type === "testOrder") {
       switch (normalizedStatus) {
@@ -774,14 +730,20 @@ const StaffDashboard = () => {
 
     if (type === "schedule") {
       switch (normalizedStatus) {
-        case "PENDING_PAYMENT":
-          return "Chờ thanh toán";
+        case "PENDING":
+          return "Chờ xác nhận";
         case "CONFIRMED":
           return "Đã xác nhận";
+        case "SCHEDULED":
+          return "Đã lên lịch";
+        case "ONGOING":
+          return "Đang tư vấn";
         case "COMPLETED":
-          return "Đã thanh toán";
+          return "Hoàn thành"
         case "CANCELED":
-          return "Đã hủy";
+          return "Đã hủy"
+        case "RESCHEDULED":
+          return "Đã dời lịch"
         default:
           return status;
       }
@@ -791,11 +753,15 @@ const StaffDashboard = () => {
   };
 
   const statusOptions = [
-    { label: 'Chờ thanh toán', value: 'PENDING_PAYMENT', color: 'yellow' },
+    { label: 'Chờ xác nhận', value: 'PENDING', color: 'yellow' },
     { label: 'Đã xác nhận', value: 'CONFIRMED', color: 'blue' },
-    { label: 'Đã thanh toán', value: 'COMPLETED', color: 'emerald' },
+    { label: 'Đã lên lịch', value: 'SCHEDULED', color: 'indigo' },
+    { label: 'Đang tư vấn', value: 'ONGOING', color: 'sky' },
+    { label: 'Đã hoàn thành', value: 'COMPLETED', color: 'emerald' },
     { label: 'Đã hủy', value: 'CANCELED', color: 'red' },
+    { label: 'Đã dời lịch', value: 'RESCHEDULED', color: 'purple' },
   ];
+
 
 
   const colorMap = {
@@ -805,6 +771,7 @@ const StaffDashboard = () => {
     red: "bg-red-100 text-red-800 hover:bg-red-200 border-red-200"
   };
 
+  console.log("✅ availableServices:", availableServices);
 
 
   return (
@@ -825,13 +792,12 @@ const StaffDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {/* <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-              </button> */}
+
               <div className="flex items-center space-x-3">
                 <div className="text-right leading-tight">
-                  <p className="h-2 text-sm font-medium text-gray-900">NV. {user.name}</p>
+                  <p className="h-2 text-sm font-medium text-gray-900">
+                    NV. {user?.name ?? "Chưa có tên"}
+                  </p>
                   <p className="text-xs text-gray-500">Nhân Viên Y Tế</p>
                 </div>
 
@@ -963,9 +929,9 @@ const StaffDashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">{schedule.date}</p>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status, 'schedule')}`}>
-                          {getStatusIcon(schedule.status, 'schedule')}
-                          <span className="ml-1 capitalize">{translateStatusLabel(schedule.status, 'schedule')}</span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.consultationStatus, 'schedule')}`}>
+                          {getStatusIcon(schedule.consultationStatus, 'schedule')}
+                          <span className="ml-1 capitalize">{translateStatusLabel(schedule.consultationStatus, 'schedule')}</span>
                         </span>
 
                       </div>
@@ -1029,7 +995,7 @@ const StaffDashboard = () => {
                   setModalType('schedule');
                   setShowCreateModal(true);
                 }}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="min-w-[130px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Plus className="w-5 h-5" />
                 <span>Tạo Lịch Hẹn</span>
@@ -1078,7 +1044,7 @@ const StaffDashboard = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tư Vấn Viên</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dịch Vụ</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày & Giờ</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái Thanh Toán</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng Thái</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao Tác</th>
                     </tr>
                   </thead>
@@ -1111,9 +1077,9 @@ const StaffDashboard = () => {
                           <div className="text-sm text-gray-500">{schedule.startTime} - {schedule.endTime}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status, 'schedule')}`}>
-                            {getStatusIcon(schedule.status, 'schedule')}
-                            <span className="ml-1 capitalize">{translateStatusLabel(schedule.status, 'schedule')}</span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.consultationStatus, 'schedule')}`}>
+                            {getStatusIcon(schedule.consultationStatus, 'schedule')}
+                            <span className="ml-1 capitalize">{translateStatusLabel(schedule.consultationStatus, 'schedule')}</span>
                           </span>
 
                         </td>
@@ -1167,6 +1133,41 @@ const StaffDashboard = () => {
                 </table>
               </div>
             </div>
+            <div className="flex items-center justify-center gap-4 mt-4 pb-4">
+              <button
+                onClick={() => setConsultPage((p) => Math.max(0, p - 1))}
+                disabled={consultPage === 0}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                ◀ Trang trước
+              </button>
+
+              <span className="text-sm font-medium text-gray-700">
+                Trang {consultPage + 1} / {consultTotalPages}
+              </span>
+
+              <button
+                onClick={() => setConsultPage((p) => p + 1)}
+                disabled={consultPage + 1 >= consultTotalPages}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                Trang sau ▶
+              </button>
+
+              <select
+                value={testSize}
+                onChange={(e) => {
+                  setConsultSize(Number(e.target.value));
+                  setConsultPage(0); // reset về trang đầu nếu đổi size
+                }}
+                className="ml-4 px-2 py-1 border rounded"
+              >
+                <option value={5}>5 dòng/trang</option>
+                <option value={10}>10 dòng/trang</option>
+                <option value={20}>20 dòng/trang</option>
+              </select>
+            </div>
+
           </div>
         )}
 
@@ -1184,7 +1185,7 @@ const StaffDashboard = () => {
                   setModalType('test');
                   setShowCreateModal(true);
                 }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="min-w-[210px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Plus className="w-5 h-5" />
                 <span>Thêm Đơn Xét Nghiệm</span>
@@ -1340,6 +1341,41 @@ const StaffDashboard = () => {
                 </table>
               </div>
             </div>
+            <div className="flex items-center justify-center gap-4 mt-4 pb-4">
+              <button
+                onClick={() => setTestPage((p) => Math.max(0, p - 1))}
+                disabled={testPage === 0}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                ◀ Trang trước
+              </button>
+
+              <span className="text-sm font-medium text-gray-700">
+                Trang {testPage + 1} / {testTotalPages}
+              </span>
+
+              <button
+                onClick={() => setTestPage((p) => p + 1)}
+                disabled={testPage + 1 >= testTotalPages}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+              >
+                Trang sau ▶
+              </button>
+
+              <select
+                value={testSize}
+                onChange={(e) => {
+                  setTestSize(Number(e.target.value));
+                  setTestPage(0); // reset về trang đầu nếu đổi size
+                }}
+                className="ml-4 px-2 py-1 border rounded"
+              >
+                <option value={5}>5 dòng/trang</option>
+                <option value={10}>10 dòng/trang</option>
+                <option value={20}>20 dòng/trang</option>
+              </select>
+            </div>
+
           </div>
         )}
       </main>
@@ -1347,8 +1383,8 @@ const StaffDashboard = () => {
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+          <div className="min-w-[180px] bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="min-w-[180px] text-xl font-semibold text-gray-900 mb-6">
               {modalType === 'schedule' ? 'Tạo Lịch Hẹn Mới' : 'Thêm Đơn Xét Nghiệm Mới'}
             </h3>
 
@@ -1611,13 +1647,13 @@ const StaffDashboard = () => {
             <div className="flex justify-end space-x-3 mt-8">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+                className="min-w-[80px] px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={modalType === 'schedule' ? handleCreateSchedule : handleCreateTestOrder}
-                className={`px-6 py-3 rounded-xl text-white transition-colors ${modalType === 'schedule'
+                className={`min-w-[160px] px-6 py-3 rounded-xl text-white transition-colors ${modalType === 'schedule'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
                   : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
                   }`}
@@ -1645,6 +1681,8 @@ const StaffDashboard = () => {
               </button>
             </div>
 
+
+
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-700">Kết quả</label>
               <select
@@ -1656,6 +1694,15 @@ const StaffDashboard = () => {
                 <option value="Âm tính">Âm tính</option>
                 <option value="Dương tính">Dương tính</option>
               </select>
+
+              <label className="block text-sm font-medium text-gray-700">Ghi chú của bác sĩ</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Nhập ghi chú tại đây..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              />
+
 
               <button
                 onClick={handleSubmitResult}
@@ -1719,8 +1766,9 @@ const StaffDashboard = () => {
                       <option value="">Chọn Tư Vấn Viên</option>
                       {consultants.map(consultant => (
                         <option key={consultant.id} value={consultant.id}>
-                          {consultant.fullName} ({translateSpecialization(consultant.specialization)})
-                        </option>
+  {consultant.fullName} ({consultant.specialization})
+</option>
+
                       ))}
                     </select>
                   </div>
@@ -1735,37 +1783,46 @@ const StaffDashboard = () => {
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Chọn Dịch Vụ</option>
-                      {availableServices
-                        .filter(service => service.categoryType === "CONSULTATION") // nếu chỉ muốn tư vấn
-                        .map(service => (
-                          <option key={service.serviceId} value={service.serviceId}>
-                            {service.serviceName}
-                          </option>
-                        ))}
+                      {availableServices.map(service => (
+                        <option key={service.id} value={service.id}>
+                          {service.name}
+                        </option>
+                      ))}
                     </select>
+
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ngày *</label>
                     <input
                       type="date"
                       value={selectedItem.date}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, date: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onChange={(e) =>
+                        setSelectedItem({ ...selectedItem, date: e.target.value })
+                      }
+                      disabled={selectedItem.consultationStatus !== "RESCHEDULED"} // 👈 Chỉ cho chỉnh nếu là RESCHEDULED
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedItem.consultationStatus !== "RESCHEDULED"
+                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                        : "border-gray-200"
+                        }`}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Trạng Thái</label>
                     <select
-                      value={selectedItem.status}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, status: e.target.value })}
+                      value={selectedItem.consultationStatus}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, consultationStatus: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="PENDING_PAYMENT">Chờ Thanh Toán</option>
-                      <option value="CONFIRMED">Đã Xác Nhận</option>
-                      <option value="COMPLETED">Đã Thanh Toán</option>
-                      <option value="CANCELED">Đã Hủy</option>
+                      <option value="PENDING">Chờ xác nhận</option>
+                      <option value="CONFIRMED">Đã xác nhận</option>
+                      <option value="SCHEDULED">Đã lên lịch</option>
+                      <option value="ONGOING">Đang tư vấn</option>
+                      <option value="RESCHEDULED">Đã dời lịch</option>
+                      <option value="COMPLETED">Hoàn thành</option>
+                      <option value="CANCELED">Đã hủy</option>
                     </select>
                   </div>
+
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1773,20 +1830,34 @@ const StaffDashboard = () => {
                     <input
                       type="time"
                       value={selectedItem.startTime}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, startTime: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onChange={(e) =>
+                        setSelectedItem({ ...selectedItem, startTime: e.target.value })
+                      }
+                      disabled={selectedItem.consultationStatus !== "RESCHEDULED"} // 👈 Chỉ cho chỉnh nếu là RESCHEDULED
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedItem.consultationStatus !== "RESCHEDULED"
+                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                        : "border-gray-200"
+                        }`}
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Giờ Kết Thúc</label>
                     <input
                       type="time"
                       value={selectedItem.endTime}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, endTime: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onChange={(e) =>
+                        setSelectedItem({ ...selectedItem, endTime: e.target.value })
+                      }
+                      disabled={selectedItem.consultationStatus !== "RESCHEDULED"} // 👈 Như trên
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedItem.consultationStatus !== "RESCHEDULED"
+                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                        : "border-gray-200"
+                        }`}
                     />
                   </div>
                 </div>
+
               </div>
             ) : (
               <div className="space-y-4">
